@@ -1,0 +1,2 @@
+ALTER TABLE "SiteContent"
+ADD COLUMN "heroSlides" JSONB NOT NULL DEFAULT '[]';

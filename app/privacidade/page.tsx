@@ -1,0 +1,3 @@
+export default function PrivacyPage() {
+  return <main className="legal-page"><h1>Privacidade</h1><p><strong>Conteúdo provisório — requer revisão jurídica.</strong></p><p>A DroidStore coleta somente os dados necessários para criar a conta, processar pedidos, entregar produtos, prevenir fraude e atender solicitações.</p><h2>Seus direitos</h2><p>Você poderá solicitar acesso, correção, portabilidade ou exclusão dos dados, respeitando obrigações legais de retenção.</p><h2>Segurança</h2><p>Senhas são protegidas por hash; dados de cartão não são armazenados pela loja e pagamentos são processados pelo gateway configurado.</p></main>;
+}
