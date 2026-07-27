@@ -2,10 +2,9 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 import ProductCard from "../../src/components/ProductCard";
 import { products, type CatalogProduct } from "../../src/lib/catalog";
-
 import CatalogCarousel, { type CatalogSlide } from "../../src/components/CatalogCarousel";
 
 type PublicFilter = {
@@ -35,6 +34,7 @@ function CatalogContent() {
   const [sort, setSort] = useState("relevance");
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(0);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   useEffect(() => {
     void Promise.all([
@@ -72,6 +72,22 @@ function CatalogContent() {
     setSelectedFilters(initialSelections);
   }, [filters, paramsKey, searchParams]);
 
+  useEffect(() => {
+    if (!mobileFiltersOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileFiltersOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileFiltersOpen]);
+
   const priceLimits = useMemo(() => {
     const values = catalog.map((product) => product.price).filter(Number.isFinite);
     return {
@@ -107,38 +123,105 @@ function CatalogContent() {
   const priceSpan = Math.max(1, priceLimits.max - priceLimits.min);
   const start = ((minPrice - priceLimits.min) / priceSpan) * 100;
   const end = ((effectiveMaxPrice - priceLimits.min) / priceSpan) * 100;
+  const activeFilterCount =
+    (query.trim() ? 1 : 0) +
+    (condition !== "Todas" ? 1 : 0) +
+    Object.values(selectedFilters).filter(Boolean).length +
+    (minPrice > priceLimits.min || effectiveMaxPrice < priceLimits.max ? 1 : 0);
+
+  function filterFields() {
+    return <div className="catalog-filter-fields">
+      <label className="catalog-filter-field">
+        <span>Buscar</span>
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Nome, marca ou modelo"
+        />
+      </label>
+
+      {filters.filter((filter) => filter.options.length > 0).map((filter) => <label className="catalog-filter-field" key={filter.id}>
+        <span>{filter.name}</span>
+        <select
+          value={selectedFilters[filter.slug] ?? ""}
+          onChange={(event) => setSelectedFilters((current) => ({ ...current, [filter.slug]: event.target.value }))}
+        >
+          <option value="">Todos</option>
+          {filter.options.map((option) => <option key={option.id} value={option.slug}>{option.label}</option>)}
+        </select>
+      </label>)}
+
+      <section className="price-filter">
+        <strong>Preço</strong>
+        <div className="price-scale">
+          <span>{priceLimits.min.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+          <span>{priceLimits.max.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+        </div>
+        <div className="dual-range" style={{ "--range-start": `${start}%`, "--range-end": `${end}%` } as React.CSSProperties}>
+          <div />
+          <input aria-label="Preço mínimo" type="range" min={priceLimits.min} max={priceLimits.max} value={minPrice} onChange={(event) => setMinPrice(Math.min(Number(event.target.value), effectiveMaxPrice))} />
+          <input aria-label="Preço máximo" type="range" min={priceLimits.min} max={priceLimits.max} value={effectiveMaxPrice} onChange={(event) => setMaxPrice(Math.max(Number(event.target.value), minPrice))} />
+        </div>
+        <div className="price-inputs">
+          <label><span>Mínimo</span><input type="number" min={priceLimits.min} max={effectiveMaxPrice} value={minPrice} onChange={(event) => setMinPrice(Math.min(Number(event.target.value), effectiveMaxPrice))} /></label>
+          <label><span>Máximo</span><input type="number" min={minPrice} max={priceLimits.max} value={effectiveMaxPrice} onChange={(event) => setMaxPrice(Math.max(Number(event.target.value), minPrice))} /></label>
+        </div>
+      </section>
+
+      <label className="catalog-filter-field">
+        <span>Condição</span>
+        <select value={condition} onChange={(event) => setCondition(event.target.value)}>
+          {conditions.map((item) => <option key={item}>{item}</option>)}
+        </select>
+      </label>
+    </div>;
+  }
 
   return <main className="catalog-page">
     <CatalogCarousel slides={catalogSlides.length ? catalogSlides : [banner]} />
     <div className="catalog-layout">
-      <aside className="filters">
+      <aside className="filters desktop-catalog-filters">
         <h2><SlidersHorizontal size={19} /> Filtrar</h2>
-        <label>Buscar<input value={query} onChange={(event) => setQuery(event.target.value)} /></label>
-        {filters.filter((filter) => filter.options.length > 0).map((filter) => <label key={filter.id}>{filter.name}<select value={selectedFilters[filter.slug] ?? ""} onChange={(event) => setSelectedFilters((current) => ({ ...current, [filter.slug]: event.target.value }))}>
-          <option value="">Todos</option>
-          {filter.options.map((option) => <option key={option.id} value={option.slug}>{option.label}</option>)}
-        </select></label>)}
-        <section className="price-filter">
-          <strong>Preço</strong>
-          <div className="price-scale"><span>{priceLimits.min.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span><span>{priceLimits.max.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div>
-          <div className="dual-range" style={{ "--range-start": `${start}%`, "--range-end": `${end}%` } as React.CSSProperties}>
-            <div />
-            <input aria-label="Preço mínimo" type="range" min={priceLimits.min} max={priceLimits.max} value={minPrice} onChange={(event) => setMinPrice(Math.min(Number(event.target.value), effectiveMaxPrice))} />
-            <input aria-label="Preço máximo" type="range" min={priceLimits.min} max={priceLimits.max} value={effectiveMaxPrice} onChange={(event) => setMaxPrice(Math.max(Number(event.target.value), minPrice))} />
-          </div>
-          <div className="price-inputs">
-            <label><span>Mínimo</span><input type="number" min={priceLimits.min} max={effectiveMaxPrice} value={minPrice} onChange={(event) => setMinPrice(Math.min(Number(event.target.value), effectiveMaxPrice))} /></label>
-            <label><span>Máximo</span><input type="number" min={minPrice} max={priceLimits.max} value={effectiveMaxPrice} onChange={(event) => setMaxPrice(Math.max(Number(event.target.value), minPrice))} /></label>
-          </div>
-        </section>
-        <label>Condição<select value={condition} onChange={(event) => setCondition(event.target.value)}>{conditions.map((item) => <option key={item}>{item}</option>)}</select></label>
+        {filterFields()}
         <button className="text-button" onClick={clearFilters}>Limpar filtros</button>
       </aside>
+
       <section className="catalog-results">
-        <div className="results-bar"><span>{filtered.length} produtos encontrados</span><label>Ordenar <select value={sort} onChange={(event) => setSort(event.target.value)}><option value="relevance">Relevância</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></label></div>
+        <div className="results-bar">
+          <span>{filtered.length} produtos encontrados</span>
+          <label>Ordenar <select value={sort} onChange={(event) => setSort(event.target.value)}><option value="relevance">Relevância</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></label>
+        </div>
         {filtered.length ? <div className="product-grid">{filtered.map((product) => <ProductCard key={product.id} product={product} />)}</div> : <div className="empty-state"><h2>Nenhum produto encontrado</h2><p>Tente remover algum filtro.</p></div>}
       </section>
     </div>
+
+    <div className="mobile-catalog-filter-bar" aria-label="Ações dos filtros">
+      <button type="button" className="mobile-filter-open" onClick={() => setMobileFiltersOpen(true)}>
+        <SlidersHorizontal aria-hidden="true" />
+        <span>Filtros</span>
+        {activeFilterCount > 0 && <b>{activeFilterCount}</b>}
+      </button>
+      <span className="mobile-filter-result-count">{filtered.length} produtos</span>
+      <button type="button" className="mobile-filter-clear" onClick={clearFilters} disabled={activeFilterCount === 0}>Limpar</button>
+    </div>
+
+    {mobileFiltersOpen && <>
+      <button className="mobile-filter-backdrop" type="button" aria-label="Fechar filtros" onClick={() => setMobileFiltersOpen(false)} />
+      <section className="mobile-filter-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-filter-title">
+        <header>
+          <div>
+            <SlidersHorizontal aria-hidden="true" />
+            <div><strong id="mobile-filter-title">Filtrar produtos</strong><small>{filtered.length} resultados encontrados</small></div>
+          </div>
+          <button type="button" aria-label="Fechar filtros" onClick={() => setMobileFiltersOpen(false)}><X /></button>
+        </header>
+        <div className="mobile-filter-sheet-content">{filterFields()}</div>
+        <footer>
+          <button type="button" className="mobile-sheet-clear" onClick={clearFilters} disabled={activeFilterCount === 0}>Limpar</button>
+          <button type="button" className="mobile-sheet-apply" onClick={() => setMobileFiltersOpen(false)}>Ver {filtered.length} produtos</button>
+        </footer>
+      </section>
+    </>}
   </main>;
 }
 
