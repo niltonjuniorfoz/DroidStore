@@ -2,8 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
-import { MessageCircle, UserRound, X } from "lucide-react";
-import { createWhatsAppUrl } from "../lib/contact";
+import { UserRound, X } from "lucide-react";
 
 type Props = {
   onClose?: () => void;
@@ -15,16 +14,11 @@ export default function AuthPanel({ onClose, onAuthenticated }: Props) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
-  const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
-
   useEffect(() => {
-    void Promise.all([
-      fetch("/api/auth/providers").then((response) => response.json()),
-      fetch("/api/site-content").then((response) => response.json()),
-    ]).then(([providers, siteData]) => {
-      setGoogleEnabled(Boolean(providers.google));
-      setWhatsappUrl(createWhatsAppUrl(siteData.content?.whatsapp, "Olá! Preciso de ajuda para acessar minha conta."));
-    }).catch(() => undefined);
+    void fetch("/api/auth/providers")
+      .then((response) => response.json())
+      .then((providers) => setGoogleEnabled(Boolean(providers.google)))
+      .catch(() => undefined);
   }, []);
 
   function callbackUrl() {
@@ -91,6 +85,5 @@ export default function AuthPanel({ onClose, onAuthenticated }: Props) {
     <button type="button" className="auth-google-button" onClick={googleLogin}><span className="google-g">G</span> Continuar com Google</button>
     <div className="auth-or"><span>OU</span></div>
     <button type="button" className="auth-mode-button" onClick={() => { setMode(mode === "login" ? "register" : "login"); setMessage(""); }}>{mode === "login" ? "CADASTRE-SE" : "JÁ TENHO CONTA"}</button>
-    {whatsappUrl && <a className="auth-whatsapp-support" href={whatsappUrl} target="_blank" rel="noreferrer"><MessageCircle /> Precisa de ajuda? Chame no WhatsApp</a>}
   </form>;
 }
