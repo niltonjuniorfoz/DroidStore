@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createWhatsAppUrl } from "../../../src/lib/contact";
+import { formatBrazilPhone } from "../../../src/lib/brazil";
 import {
   ArrowUpDown,
   Check,
@@ -387,7 +389,7 @@ export default function AdminPedidos() {
               const isSelected = selectedIds.has(order.id);
               const firstItem = order.items[0];
               const firstImage = firstItem?.variant.product.imageUrl;
-              const cleanPhone = order.user.phone ? order.user.phone.replace(/\D/g, "") : "";
+              const whatsappUrl = createWhatsAppUrl(order.user.phone, `Olá ${order.user.name ?? ""}, sobre seu pedido #${order.id.slice(0, 8).toUpperCase()}`);
 
               return (
                 <div key={order.id} className={`pro-table-row order-table-cols ${isSelected ? "row-selected" : ""}`}>
@@ -411,9 +413,9 @@ export default function AdminPedidos() {
                     <div className="customer-block">
                       <strong className="customer-name">{order.user.name ?? "Sem nome"}</strong>
                       <small className="customer-email">{order.user.email}</small>
-                      {cleanPhone && (
+                      {whatsappUrl && (
                         <a
-                          href={`https://wa.me/55${cleanPhone}?text=Ol%C3%A1%20${encodeURIComponent(order.user.name ?? "")}%2C%20sobre%20seu%20pedido%20%23${order.id.slice(0, 8).toUpperCase()}`}
+                          href={whatsappUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="whatsapp-quick-link"
@@ -534,11 +536,11 @@ export default function AdminPedidos() {
                 <span>
                   {selected.user.email}
                   <br />
-                  {selected.user.phone ? `WhatsApp: ${selected.user.phone}` : ""}
+                  {selected.user.phone ? `WhatsApp: ${formatBrazilPhone(selected.user.phone)}` : ""}
                 </span>
                 {selected.user.phone && (
                   <a
-                    href={`https://wa.me/55${selected.user.phone.replace(/\D/g, "")}?text=Ol%C3%A1%20${encodeURIComponent(selected.user.name ?? "")}%2C%20sobre%20seu%20pedido%20%23${selected.id.slice(0, 8).toUpperCase()}`}
+                    href={createWhatsAppUrl(selected.user.phone, `Olá ${selected.user.name ?? ""}, sobre seu pedido #${selected.id.slice(0, 8).toUpperCase()}`) ?? "#"}
                     target="_blank"
                     rel="noreferrer"
                     className="button ghost sm text-xs mt-2"

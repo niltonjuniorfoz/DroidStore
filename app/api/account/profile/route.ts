@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "../../../../auth";
 import prisma from "../../../../src/lib/prisma";
+import { brazilNationalPhoneDigits, formatBrazilPhone } from "../../../../src/lib/brazil";
 
 const profileSchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -33,7 +34,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
   const cpf = parsed.data.cpf?.replace(/\D/g, "") || null;
-  const phoneDigits = parsed.data.phone?.replace(/\D/g, "") || null;
+  const phoneDigits = brazilNationalPhoneDigits(parsed.data.phone) || null;
   if (cpf && cpf.length !== 11) {
     return NextResponse.json({ error: "Informe um CPF com 11 dígitos." }, { status: 400 });
   }
@@ -49,7 +50,7 @@ export async function PATCH(req: Request) {
       where: { id },
       data: {
         name: parsed.data.name,
-        phone: parsed.data.phone || null,
+        phone: parsed.data.phone ? formatBrazilPhone(parsed.data.phone) : null,
         cpf,
         birthDate,
       },

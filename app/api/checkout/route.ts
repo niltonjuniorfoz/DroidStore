@@ -3,6 +3,7 @@ import { MercadoPagoConfig, Preference } from "mercadopago";
 import { z } from "zod";
 import { auth } from "../../../auth";
 import prisma from "../../../src/lib/prisma";
+import { isBrazilState } from "../../../src/lib/brazil";
 
 const checkoutSchema = z.object({
   items: z.array(z.object({
@@ -16,7 +17,7 @@ const checkoutSchema = z.object({
     complement: z.string().max(80).optional(),
     neighborhood: z.string().min(2).max(80),
     city: z.string().min(2).max(80),
-    state: z.string().length(2),
+    state: z.string().length(2).transform((value) => value.toUpperCase()).refine(isBrazilState, "Selecione um estado brasileiro válido."),
   }),
 });
 

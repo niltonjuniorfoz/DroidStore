@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../src/lib/admin";
 import { readInstagramFromCatalogBanner } from "../../../../src/lib/contact";
+import { brazilNationalPhoneDigits, formatBrazilPhone } from "../../../../src/lib/brazil";
 
 const settingsSchema = z.object({
   storeName: z.string().trim().min(2).max(80),
@@ -56,21 +57,26 @@ export async function PATCH(req: Request) {
   }
 
   const current = await prisma.siteContent.findUnique({ where: { id: "main" } });
-  const { instagramUrl, ...settings } = parsed.data;
+  const { instagramUrl, whatsapp, ...settings } = parsed.data;
+  const whatsappDigits = brazilNationalPhoneDigits(whatsapp);
+  if (whatsapp && ![10, 11].includes(whatsappDigits.length)) {
+    return NextResponse.json({ error: "Informe um WhatsApp brasileiro com DDD e 10 ou 11 dígitos." }, { status: 400 });
+  }
+  const formattedWhatsapp = whatsapp ? formatBrazilPhone(whatsapp) : null;
   const catalogBanner = mergeInstagram(current?.catalogBanner, instagramUrl);
   const content = await prisma.siteContent.upsert({
     where: { id: "main" },
     update: {
       ...settings,
       contactEmail: settings.contactEmail || null,
-      whatsapp: settings.whatsapp || null,
+      whatsapp: formattedWhatsapp,
       catalogBanner,
     },
     create: {
       id: "main",
       ...settings,
       contactEmail: settings.contactEmail || null,
-      whatsapp: settings.whatsapp || null,
+      whatsapp: formattedWhatsapp,
       catalogBanner,
     },
   });

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBrazilPhone } from "../../../src/lib/brazil";
 import { useEffect, useMemo, useState } from "react";
 import { Mail, MapPin, Search, ShoppingBag, Users } from "lucide-react";
 
@@ -39,7 +40,7 @@ export default function AdminClientes() {
       {loading ? <div className="admin-loading">Carregando clientes...</div> : <div className="customer-grid">
         {filtered.map((customer) => <article key={customer.id}>
           <div className="customer-avatar">{(customer.name ?? customer.email).slice(0, 1).toUpperCase()}</div>
-          <div className="customer-info"><h2>{customer.name ?? "Cliente sem nome"}</h2><span><Mail /> {customer.email}</span>{customer.phone && <span>{customer.phone}</span>}{customer.addresses[0] && <span><MapPin /> {customer.addresses[0].city}/{customer.addresses[0].state}</span>}</div>
+          <div className="customer-info"><h2>{customer.name ?? "Cliente sem nome"}</h2><span><Mail /> {customer.email}</span>{customer.phone && <span>{formatBrazilPhone(customer.phone)}</span>}{customer.addresses[0] && <span><MapPin /> {customer.addresses[0].city}/{customer.addresses[0].state}</span>}</div>
           <div className="customer-stats"><span><strong>{customer.orderCount}</strong> pedidos</span><span><strong>{money(customer.totalSpent)}</strong> total pago</span><small>Cliente desde {new Date(customer.createdAt).toLocaleDateString("pt-BR")}</small></div>
         </article>)}
         {!filtered.length && <p className="empty-inline">Nenhum cliente encontrado.</p>}

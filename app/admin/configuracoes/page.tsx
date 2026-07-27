@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { formatBrazilPhone } from "../../../src/lib/brazil";
 import {
   Bot,
   CheckCircle2,
@@ -37,7 +38,7 @@ export default function AdminConfiguracoes() {
     void fetch("/api/admin/settings", { cache: "no-store" }).then(async (response) => {
       const body = await response.json();
       if (!response.ok) setError(body.error ?? "Não foi possível carregar as configurações.");
-      else setData(body);
+      else setData({ ...body, content: { ...body.content, whatsapp: formatBrazilPhone(body.content.whatsapp ?? "") } });
       setLoading(false);
     });
   }, []);
@@ -61,7 +62,7 @@ export default function AdminConfiguracoes() {
     const body = await response.json();
     if (!response.ok) setError(body.error ?? "Não foi possível salvar.");
     else {
-      setData(body);
+      setData({ ...body, content: { ...body.content, whatsapp: formatBrazilPhone(body.content.whatsapp ?? "") } });
       setMessage("Configurações salvas. Os canais de atendimento e o Instagram já estão atualizados no site.");
     }
     setSaving(false);
@@ -103,8 +104,8 @@ export default function AdminConfiguracoes() {
 
           <label>
             <span className="settings-field-title"><MessageCircle /> WhatsApp de atendimento</span>
-            <input disabled={!data.ownerView} value={data.content.whatsapp ?? ""} onChange={(event) => update("whatsapp", event.target.value)} placeholder="5511999999999" inputMode="tel" />
-            <small>Informe DDI + DDD + número, somente números. Ex.: 5511999999999.</small>
+            <input disabled={!data.ownerView} value={data.content.whatsapp ?? ""} onChange={(event) => update("whatsapp", formatBrazilPhone(event.target.value))} placeholder="+55 (00) 00000-0000" inputMode="tel" maxLength={19} />
+            <small>Padrão Brasil: +55 (DDD) número. Ex.: +55 (11) 99999-9999.</small>
           </label>
 
           <label className="wide">

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "../../../../auth";
 import prisma from "../../../../src/lib/prisma";
+import { isBrazilState } from "../../../../src/lib/brazil";
 
 const addressSchema = z.object({
   zipCode: z.string().trim().min(8).max(10),
@@ -10,7 +11,7 @@ const addressSchema = z.object({
   complement: z.string().trim().max(100).optional().nullable(),
   neighborhood: z.string().trim().min(2).max(100),
   city: z.string().trim().min(2).max(100),
-  state: z.string().trim().length(2).transform((value) => value.toUpperCase()),
+  state: z.string().trim().length(2).transform((value) => value.toUpperCase()).refine(isBrazilState, "Selecione um estado brasileiro válido."),
 });
 
 async function userId() {

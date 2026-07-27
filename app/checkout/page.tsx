@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import { useCart } from "../../src/components/CartProvider";
 import { money } from "../../src/lib/catalog";
+import { BRAZIL_STATES } from "../../src/lib/brazil";
 
 export default function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
@@ -43,7 +44,16 @@ export default function CheckoutPage() {
       {message ? <section className="checkout-success" role="status"><h1>Pedido recebido</h1><p>{message}</p><Link className="button primary" href="/conta/pedidos">Acompanhar pedidos</Link></section> :
       <form onSubmit={submit} className="checkout-layout">
         <div className="checkout-form">
-          <section><span className="step">1</span><h2>Entrega</h2><div className="form-grid"><label>CEP<input required name="zipCode" inputMode="numeric" pattern="[0-9 -]{8,9}" /></label><label className="wide">Rua<input required name="street" /></label><label>Número<input required name="number" /></label><label>Complemento<input name="complement" /></label><label>Bairro<input required name="neighborhood" /></label><label>Cidade<input required name="city" /></label><label>UF<input required name="state" maxLength={2} /></label></div></section>
+          <section><span className="step">1</span><h2>Entrega</h2><div className="form-grid">
+            <label>País<input value="Brasil" readOnly aria-readonly="true" /></label>
+            <label>Estado<select required name="state" defaultValue=""><option value="">Selecione o estado</option>{BRAZIL_STATES.map((state) => <option key={state.value} value={state.value}>{state.label} ({state.value})</option>)}</select></label>
+            <label>CEP<input required name="zipCode" inputMode="numeric" pattern="[0-9 -]{8,9}" placeholder="00000-000" /></label>
+            <label className="wide">Rua<input required name="street" /></label>
+            <label>Número<input required name="number" /></label>
+            <label>Complemento<input name="complement" /></label>
+            <label>Bairro<input required name="neighborhood" /></label>
+            <label>Cidade<input required name="city" /></label>
+          </div></section>
           <section><span className="step">2</span><h2>Pagamento</h2><div className="payment-choice"><label><input type="radio" defaultChecked name="payment" /> Pix <small>{pixDiscount}% de desconto</small></label><label><input type="radio" name="payment" disabled /> Cartão <small>Disponível após configurar o gateway</small></label></div></section>
         </div>
         <aside className="cart-summary"><h2>Seu pedido</h2>{items.map((item) => <p key={item.id}><span>{item.quantity}x {item.name}</span><b>{money(item.price * item.quantity)}</b></p>)}<hr /><small>Total no Pix</small><strong>{money(subtotal * (1 - pixDiscount / 100))}</strong><button className="button primary" disabled={loading}>{loading ? "Processando..." : "Finalizar pedido"}</button><em>O valor e o estoque serão confirmados novamente pelo servidor.</em></aside>
