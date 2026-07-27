@@ -12,6 +12,7 @@ export default function EnderecosPage() {
   const [form, setForm] = useState<Omit<Address, "id"> & { id?: string } | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const modalOpen = form !== null;
 
   async function load() {
     const response = await fetch("/api/account/addresses", { cache: "no-store" });
@@ -20,6 +21,23 @@ export default function EnderecosPage() {
   }
 
   useEffect(() => { void load(); }, []);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setForm(null);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [modalOpen]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -48,7 +66,13 @@ export default function EnderecosPage() {
     {error && <div className="form-error account-alert">{error}</div>}
     <div className="address-grid">{items.map((address) => <article key={address.id}><MapPin /><div><strong>{address.street}, {address.number}</strong><span>{address.complement ? `${address.complement} • ` : ""}{address.neighborhood}<br />{address.city}/{address.state} • Brasil • CEP {address.zipCode}</span></div><div><button onClick={() => setForm({ ...address })}><Pencil /></button><button className="danger-text" onClick={() => void remove(address.id)}><Trash2 /></button></div></article>)}{!items.length && <p className="empty-inline">Você ainda não cadastrou endereços.</p>}</div>
 
-    {form && <div className="admin-modal"><form className="address-modal" onSubmit={submit}>
+    {form && <div
+      className="admin-modal address-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label={form.id ? "Editar endereço" : "Cadastrar novo endereço"}
+      onMouseDown={(event) => { if (event.target === event.currentTarget) setForm(null); }}
+    ><form className="address-modal" onSubmit={submit}>
       <button type="button" className="modal-close" onClick={() => setForm(null)}><X /></button>
       <h2>{form.id ? "Editar endereço" : "Novo endereço"}</h2>
       <div className="admin-form-grid">

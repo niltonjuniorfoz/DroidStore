@@ -49,6 +49,7 @@ export default function Header() {
   const { count } = useCart();
   const [navigation, setNavigation] = useState<MenuItem[]>(defaultNavigation);
   const [instagramUrl, setInstagramUrl] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesHidden, setCategoriesHidden] = useState(false);
   const categoriesHiddenRef = useRef(false);
@@ -61,6 +62,45 @@ export default function Header() {
         setInstagramUrl(normalizeInstagramUrl(data.content?.instagramUrl));
       })
       .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshAuthentication = async () => {
+      try {
+        const response = await fetch("/api/auth/session", { cache: "no-store" });
+        const session = response.ok ? await response.json() : null;
+        if (!cancelled) setAuthenticated(Boolean(session?.user));
+      } catch {
+        if (!cancelled) setAuthenticated(false);
+      }
+    };
+
+    const handleAuthenticationChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ authenticated?: boolean }>).detail;
+      if (typeof detail?.authenticated === "boolean") {
+        setAuthenticated(detail.authenticated);
+        return;
+      }
+      void refreshAuthentication();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refreshAuthentication();
+    };
+
+    void refreshAuthentication();
+    window.addEventListener("focus", refreshAuthentication);
+    window.addEventListener("auth-session-changed", handleAuthenticationChanged);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", refreshAuthentication);
+      window.removeEventListener("auth-session-changed", handleAuthenticationChanged);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -235,12 +275,12 @@ export default function Header() {
               <Link
                 href="/conta"
                 className="user-login-btn interactive-user-btn"
-                aria-label="Minha conta ou entrar"
+                aria-label={authenticated ? "Minha conta" : "Entrar na conta"}
               >
                 <div className="user-icon-shell">
                   <UserRound size={20} className="user-icon" />
                 </div>
-                <span className="action-label">Entrar</span>
+                <span className="action-label">{authenticated ? "Minha Conta" : "Entrar"}</span>
               </Link>
 
               <button

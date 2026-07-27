@@ -56,10 +56,13 @@ export default function AuthPanel({ onClose, onAuthenticated }: Props) {
     const result = await signIn("credentials", { email, password, redirect: false });
     if (result?.error) {
       setMessage("E-mail ou senha incorretos.");
-    } else if (onAuthenticated) {
-      onAuthenticated();
     } else {
-      window.location.href = callbackUrl() === "/login" ? "/conta" : callbackUrl();
+      window.dispatchEvent(new CustomEvent("auth-session-changed", { detail: { authenticated: true } }));
+      if (onAuthenticated) {
+        onAuthenticated();
+      } else {
+        window.location.href = callbackUrl() === "/login" ? "/conta" : callbackUrl();
+      }
     }
     setLoading(false);
   }
