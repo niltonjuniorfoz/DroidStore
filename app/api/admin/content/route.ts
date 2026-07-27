@@ -4,25 +4,26 @@ import prisma from "../../../../src/lib/prisma";
 import { requireAdmin } from "../../../../src/lib/admin";
 
 const slideSchema = z.object({
-  eyebrow: z.string().trim().min(2).max(100),
-  title: z.string().trim().min(5).max(160),
-  description: z.string().trim().min(5).max(400),
+  eyebrow: z.string().trim().max(100).optional().or(z.literal("")),
+  title: z.string().trim().max(160).optional().or(z.literal("")),
+  description: z.string().trim().max(400).optional().or(z.literal("")),
   imageUrl: z.string().trim().max(500).optional().or(z.literal("")),
-  buttonLabel: z.string().trim().min(2).max(40),
-  buttonHref: z.string().trim().startsWith("/").max(200),
+  buttonLabel: z.string().trim().max(40).optional().or(z.literal("")),
+  buttonHref: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
 const catalogBannerSchema = z.object({
-  eyebrow: z.string().trim().min(2).max(100),
-  title: z.string().trim().min(2).max(120),
-  description: z.string().trim().min(5).max(300),
+  eyebrow: z.string().trim().max(100).optional().or(z.literal("")),
+  title: z.string().trim().max(120).optional().or(z.literal("")),
+  description: z.string().trim().max(300).optional().or(z.literal("")),
   imageUrl: z.string().trim().max(500).optional().or(z.literal("")),
 });
 
 const schema = z.object({
   storeName: z.string().trim().min(2).max(60),
-  heroSlides: z.array(slideSchema).min(1).max(3),
-  catalogBanner: catalogBannerSchema,
+  heroSlides: z.array(slideSchema).min(1).max(5),
+  catalogBanner: catalogBannerSchema.optional(),
+  catalogSlides: z.array(catalogBannerSchema).min(1).max(5).optional(),
   navigation: z.array(z.object({
     id: z.string().uuid().optional(),
     label: z.string().trim().min(1).max(40),
@@ -45,7 +46,7 @@ export async function PUT(req: Request) {
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Revise os textos, imagens e links informados." }, { status: 400 });
 
-  const { navigation, heroSlides, catalogBanner, storeName } = parsed.data;
+  const { navigation, heroSlides, catalogBanner, catalogSlides, storeName } = parsed.data;
   const first = heroSlides[0];
   await prisma.$transaction(async (tx) => {
     await tx.siteContent.upsert({
@@ -54,6 +55,7 @@ export async function PUT(req: Request) {
         storeName,
         heroSlides,
         catalogBanner,
+        catalogSlides: catalogSlides || (catalogBanner ? [catalogBanner] : []),
         heroEyebrow: first.eyebrow,
         heroTitle: first.title,
         heroDescription: first.description,
@@ -64,6 +66,7 @@ export async function PUT(req: Request) {
         storeName,
         heroSlides,
         catalogBanner,
+        catalogSlides: catalogSlides || (catalogBanner ? [catalogBanner] : []),
         heroEyebrow: first.eyebrow,
         heroTitle: first.title,
         heroDescription: first.description,

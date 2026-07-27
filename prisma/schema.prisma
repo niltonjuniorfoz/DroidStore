@@ -93,6 +93,7 @@ model SiteContent {
   heroImageUrl    String?
   heroSlides      Json     @default("[]")
   catalogBanner   Json     @default("{}")
+  catalogSlides   Json     @default("[]")
   contactEmail    String?
   whatsapp        String?
   pixDiscount     Int      @default(10)

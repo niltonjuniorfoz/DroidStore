@@ -18,6 +18,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700;800&family=Dancing+Script:wght@700&family=Outfit:wght@700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Syncopate:wght@700;800&family=Syne:wght@800;900&display=swap" rel="stylesheet" />
+      </head>
       <body>
         <CartProvider>
           <AuthGateProvider>

@@ -6,6 +6,8 @@ import { SlidersHorizontal } from "lucide-react";
 import ProductCard from "../../src/components/ProductCard";
 import { products, type CatalogProduct } from "../../src/lib/catalog";
 
+import CatalogCarousel, { type CatalogSlide } from "../../src/components/CatalogCarousel";
+
 type PublicFilter = {
   id: string;
   name: string;
@@ -26,6 +28,7 @@ function CatalogContent() {
   const [catalog, setCatalog] = useState<CatalogProduct[]>(products);
   const [filters, setFilters] = useState<PublicFilter[]>([]);
   const [banner, setBanner] = useState<CatalogBanner>(defaultBanner);
+  const [catalogSlides, setCatalogSlides] = useState<CatalogSlide[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const [condition, setCondition] = useState("Todas");
@@ -38,13 +41,18 @@ function CatalogContent() {
       fetch("/api/products").then((response) => response.json()),
       fetch("/api/catalog-filters").then((response) => response.json()),
       fetch("/api/site-content").then((response) => response.json()),
-    ]).then(([catalogData, filterData, siteData]: [CatalogProduct[], PublicFilter[], { content?: { catalogBanner?: Partial<CatalogBanner> } }]) => {
+    ]).then(([catalogData, filterData, siteData]: [CatalogProduct[], PublicFilter[], { content?: { catalogBanner?: Partial<CatalogBanner>; catalogSlides?: CatalogSlide[] } }]) => {
       setCatalog(catalogData);
       setFilters(filterData);
       const prices = catalogData.map((product) => product.price).filter(Number.isFinite);
       setMinPrice(prices.length ? Math.floor(Math.min(...prices)) : 0);
       setMaxPrice(prices.length ? Math.ceil(Math.max(...prices)) : 0);
-      if (siteData.content?.catalogBanner) setBanner({ ...defaultBanner, ...siteData.content.catalogBanner });
+      if (Array.isArray(siteData.content?.catalogSlides) && siteData.content.catalogSlides.length) {
+        setCatalogSlides(siteData.content.catalogSlides);
+      } else if (siteData.content?.catalogBanner) {
+        setBanner({ ...defaultBanner, ...siteData.content.catalogBanner });
+        setCatalogSlides([{ ...defaultBanner, ...siteData.content.catalogBanner }]);
+      }
     }).catch(() => undefined);
   }, []);
 
@@ -101,10 +109,7 @@ function CatalogContent() {
   const end = ((effectiveMaxPrice - priceLimits.min) / priceSpan) * 100;
 
   return <main className="catalog-page">
-    <div className={`catalog-title ${banner.imageUrl ? "has-image" : ""}`}>
-      {banner.imageUrl && <div className="catalog-title-cover" style={{ backgroundImage: `url("${banner.imageUrl.replaceAll('"', '\\"')}")` }} />}
-      <div className="catalog-title-copy"><span className="eyebrow">{banner.eyebrow}</span><h1>{banner.title}</h1><p>{banner.description}</p></div>
-    </div>
+    <CatalogCarousel slides={catalogSlides.length ? catalogSlides : [banner]} />
     <div className="catalog-layout">
       <aside className="filters">
         <h2><SlidersHorizontal size={19} /> Filtrar</h2>

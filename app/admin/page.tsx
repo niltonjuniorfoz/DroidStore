@@ -2,7 +2,24 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowUpRight, Boxes, CircleDollarSign, PackageCheck, RefreshCw, TrendingUp, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  BarChart3,
+  Boxes,
+  CircleDollarSign,
+  Package,
+  PackageCheck,
+  Pencil,
+  Plus,
+  Receipt,
+  RefreshCw,
+  SlidersHorizontal,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+
+type DailySale = { date: string; label: string; revenue: number; orders: number };
 
 type Dashboard = {
   metrics: {
@@ -11,14 +28,17 @@ type Dashboard = {
     revenueChange: number;
     orders: number;
     previousOrders: number;
+    averageTicket: number;
     customers: number;
     products: number;
     lowStock: number;
+    inventoryValue: number;
     costs?: number;
     grossProfit?: number;
     grossMargin?: number;
     inventoryCost?: number;
   };
+  dailySales: DailySale[];
   ownerView: boolean;
   recentOrders: Array<{
     id: string;
@@ -28,13 +48,27 @@ type Dashboard = {
     user: { name: string | null; email: string };
     _count: { items: number };
   }>;
-  lowStockItems: Array<{ id: string; name: string; storage: string | null; stock: number; threshold: number }>;
+  lowStockItems: Array<{
+    id: string;
+    productId: string;
+    name: string;
+    imageUrl?: string;
+    storage: string | null;
+    color: string | null;
+    stock: number;
+    threshold: number;
+    price: number;
+  }>;
   topProducts: Array<{ id: string; name: string; units: number; revenue: number }>;
 };
 
 const money = (value = 0) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const statusLabel: Record<string, string> = {
-  PENDING: "Aguardando pagamento", PAID: "Pago", SHIPPED: "Enviado", DELIVERED: "Entregue", CANCELLED: "Cancelado",
+  PENDING: "Aguardando pagamento",
+  PAID: "Pago",
+  SHIPPED: "Enviado",
+  DELIVERED: "Entregue",
+  CANCELLED: "Cancelado",
 };
 
 export default function AdminDashboard() {
@@ -51,76 +85,222 @@ export default function AdminDashboard() {
     else setData(body);
     setLoading(false);
   }
+
   useEffect(() => { void load(); }, []);
 
-  if (loading) return <div className="admin-loading"><RefreshCw className="animate-spin" /> Atualizando indicadores...</div>;
+  if (loading) return <div className="admin-loading"><RefreshCw className="animate-spin" /> Atualizando indicadores da loja...</div>;
   if (!data) return <div className="form-error">{error}</div>;
+
   const metrics = data.metrics;
+  const maxDailyRevenue = Math.max(...data.dailySales.map((d) => d.revenue), 1);
 
-  return <div className="admin-easy">
-    <div className="admin-title">
-      <div><span className="eyebrow">Operação em tempo real</span><h1>Visão geral</h1><p>Resultados calculados a partir dos pedidos e do estoque reais.</p></div>
-      <button className="button ghost" onClick={() => void load()}><RefreshCw size={16} /> Atualizar</button>
+  return (
+    <div className="admin-easy">
+      {/* HEADER DE COMANDO EXECUTIVO */}
+      <div className="dash-header-bar">
+        <div>
+          <span className="eyebrow">Central de Operações • Brasil Store</span>
+          <h1>Visão Geral da Loja</h1>
+          <p>Métricas em tempo real calculadas diretamente das vendas e do estoque atual.</p>
+        </div>
+        
+        <div className="dash-quick-actions">
+          <Link href="/admin/produtos" className="button primary sm">
+            <Plus size={15} /> Novo produto
+          </Link>
+          <Link href="/admin/pedidos" className="button ghost sm">
+            <Receipt size={15} /> Ver Pedidos
+          </Link>
+          <button className="button ghost sm" onClick={() => void load()} title="Atualizar dados">
+            <RefreshCw size={15} />
+          </button>
+        </div>
+      </div>
+
+      {error && <div className="form-error">{error}</div>}
+
+      {/* CARDS DE KPI EXECUTIVOS */}
+      <section className="metric-grid">
+        <article className="metric-card accent">
+          <span><CircleDollarSign /> Faturamento no mês</span>
+          <strong>{money(metrics.revenue)}</strong>
+          <small className={metrics.revenueChange >= 0 ? "positive" : "negative"}>
+            <TrendingUp /> {metrics.revenueChange.toFixed(1)}% versus mês anterior
+          </small>
+        </article>
+
+        {data.ownerView && (
+          <article className="metric-card profit">
+            <span><TrendingUp /> Lucro bruto no mês</span>
+            <strong>{money(metrics.grossProfit)}</strong>
+            <small>{metrics.grossMargin?.toFixed(1)}% de margem • Custo: {money(metrics.costs)}</small>
+          </article>
+        )}
+
+        <article className="metric-card">
+          <span><PackageCheck /> Pedidos pagos</span>
+          <strong>{metrics.orders}</strong>
+          <small>Ticket Médio: {money(metrics.averageTicket)}</small>
+        </article>
+
+        <article className="metric-card">
+          <span><Boxes /> Valor em estoque</span>
+          <strong>{money(metrics.inventoryValue)}</strong>
+          <small>{data.ownerView && metrics.inventoryCost ? `Custo: ${money(metrics.inventoryCost)}` : `${metrics.products} produtos cadastrados`}</small>
+        </article>
+
+        <article className={`metric-card ${metrics.lowStock > 0 ? "warning" : ""}`}>
+          <span><AlertTriangle /> Reposição de Estoque</span>
+          <strong>{metrics.lowStock}</strong>
+          <small>{metrics.lowStock > 0 ? "Itens em nível crítico ou esgotados" : "Todos em nível normal"}</small>
+        </article>
+
+        <article className="metric-card">
+          <span><Users /> Clientes cadastrados</span>
+          <strong>{metrics.customers}</strong>
+          <small>Base ativa de compradores</small>
+        </article>
+      </section>
+
+      {/* GRÁFICO VISUAL DE VENDAS (ÚLTIMOS 7 DIAS) */}
+      <section className="admin-data-card dash-chart-card">
+        <header>
+          <div>
+            <h2>Desempenho de Vendas (Últimos 7 Dias)</h2>
+            <p>Faturamento diário e número de pedidos confirmados.</p>
+          </div>
+          <span className="chart-total-badge"><BarChart3 size={15} /> Total 7D: {money(data.dailySales.reduce((a, b) => a + b.revenue, 0))}</span>
+        </header>
+        
+        <div className="dash-chart-body">
+          {data.dailySales.map((day) => {
+            const heightPct = Math.max(12, Math.round((day.revenue / maxDailyRevenue) * 100));
+            return (
+              <div key={day.date} className="chart-col">
+                <div className="chart-bar-container">
+                  <span className="chart-bar-val">{day.revenue > 0 ? money(day.revenue) : "R$ 0"}</span>
+                  <div
+                    className={`chart-bar-fill ${day.revenue > 0 ? "has-sales" : ""}`}
+                    style={{ height: `${heightPct}%` }}
+                  />
+                </div>
+                <span className="chart-day-label">{day.label}</span>
+                <small className="chart-orders-count">{day.orders} ped.</small>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* PAINEL TÁTICO DE REPOSIÇÃO DE ESTOQUE (Substitui caixas amareladas) */}
+      {data.lowStockItems.length > 0 && (
+        <section className="admin-data-card low-stock-tactical-card">
+          <header>
+            <div>
+              <h2>⚠️ Reposição Urgente de Estoque</h2>
+              <p>{data.lowStockItems.length} aparelho(s) atingiram a quantidade mínima estipulada.</p>
+            </div>
+            <Link href="/admin/produtos?stock=lowStock">Ajustar no Catálogo <ArrowUpRight /></Link>
+          </header>
+
+          <div className="tactical-stock-table">
+            <div className="stock-table-header">
+              <div>Aparelho / Modelo</div>
+              <div>Armazenamento</div>
+              <div>Estoque Atual</div>
+              <div>Limite Mínimo</div>
+              <div>Ação</div>
+            </div>
+
+            <div className="stock-table-body">
+              {data.lowStockItems.map((item) => (
+                <div key={item.id} className="stock-table-row">
+                  <div className="stock-product-cell">
+                    <div className="stock-mini-img">
+                      {item.imageUrl ? <img src={item.imageUrl} alt="" /> : <Package size={16} />}
+                    </div>
+                    <strong>{item.name}</strong>
+                  </div>
+
+                  <div>
+                    <span className="tag-storage">{item.storage ?? "Padrão"}</span>
+                  </div>
+
+                  <div>
+                    <span className={`pill-stock ${item.stock === 0 ? "zero" : "low"}`}>
+                      {item.stock === 0 ? "🔴 Esgotado (0)" : `🟡 ${item.stock} un.`}
+                    </span>
+                  </div>
+
+                  <div>
+                    <small>Mínimo: {item.threshold} un.</small>
+                  </div>
+
+                  <div>
+                    <Link href={`/admin/produtos?q=${encodeURIComponent(item.name)}`} className="button ghost sm text-xs">
+                      <Pencil size={13} /> Repor
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* SEÇÃO DUPLA: PEDIDOS RECENTES & MAIS VENDIDOS */}
+      <section className="dashboard-grid">
+        <article className="admin-data-card">
+          <header>
+            <div>
+              <h2>Pedidos recentes</h2>
+              <p>Últimas movimentações da loja.</p>
+            </div>
+            <Link href="/admin/pedidos">Ver todos <ArrowUpRight /></Link>
+          </header>
+          <div className="compact-list">
+            {data.recentOrders.length === 0 && <p className="empty-inline">Nenhum pedido realizado ainda.</p>}
+            {data.recentOrders.map((order) => (
+              <Link href="/admin/pedidos" key={order.id}>
+                <div>
+                  <strong>#{order.id.slice(0, 8).toUpperCase()}</strong>
+                  <span>{order.user.name ?? order.user.email} • {order._count.items} item(ns)</span>
+                </div>
+                <div className="right">
+                  <b>{money(Number(order.totalAmount))}</b>
+                  <em className={`status-chip ${order.status.toLowerCase()}`}>
+                    {statusLabel[order.status] ?? order.status}
+                  </em>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </article>
+
+        <article className="admin-data-card">
+          <header>
+            <div>
+              <h2>Mais vendidos no mês</h2>
+              <p>Produtos campeões de faturamento.</p>
+            </div>
+          </header>
+          <div className="rank-list">
+            {data.topProducts.length === 0 && (
+              <p className="empty-inline">As estatísticas de vendas aparecerão aqui quando houver pedidos pagos.</p>
+            )}
+            {data.topProducts.map((product, index) => (
+              <div key={product.id}>
+                <span>{index + 1}</span>
+                <div>
+                  <strong>{product.name}</strong>
+                  <small>{product.units} unidade(s) vendida(s)</small>
+                </div>
+                <b>{money(product.revenue)}</b>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
     </div>
-    {error && <div className="form-error">{error}</div>}
-
-    <section className="metric-grid">
-      <article className="metric-card accent">
-        <span><CircleDollarSign /> Faturamento no mês</span>
-        <strong>{money(metrics.revenue)}</strong>
-        <small className={metrics.revenueChange >= 0 ? "positive" : "negative"}><TrendingUp /> {metrics.revenueChange.toFixed(1)}% versus mês anterior</small>
-      </article>
-      {data.ownerView && <article className="metric-card profit">
-        <span><TrendingUp /> Lucro bruto no mês</span>
-        <strong>{money(metrics.grossProfit)}</strong>
-        <small>{metrics.grossMargin?.toFixed(1)}% de margem • custo {money(metrics.costs)}</small>
-      </article>}
-      <article className="metric-card">
-        <span><PackageCheck /> Pedidos pagos no mês</span>
-        <strong>{metrics.orders}</strong>
-        <small>{metrics.previousOrders} no mês anterior</small>
-      </article>
-      <article className="metric-card">
-        <span><Users /> Clientes cadastrados</span>
-        <strong>{metrics.customers}</strong>
-        <small>{metrics.products} produtos publicados</small>
-      </article>
-      <article className={`metric-card ${metrics.lowStock ? "warning" : ""}`}>
-        <span><AlertTriangle /> Estoque baixo</span>
-        <strong>{metrics.lowStock}</strong>
-        <small>{metrics.lowStock ? "Variações precisam de reposição" : "Estoque dentro do limite"}</small>
-      </article>
-      {data.ownerView && <article className="metric-card">
-        <span><Boxes /> Capital no estoque</span>
-        <strong>{money(metrics.inventoryCost)}</strong>
-        <small>Quantidade atual × preço de custo</small>
-      </article>}
-    </section>
-
-    <section className="dashboard-grid">
-      <article className="admin-data-card">
-        <header><div><h2>Pedidos recentes</h2><p>Últimas movimentações da loja.</p></div><Link href="/admin/pedidos">Ver todos <ArrowUpRight /></Link></header>
-        <div className="compact-list">
-          {data.recentOrders.length === 0 && <p className="empty-inline">Nenhum pedido realizado ainda.</p>}
-          {data.recentOrders.map((order) => <Link href="/admin/pedidos" key={order.id}>
-            <div><strong>#{order.id.slice(0, 8).toUpperCase()}</strong><span>{order.user.name ?? order.user.email} • {order._count.items} item(ns)</span></div>
-            <div className="right"><b>{money(Number(order.totalAmount))}</b><em className={`status-chip ${order.status.toLowerCase()}`}>{statusLabel[order.status] ?? order.status}</em></div>
-          </Link>)}
-        </div>
-      </article>
-
-      <article className="admin-data-card">
-        <header><div><h2>Mais vendidos</h2><p>Produtos com mais unidades no mês.</p></div></header>
-        <div className="rank-list">
-          {data.topProducts.length === 0 && <p className="empty-inline">As vendas aparecerão aqui quando houver pedidos pagos.</p>}
-          {data.topProducts.map((product, index) => <div key={product.id}><span>{index + 1}</span><div><strong>{product.name}</strong><small>{product.units} unidade(s)</small></div><b>{money(product.revenue)}</b></div>)}
-        </div>
-      </article>
-    </section>
-
-    {data.lowStockItems.length > 0 && <section className="admin-data-card low-stock-card">
-      <header><div><h2>Reposição necessária</h2><p>Itens no limite mínimo configurado.</p></div><Link href="/admin/estoque">Ajustar estoque <ArrowUpRight /></Link></header>
-      <div className="stock-pills">{data.lowStockItems.map((item) => <span key={item.id}><b>{item.name}</b> {item.storage ?? ""}<em>{item.stock} em estoque</em></span>)}</div>
-    </section>}
-  </div>;
+  );
 }

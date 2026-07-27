@@ -13,9 +13,15 @@ export type HeroSlide = {
   buttonHref: string;
 };
 
+function isVideoUrl(url?: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".mov");
+}
+
 export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   const [active, setActive] = useState(0);
-  const available = slides.slice(0, 3);
+  const available = slides.slice(0, 5);
 
   useEffect(() => {
     if (available.length < 2) return;
@@ -27,26 +33,80 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
     setActive((current) => (current + direction + available.length) % available.length);
   }
 
-  return <section className="hero-carousel" aria-roledescription="carrossel" aria-label="Destaques da loja">
-    {available.map((slide, index) => <article
-      key={`${slide.title}-${index}`}
-      className={`hero-slide ${index === active ? "active" : ""} ${slide.imageUrl ? "has-cover" : ""}`}
-      aria-hidden={index !== active}
-    >
-      {slide.imageUrl && <div className="hero-slide-cover" style={{ backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` }} />}
-      <div className="hero-slide-copy">
-        <span className="hero-kicker"><Sparkles /> {slide.eyebrow}</span>
-        <h1>{slide.title}</h1>
-        <p>{slide.description}</p>
-        <Link className="button primary" href={slide.buttonHref}>{slide.buttonLabel}</Link>
-      </div>
-    </article>)}
-    {available.length > 1 && <>
-      <button className="hero-arrow previous" type="button" onClick={() => move(-1)} aria-label="Capa anterior"><ChevronLeft /></button>
-      <button className="hero-arrow next" type="button" onClick={() => move(1)} aria-label="Próxima capa"><ChevronRight /></button>
-      <div className="hero-dots" aria-label="Escolher capa">
-        {available.map((slide, index) => <button key={`${slide.title}-dot`} type="button" className={index === active ? "active" : ""} onClick={() => setActive(index)} aria-label={`Ver capa ${index + 1}`} />)}
-      </div>
-    </>}
-  </section>;
+  return (
+    <section className="hero-carousel" aria-roledescription="carrossel" aria-label="Destaques da loja">
+      {available.map((slide, index) => {
+        const hasEyebrow = Boolean(slide.eyebrow?.trim());
+        const hasTitle = Boolean(slide.title?.trim());
+        const hasDesc = Boolean(slide.description?.trim());
+        const hasButton = Boolean(slide.buttonLabel?.trim());
+        const hasCopyText = hasEyebrow || hasTitle || hasDesc;
+        const isVideoMedia = isVideoUrl(slide.imageUrl);
+
+        return (
+          <article
+            key={`${slide.title || index}-${index}`}
+            className={`hero-slide ${index === active ? "active" : ""} ${slide.imageUrl ? "has-cover" : ""} ${!hasCopyText ? "image-only-slide" : ""}`}
+            aria-hidden={index !== active}
+          >
+            {slide.imageUrl && (
+              isVideoMedia ? (
+                <video
+                  src={slide.imageUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="hero-slide-video"
+                />
+              ) : (
+                <div
+                  className="hero-slide-cover"
+                  style={{ backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` }}
+                />
+              )
+            )}
+
+            {(hasCopyText || hasButton) && (
+              <div className={`hero-slide-copy ${!hasCopyText ? "no-copy-text" : ""}`}>
+                {hasEyebrow && (
+                  <span className="hero-kicker">
+                    <Sparkles /> {slide.eyebrow}
+                  </span>
+                )}
+                {hasTitle && <h1>{slide.title}</h1>}
+                {hasDesc && <p>{slide.description}</p>}
+                {hasButton && (
+                  <Link className="button primary" href={slide.buttonHref || "/celulares"}>
+                    {slide.buttonLabel}
+                  </Link>
+                )}
+              </div>
+            )}
+          </article>
+        );
+      })}
+      {available.length > 1 && (
+        <>
+          <button className="hero-arrow previous" type="button" onClick={() => move(-1)} aria-label="Capa anterior">
+            <ChevronLeft />
+          </button>
+          <button className="hero-arrow next" type="button" onClick={() => move(1)} aria-label="Próxima capa">
+            <ChevronRight />
+          </button>
+          <div className="hero-dots" aria-label="Escolher capa">
+            {available.map((slide, index) => (
+              <button
+                key={`${slide.title || index}-dot`}
+                type="button"
+                className={index === active ? "active" : ""}
+                onClick={() => setActive(index)}
+                aria-label={`Ver capa ${index + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+  );
 }
