@@ -1,5 +1,6 @@
 import prisma from "./prisma";
 import { products, type CatalogProduct } from "./catalog";
+import { readInstagramFromCatalogBanner } from "./contact";
 
 const conditionLabels: Record<string, CatalogProduct["condition"]> = {
   NOVO: "Novo", NOVO_REEMBALADO: "Novo Reembalado", EXCELENTE: "Excelente",
@@ -73,7 +74,10 @@ export async function getSiteContent() {
       prisma.siteContent.findUnique({ where: { id: "main" } }),
       prisma.navigationItem.findMany({ where: { active: true }, orderBy: { position: "asc" } }),
     ]);
-    return { content, navigation };
+    const normalizedContent = content
+      ? { ...content, instagramUrl: readInstagramFromCatalogBanner(content.catalogBanner) }
+      : null;
+    return { content: normalizedContent, navigation };
   } catch {
     return { content: null, navigation: [] };
   }

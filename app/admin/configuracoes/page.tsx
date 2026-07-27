@@ -1,10 +1,27 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Bot, CheckCircle2, CreditCard, Mail, Save, ShieldCheck, XCircle } from "lucide-react";
+import {
+  Bot,
+  CheckCircle2,
+  CreditCard,
+  Instagram,
+  Mail,
+  MessageCircle,
+  Save,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 
 type SettingsResponse = {
-  content: { storeName: string; contactEmail: string | null; whatsapp: string | null; pixDiscount: number; maxInstallments: number };
+  content: {
+    storeName: string;
+    contactEmail: string | null;
+    whatsapp: string | null;
+    instagramUrl: string | null;
+    pixDiscount: number;
+    maxInstallments: number;
+  };
   integrations: { ollama: boolean; mercadoPago: boolean; email: boolean };
   ownerView: boolean;
 };
@@ -33,37 +50,85 @@ export default function AdminConfiguracoes() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!data) return;
-    setSaving(true); setError(""); setMessage("");
+    setSaving(true);
+    setError("");
+    setMessage("");
     const response = await fetch("/api/admin/settings", {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data.content),
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data.content),
     });
     const body = await response.json();
     if (!response.ok) setError(body.error ?? "Não foi possível salvar.");
-    else { setData(body); setMessage("Configurações salvas. Os novos pedidos usarão estas regras."); }
+    else {
+      setData(body);
+      setMessage("Configurações salvas. Os canais de atendimento e o Instagram já estão atualizados no site.");
+    }
     setSaving(false);
   }
 
   if (loading) return <div className="admin-loading">Carregando configurações...</div>;
   if (!data) return <div className="form-error">{error}</div>;
+
   return <div className="admin-easy settings-page">
-    <div className="admin-title"><div><span className="eyebrow">Preferências</span><h1>Configurações</h1><p>Identidade da loja, regras comerciais e estado das integrações.</p></div></div>
+    <div className="admin-title">
+      <div>
+        <span className="eyebrow">Preferências</span>
+        <h1>Configurações</h1>
+        <p>Identidade da loja, canais de atendimento, Instagram e regras comerciais.</p>
+      </div>
+    </div>
+
     {!data.ownerView && <div className="admin-message">Você pode consultar as configurações, mas somente o administrador proprietário pode alterá-las.</div>}
     {message && <div className="admin-message">{message}</div>}
     {error && <div className="form-error">{error}</div>}
+
     <form onSubmit={submit} className="settings-grid">
       <section className="admin-panel settings-form">
-        <header><ShieldCheck /><div><h2>Dados da loja</h2><p>Informações públicas usadas no atendimento.</p></div></header>
+        <header>
+          <ShieldCheck />
+          <div><h2>Dados da loja</h2><p>Informações públicas usadas no site e no atendimento.</p></div>
+        </header>
         <div className="admin-form-grid">
-          <label className="wide">Nome da loja<input disabled={!data.ownerView} value={data.content.storeName} onChange={(event) => update("storeName", event.target.value)} /></label>
-          <label>E-mail de contato<input disabled={!data.ownerView} type="email" value={data.content.contactEmail ?? ""} onChange={(event) => update("contactEmail", event.target.value)} placeholder="contato@sualoja.com" /></label>
-          <label>WhatsApp<input disabled={!data.ownerView} value={data.content.whatsapp ?? ""} onChange={(event) => update("whatsapp", event.target.value)} placeholder="(00) 00000-0000" /></label>
-          <label>Desconto no Pix (%)<input disabled={!data.ownerView} type="number" min={0} max={30} value={data.content.pixDiscount} onChange={(event) => update("pixDiscount", Number(event.target.value))} /></label>
-          <label>Parcelamento máximo<input disabled={!data.ownerView} type="number" min={1} max={24} value={data.content.maxInstallments} onChange={(event) => update("maxInstallments", Number(event.target.value))} /></label>
+          <label className="wide">
+            Nome da loja
+            <input disabled={!data.ownerView} value={data.content.storeName} onChange={(event) => update("storeName", event.target.value)} />
+          </label>
+
+          <label>
+            <span className="settings-field-title"><Mail /> E-mail de atendimento</span>
+            <input disabled={!data.ownerView} type="email" value={data.content.contactEmail ?? ""} onChange={(event) => update("contactEmail", event.target.value)} placeholder="contato@sualoja.com" />
+            <small>Será usado no rodapé e na página de atendimento.</small>
+          </label>
+
+          <label>
+            <span className="settings-field-title"><MessageCircle /> WhatsApp de atendimento</span>
+            <input disabled={!data.ownerView} value={data.content.whatsapp ?? ""} onChange={(event) => update("whatsapp", event.target.value)} placeholder="5511999999999" inputMode="tel" />
+            <small>Informe DDI + DDD + número, somente números. Ex.: 5511999999999.</small>
+          </label>
+
+          <label className="wide">
+            <span className="settings-field-title"><Instagram /> Instagram</span>
+            <input disabled={!data.ownerView} value={data.content.instagramUrl ?? ""} onChange={(event) => update("instagramUrl", event.target.value)} placeholder="@sualoja ou https://instagram.com/sualoja" />
+            <small>O ícone do Instagram no cabeçalho abrirá exatamente este perfil.</small>
+          </label>
+
+          <label>
+            Desconto no Pix (%)
+            <input disabled={!data.ownerView} type="number" min={0} max={30} value={data.content.pixDiscount} onChange={(event) => update("pixDiscount", Number(event.target.value))} />
+          </label>
+
+          <label>
+            Parcelamento máximo
+            <input disabled={!data.ownerView} type="number" min={1} max={24} value={data.content.maxInstallments} onChange={(event) => update("maxInstallments", Number(event.target.value))} />
+          </label>
         </div>
         {data.ownerView && <button disabled={saving} className="button primary"><Save /> {saving ? "Salvando..." : "Salvar configurações"}</button>}
       </section>
+
       <section className="admin-panel integration-panel">
-        <h2>Integrações</h2><p>As chaves ficam protegidas no arquivo de ambiente e nunca são exibidas no navegador.</p>
+        <h2>Integrações</h2>
+        <p>As chaves ficam protegidas no arquivo de ambiente e nunca são exibidas no navegador.</p>
         <Integration icon={<Bot />} name="Ollama Cloud" description="Geração de descrições e especificações" active={data.integrations.ollama} />
         <Integration icon={<CreditCard />} name="Mercado Pago" description="Cobrança e confirmação automática" active={data.integrations.mercadoPago} />
         <Integration icon={<Mail />} name="E-mail transacional" description="Avisos de pedido e atendimento" active={data.integrations.email} />

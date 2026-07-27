@@ -35,6 +35,7 @@ function CatalogContent() {
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(0);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [mobileFilterBarVisible, setMobileFilterBarVisible] = useState(true);
 
   useEffect(() => {
     void Promise.all([
@@ -71,6 +72,22 @@ function CatalogContent() {
     }
     setSelectedFilters(initialSelections);
   }, [filters, paramsKey, searchParams]);
+
+
+  useEffect(() => {
+    const footer = document.querySelector<HTMLElement>(".site-footer");
+    if (!footer || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setMobileFilterBarVisible(!entry.isIntersecting);
+    }, {
+      threshold: 0,
+      rootMargin: "0px 0px 112px 0px",
+    });
+
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!mobileFiltersOpen) return;
@@ -195,7 +212,7 @@ function CatalogContent() {
       </section>
     </div>
 
-    <div className="mobile-catalog-filter-bar" aria-label="Ações dos filtros">
+    <div className={`mobile-catalog-filter-bar ${mobileFilterBarVisible ? "" : "is-hidden"}`} aria-label="Ações dos filtros" aria-hidden={!mobileFilterBarVisible}>
       <button type="button" className="mobile-filter-open" onClick={() => setMobileFiltersOpen(true)}>
         <SlidersHorizontal aria-hidden="true" />
         <span>Filtros</span>

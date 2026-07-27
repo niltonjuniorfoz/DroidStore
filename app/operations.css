@@ -1153,3 +1153,22 @@
 
 
 
+
+.settings-field-title {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.settings-field-title svg {
+  width: 15px;
+  height: 15px;
+  color: #e56d00;
+}
+
+.settings-form .admin-form-grid label > small {
+  color: var(--muted);
+  font-size: .58rem;
+  font-weight: 600;
+  line-height: 1.45;
+}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "../../../../src/lib/prisma";
 import { requireAdmin } from "../../../../src/lib/admin";
+import { readInstagramFromCatalogBanner } from "../../../../src/lib/contact";
 
 const slideSchema = z.object({
   eyebrow: z.string().trim().max(100).optional().or(z.literal("")),
@@ -48,13 +49,19 @@ export async function PUT(req: Request) {
 
   const { navigation, heroSlides, catalogBanner, catalogSlides, storeName } = parsed.data;
   const first = heroSlides[0];
+  const currentContent = await prisma.siteContent.findUnique({ where: { id: "main" } });
+  const instagramUrl = readInstagramFromCatalogBanner(currentContent?.catalogBanner);
+  const catalogBannerWithInstagram = {
+    ...(catalogBanner ?? {}),
+    ...(instagramUrl ? { instagramUrl } : {}),
+  };
   await prisma.$transaction(async (tx) => {
     await tx.siteContent.upsert({
       where: { id: "main" },
       update: {
         storeName,
         heroSlides,
-        catalogBanner,
+        catalogBanner: catalogBannerWithInstagram,
         catalogSlides: catalogSlides || (catalogBanner ? [catalogBanner] : []),
         heroEyebrow: first.eyebrow,
         heroTitle: first.title,
@@ -65,7 +72,7 @@ export async function PUT(req: Request) {
         id: "main",
         storeName,
         heroSlides,
-        catalogBanner,
+        catalogBanner: catalogBannerWithInstagram,
         catalogSlides: catalogSlides || (catalogBanner ? [catalogBanner] : []),
         heroEyebrow: first.eyebrow,
         heroTitle: first.title,

@@ -3,12 +3,10 @@
 import Link from "next/link";
 import {
   ChevronRight,
-  Facebook,
   Headphones,
   Heart,
   Home,
   Instagram,
-  Linkedin,
   Menu,
   PackageCheck,
   Search,
@@ -21,6 +19,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "./CartProvider";
 import MegaMenu from "./MegaMenu";
+import { normalizeInstagramUrl } from "../lib/contact";
 
 type MenuItem = { label: string; href: string };
 
@@ -49,6 +48,7 @@ const mobileCategories: MenuItem[] = [
 export default function Header() {
   const { count } = useCart();
   const [navigation, setNavigation] = useState<MenuItem[]>(defaultNavigation);
+  const [instagramUrl, setInstagramUrl] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesHidden, setCategoriesHidden] = useState(false);
   const categoriesHiddenRef = useRef(false);
@@ -58,6 +58,7 @@ export default function Header() {
       .then((response) => response.json())
       .then((data) => {
         if (data.navigation?.length) setNavigation(data.navigation.slice(0, 8));
+        setInstagramUrl(normalizeInstagramUrl(data.content?.instagramUrl));
       })
       .catch(() => undefined);
   }, []);
@@ -183,20 +184,11 @@ export default function Header() {
                 <PackageCheck size={13} />
                 <span>Meus Pedidos</span>
               </Link>
-              <div className="top-social-pills">
-                <a href="#" aria-label="Facebook" className="social-pill">
-                  <Facebook size={12} />
-                </a>
-                <a href="#" aria-label="X / Twitter" className="social-pill">
-                  <span className="x-icon">X</span>
-                </a>
-                <a href="#" aria-label="Instagram" className="social-pill">
+              {instagramUrl && <div className="top-social-pills">
+                <a href={instagramUrl} target="_blank" rel="noreferrer" aria-label="Abrir Instagram da loja" className="social-pill">
                   <Instagram size={12} />
                 </a>
-                <a href="#" aria-label="LinkedIn" className="social-pill">
-                  <Linkedin size={12} />
-                </a>
-              </div>
+              </div>}
             </div>
           </div>
         </div>
@@ -295,6 +287,7 @@ export default function Header() {
               <Link href="/conta/pedidos" onClick={closeMenu}>Meus pedidos</Link>
               <Link href="/conta" onClick={closeMenu}>Minha conta</Link>
               <Link href="/conta/favoritos" onClick={closeMenu}>Favoritos</Link>
+              <Link href="/atendimento" onClick={closeMenu}>Atendimento</Link>
               <Link href="/celulares" onClick={closeMenu}>Todos os produtos</Link>
             </nav>
 
