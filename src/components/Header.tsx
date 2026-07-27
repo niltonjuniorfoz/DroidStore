@@ -18,7 +18,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "./CartProvider";
 import MegaMenu from "./MegaMenu";
 
@@ -51,6 +51,7 @@ export default function Header() {
   const [navigation, setNavigation] = useState<MenuItem[]>(defaultNavigation);
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesHidden, setCategoriesHidden] = useState(false);
+  const categoriesHiddenRef = useRef(false);
 
   useEffect(() => {
     fetch("/api/site-content")
@@ -62,15 +63,78 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    let previousScrollY = window.scrollY;
+    let previousScrollY = Math.max(0, window.scrollY);
+    let downwardDistance = 0;
+    let upwardDistance = 0;
+    let ignoreScrollUntil = 0;
+    let ticking = false;
+
+    const applyCategoriesVisibility = (hidden: boolean, currentScrollY: number) => {
+      if (categoriesHiddenRef.current === hidden) return;
+
+      categoriesHiddenRef.current = hidden;
+      setCategoriesHidden(hidden);
+      downwardDistance = 0;
+      upwardDistance = 0;
+      previousScrollY = currentScrollY;
+
+      // Ao esconder/mostrar, a altura do cabeçalho muda e o navegador ajusta o scrollY.
+      // Durante a animação ignoramos esse ajuste automático para não interpretar como
+      // uma rolagem real no sentido contrário e ficar abrindo/fechando a barra.
+      ignoreScrollUntil = performance.now() + 360;
+    };
+
+    const updateCategories = () => {
+      const currentScrollY = Math.max(0, window.scrollY);
+      const now = performance.now();
+
+      // Perto do topo, a barra sempre deve ficar visível.
+      if (currentScrollY <= 18) {
+        applyCategoriesVisibility(false, currentScrollY);
+        previousScrollY = currentScrollY;
+        ticking = false;
+        return;
+      }
+
+      // Absorve somente a variação provocada pela animação da própria barra.
+      if (now < ignoreScrollUntil) {
+        previousScrollY = currentScrollY;
+        ticking = false;
+        return;
+      }
+
+      const distance = currentScrollY - previousScrollY;
+      previousScrollY = currentScrollY;
+
+      // Ignora tremores pequenos do touchpad, do navegador mobile e do scroll inercial.
+      if (Math.abs(distance) < 3) {
+        ticking = false;
+        return;
+      }
+
+      if (distance > 0) {
+        downwardDistance += distance;
+        upwardDistance = 0;
+      } else {
+        upwardDistance += Math.abs(distance);
+        downwardDistance = 0;
+      }
+
+      // Histerese com trava de animação: desce 30 px para esconder e sobe 70 px
+      // para mostrar novamente. Assim uma pequena oscilação não alterna o menu.
+      if (!categoriesHiddenRef.current && currentScrollY > 95 && downwardDistance >= 30) {
+        applyCategoriesVisibility(true, currentScrollY);
+      } else if (categoriesHiddenRef.current && upwardDistance >= 70) {
+        applyCategoriesVisibility(false, currentScrollY);
+      }
+
+      ticking = false;
+    };
 
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      const distance = currentScrollY - previousScrollY;
-
-      if (Math.abs(distance) < 7) return;
-      setCategoriesHidden(distance > 0 && currentScrollY > 72);
-      previousScrollY = currentScrollY;
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(updateCategories);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
