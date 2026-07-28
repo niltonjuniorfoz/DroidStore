@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Instagram, Mail, MessageCircle } from "lucide-react";
 import { createMailtoUrl, createWhatsAppUrl, normalizeInstagramUrl } from "../../src/lib/contact";
-import { formatBrazilPhone } from "../../src/lib/brazil";
 
 type SiteContent = {
   storeName?: string | null;
@@ -139,10 +138,10 @@ export default function AtendimentoPage() {
 
     {!loading && <section className="support-direct-channels" aria-label="Contatos diretos">
       {whatsapp && <a href={createWhatsAppUrl(whatsapp, `Olá! Gostaria de falar com o atendimento da ${storeName}.`) ?? "#"} target="_blank" rel="noreferrer">
-        <MessageCircle /><span><strong>WhatsApp</strong><small>{formatBrazilPhone(whatsapp)}</small></span>
+        <MessageCircle /><span><strong>WhatsApp</strong><small>Conversar com a equipe</small></span>
       </a>}
       {email && <a href={createMailtoUrl(email, `Atendimento ${storeName}`) ?? "#"}>
-        <Mail /><span><strong>E-mail</strong><small>{email}</small></span>
+        <Mail /><span><strong>E-mail</strong><small>Enviar uma mensagem</small></span>
       </a>}
       {instagramUrl && <a href={instagramUrl} target="_blank" rel="noreferrer">
         <Instagram /><span><strong>Instagram</strong><small>Abrir perfil da loja</small></span>

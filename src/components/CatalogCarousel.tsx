@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AutoplayVideo from "./AutoplayVideo";
 
 export type CatalogSlide = {
   eyebrow: string;
@@ -44,13 +45,11 @@ export default function CatalogCarousel({ slides }: { slides: CatalogSlide[] }) 
           >
             {slide.imageUrl && (
               isVideoMedia ? (
-                <video
+                <AutoplayVideo
                   src={slide.imageUrl}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
+                  active={index === active}
                   className="catalog-slide-video"
+                  aria-label={slide.title || `Banner do catálogo ${index + 1}`}
                 />
               ) : (
                 <div

@@ -2712,3 +2712,88 @@ body {
     gap: .55rem;
   }
 }
+
+/* ========================================================================== 
+   Ajustes finais mobile: login centralizado, autoplay e fim da rolagem
+   ========================================================================== */
+.hero-slide-video,
+.catalog-slide-video {
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+
+  .storefront-theme {
+    width: 100%;
+    min-height: 100svh;
+    padding-bottom: 0 !important;
+    overflow-x: clip;
+  }
+
+  .storefront-theme > main {
+    min-width: 0;
+  }
+
+  .storefront-theme .auth-page {
+    width: 100%;
+    min-height: calc(100svh - 124px);
+    padding: clamp(1rem, 4svh, 2rem) 12px calc(76px + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .storefront-theme .auth-panel {
+    width: min(100%, 380px);
+    max-width: calc(100vw - 24px);
+    margin: auto;
+    padding: 1.15rem;
+    gap: .72rem;
+    border-radius: 18px;
+    box-sizing: border-box;
+  }
+
+  .auth-panel-header {
+    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    gap: .45rem;
+  }
+
+  .auth-panel-header > span {
+    width: 38px;
+    height: 38px;
+  }
+
+  .auth-panel-header > strong {
+    min-width: 0;
+    font-size: .92rem;
+    line-height: 1.2;
+  }
+
+  .auth-panel-fields input {
+    height: 46px;
+  }
+
+  .auth-access-button,
+  .auth-google-button,
+  .auth-mode-button {
+    min-height: 43px;
+  }
+
+  .storefront-theme .site-footer {
+    margin-bottom: 0;
+  }
+
+  .storefront-theme::after {
+    content: none !important;
+    display: none !important;
+  }
+}

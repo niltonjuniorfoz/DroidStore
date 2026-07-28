@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import AutoplayVideo from "./AutoplayVideo";
 
 export type HeroSlide = {
   eyebrow: string;
@@ -51,13 +52,11 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
           >
             {slide.imageUrl && (
               isVideoMedia ? (
-                <video
+                <AutoplayVideo
                   src={slide.imageUrl}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
+                  active={index === active}
                   className="hero-slide-video"
+                  aria-label={slide.title || `Banner ${index + 1}`}
                 />
               ) : (
                 <div

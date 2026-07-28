@@ -27,26 +27,52 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     if (admin || !window.matchMedia("(pointer: coarse)").matches) return;
 
     let touchStartY = 0;
+    let clampFrame = 0;
+
+    const getScroller = () => document.scrollingElement ?? document.documentElement;
+    const getViewportHeight = () => window.visualViewport?.height ?? window.innerHeight;
+    const getMaxScroll = () => Math.max(0, getScroller().scrollHeight - getViewportHeight());
+
+    const clampScroll = () => {
+      cancelAnimationFrame(clampFrame);
+      clampFrame = requestAnimationFrame(() => {
+        const maxScroll = getMaxScroll();
+        const current = getScroller().scrollTop;
+        if (current < 0) window.scrollTo(0, 0);
+        else if (current > maxScroll + 1) window.scrollTo(0, maxScroll);
+      });
+    };
+
     const onTouchStart = (event: TouchEvent) => {
       touchStartY = event.touches[0]?.clientY ?? 0;
     };
+
     const onTouchMove = (event: TouchEvent) => {
       const target = event.target as HTMLElement | null;
-      if (target?.closest(".mobile-filter-sheet-content, .mobile-menu-panel")) return;
+      if (target?.closest(".mobile-filter-sheet-content, .mobile-menu-panel, .auth-panel, .address-modal, .admin-modal")) return;
 
       const currentY = event.touches[0]?.clientY ?? touchStartY;
-      const pullingPastTop = window.scrollY <= 0 && currentY > touchStartY;
-      const pageBottom = Math.ceil(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight;
-      const pullingPastBottom = pageBottom && currentY < touchStartY;
+      const scrollTop = getScroller().scrollTop;
+      const maxScroll = getMaxScroll();
+      const pullingPastTop = scrollTop <= 1 && currentY > touchStartY;
+      const pullingPastBottom = scrollTop >= maxScroll - 1 && currentY < touchStartY;
 
       if (pullingPastTop || pullingPastBottom) event.preventDefault();
     };
 
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", clampScroll, { passive: true });
+    window.addEventListener("resize", clampScroll);
+    window.visualViewport?.addEventListener("resize", clampScroll);
+
     return () => {
+      cancelAnimationFrame(clampFrame);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", clampScroll);
+      window.removeEventListener("resize", clampScroll);
+      window.visualViewport?.removeEventListener("resize", clampScroll);
     };
   }, [admin]);
 
