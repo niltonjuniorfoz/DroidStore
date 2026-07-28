@@ -2797,3 +2797,225 @@ body {
     display: none !important;
   }
 }
+
+/* ========================================================================== 
+   Revisão geral mobile: autoplay, limites de rolagem e textos sem sobreposição
+   ========================================================================== */
+.autoplay-video-media {
+  background: #000;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.autoplay-video-media::-webkit-media-controls,
+.autoplay-video-media::-webkit-media-controls-panel,
+.autoplay-video-media::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.autoplay-video-fallback {
+  position: absolute;
+  z-index: 12;
+  top: 50%;
+  left: 50%;
+  min-width: 86px;
+  min-height: 44px;
+  padding: .55rem .8rem;
+  border: 1px solid rgba(255,255,255,.38);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  background: rgba(16,18,17,.82);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,.28);
+  backdrop-filter: blur(8px);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+
+.autoplay-video-fallback svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
+
+.autoplay-video-fallback span {
+  font-size: .62rem;
+  font-weight: 850;
+}
+
+.storefront-theme :where(
+  .product-summary,
+  .product-content,
+  .product-content article,
+  .description-copy,
+  .specification-table,
+  .support-page,
+  .support-form-card,
+  .support-direct-channels,
+  .cart-line,
+  .checkout-form,
+  .account-layout,
+  .profile-card
+) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.storefront-theme :where(
+  .product-summary h1,
+  .product-content h2,
+  .description-copy p,
+  .specification-table dt,
+  .specification-table dd,
+  .availability strong,
+  .availability small,
+  .summary-trust b,
+  .summary-trust small,
+  .support-form-heading h1,
+  .support-form-heading p,
+  .support-direct-channels strong,
+  .support-direct-channels small,
+  .cart-description a,
+  .cart-description span,
+  .cart-description small
+) {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.storefront-theme .product-content {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.storefront-theme .product-description,
+.storefront-theme .product-specifications {
+  height: 100%;
+}
+
+.storefront-theme .description-copy {
+  width: 100%;
+  gap: .85rem;
+}
+
+.storefront-theme .description-copy p {
+  width: 100%;
+  margin: 0;
+  white-space: pre-line;
+  text-align: left;
+  text-wrap: pretty;
+  hyphens: auto;
+  line-height: 1.72;
+}
+
+.storefront-theme .specification-table > div {
+  min-width: 0;
+}
+
+.storefront-theme .cookie-banner {
+  z-index: 1700;
+}
+
+@media (max-width: 768px) {
+  html,
+  body {
+    height: auto !important;
+    min-height: 100% !important;
+    max-width: 100%;
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body {
+    position: relative;
+  }
+
+  .storefront-theme {
+    min-height: 100svh !important;
+    height: auto !important;
+    overflow-x: clip;
+    overflow-y: visible;
+  }
+
+  .storefront-theme > main {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .storefront-theme .hero-slide-video,
+  .storefront-theme .catalog-slide-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .storefront-theme .product-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .85rem;
+  }
+
+  .storefront-theme .product-content article,
+  .storefront-theme .product-description {
+    padding: 1.15rem !important;
+    border-radius: 15px;
+  }
+
+  .storefront-theme .product-content h2 {
+    margin: .35rem 0 .85rem;
+    font-size: 1.45rem;
+    line-height: 1.15;
+  }
+
+  .storefront-theme .description-copy p {
+    font-size: .82rem;
+    line-height: 1.68;
+  }
+
+  .storefront-theme .specification-table dt,
+  .storefront-theme .specification-table dd {
+    padding-right: .75rem;
+    padding-left: .75rem;
+  }
+
+  .storefront-theme .cookie-banner {
+    right: 8px;
+    bottom: calc(69px + env(safe-area-inset-bottom));
+    left: 8px;
+    width: auto;
+    max-height: calc(100svh - 92px - env(safe-area-inset-bottom));
+    margin: 0;
+    padding: .9rem;
+    gap: .55rem;
+    border-radius: 15px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .storefront-theme .cookie-banner strong {
+    display: block;
+    font-size: .85rem;
+    line-height: 1.25;
+  }
+
+  .storefront-theme .cookie-banner p {
+    font-size: .65rem;
+    line-height: 1.45;
+  }
+
+  .storefront-theme .cookie-banner .button {
+    min-height: 41px;
+    padding: .65rem .8rem;
+    font-size: .7rem;
+  }
+
+  .storefront-theme .site-footer {
+    min-height: 0;
+  }
+}

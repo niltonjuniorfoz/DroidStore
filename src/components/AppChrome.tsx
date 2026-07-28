@@ -27,54 +27,108 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     if (admin || !window.matchMedia("(pointer: coarse)").matches) return;
 
     let touchStartY = 0;
+    let lastTouchY = 0;
     let clampFrame = 0;
 
     const getScroller = () => document.scrollingElement ?? document.documentElement;
-    const getViewportHeight = () => window.visualViewport?.height ?? window.innerHeight;
-    const getMaxScroll = () => Math.max(0, getScroller().scrollHeight - getViewportHeight());
+    const getViewportHeight = () => document.documentElement.clientHeight || window.innerHeight;
+    const getDocumentHeight = () => Math.max(
+      document.documentElement.scrollHeight,
+      document.body.scrollHeight,
+      document.documentElement.offsetHeight,
+      document.body.offsetHeight,
+    );
+    const getMaxScroll = () => Math.max(0, getDocumentHeight() - getViewportHeight());
 
     const clampScroll = () => {
-      cancelAnimationFrame(clampFrame);
-      clampFrame = requestAnimationFrame(() => {
+      window.cancelAnimationFrame(clampFrame);
+      clampFrame = window.requestAnimationFrame(() => {
+        const scroller = getScroller();
         const maxScroll = getMaxScroll();
-        const current = getScroller().scrollTop;
-        if (current < 0) window.scrollTo(0, 0);
-        else if (current > maxScroll + 1) window.scrollTo(0, maxScroll);
+        const current = scroller.scrollTop;
+        if (current < 0) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        else if (current > maxScroll) window.scrollTo({ top: maxScroll, left: 0, behavior: "auto" });
       });
+    };
+
+    const nestedScrollerCanMove = (target: HTMLElement | null, fingerDeltaY: number) => {
+      let element: HTMLElement | null = target;
+
+      while (element && element !== document.body && element !== document.documentElement) {
+        const style = window.getComputedStyle(element);
+        const scrollable = /(auto|scroll)/.test(style.overflowY) && element.scrollHeight > element.clientHeight + 1;
+
+        if (scrollable) {
+          const movingPageDown = fingerDeltaY < 0;
+          const canMoveDown = element.scrollTop + element.clientHeight < element.scrollHeight - 1;
+          const canMoveUp = element.scrollTop > 1;
+          if ((movingPageDown && canMoveDown) || (!movingPageDown && canMoveUp)) return true;
+        }
+
+        element = element.parentElement;
+      }
+
+      return false;
     };
 
     const onTouchStart = (event: TouchEvent) => {
       touchStartY = event.touches[0]?.clientY ?? 0;
+      lastTouchY = touchStartY;
+      clampScroll();
     };
 
     const onTouchMove = (event: TouchEvent) => {
+      const currentY = event.touches[0]?.clientY ?? lastTouchY;
+      const fingerDeltaY = currentY - lastTouchY;
+      lastTouchY = currentY;
+      if (Math.abs(fingerDeltaY) < 1) return;
+
       const target = event.target as HTMLElement | null;
-      if (target?.closest(".mobile-filter-sheet-content, .mobile-menu-panel, .auth-panel, .address-modal, .admin-modal")) return;
+      if (nestedScrollerCanMove(target, fingerDeltaY)) return;
 
-      const currentY = event.touches[0]?.clientY ?? touchStartY;
-      const scrollTop = getScroller().scrollTop;
+      const scroller = getScroller();
       const maxScroll = getMaxScroll();
-      const pullingPastTop = scrollTop <= 1 && currentY > touchStartY;
-      const pullingPastBottom = scrollTop >= maxScroll - 1 && currentY < touchStartY;
+      const pullingPastTop = scroller.scrollTop <= 0 && currentY > touchStartY;
+      const pullingPastBottom = scroller.scrollTop >= maxScroll - 1 && currentY < touchStartY;
 
-      if (pullingPastTop || pullingPastBottom) event.preventDefault();
+      if ((pullingPastTop || pullingPastBottom) && event.cancelable) event.preventDefault();
+    };
+
+    const onTouchEnd = () => {
+      touchStartY = 0;
+      lastTouchY = 0;
+      clampScroll();
     };
 
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", clampScroll, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
     window.addEventListener("resize", clampScroll);
+    window.addEventListener("orientationchange", clampScroll);
     window.visualViewport?.addEventListener("resize", clampScroll);
+    clampScroll();
 
     return () => {
-      cancelAnimationFrame(clampFrame);
+      window.cancelAnimationFrame(clampFrame);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", clampScroll);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
       window.removeEventListener("resize", clampScroll);
+      window.removeEventListener("orientationchange", clampScroll);
       window.visualViewport?.removeEventListener("resize", clampScroll);
     };
-  }, [admin]);
+  }, [admin, pathname]);
+
+  useEffect(() => {
+    if (admin) return;
+    // Evita que uma página curta herde a posição de rolagem de uma página longa.
+    window.requestAnimationFrame(() => {
+      const maximum = Math.max(0, document.documentElement.scrollHeight - document.documentElement.clientHeight);
+      if (window.scrollY > maximum) window.scrollTo({ top: maximum, left: 0, behavior: "auto" });
+    });
+  }, [admin, pathname]);
 
   const contactLinks = useMemo(() => ({
     email: createMailtoUrl(store.email),

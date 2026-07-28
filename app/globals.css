@@ -601,3 +601,37 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { 
     min-height: 118px;
   }
 }
+
+/* Catálogo do admin: prioridade final sobre os estilos responsivos globais */
+@media (max-width: 768px) {
+  .pro-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .pro-filters-bar {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    flex-direction: initial !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 0 !important;
+  }
+
+  .pro-search {
+    grid-column: 1 / -1;
+  }
+
+  .pro-table-container {
+    max-width: 100%;
+    overflow: visible !important;
+  }
+
+  .pro-table-row {
+    min-width: 0 !important;
+  }
+
+  .pro-table-row > * {
+    min-width: 0;
+  }
+}
