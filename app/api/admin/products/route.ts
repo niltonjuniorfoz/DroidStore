@@ -45,7 +45,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   const rows = await prisma.product.findMany({
     include: {
-      variants: true,
+      variants: { include: { deviceUnits: true } },
       images: { orderBy: { position: "asc" } },
       specifications: { orderBy: { position: "asc" } },
       filterSelections: { include: { option: { include: { filter: true } } } },
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
       filterSelections: { create: filterOptionIds.map((optionId) => ({ optionId })) },
     },
     include: {
-      variants: true,
+      variants: { include: { deviceUnits: true } },
       images: { orderBy: { position: "asc" } },
       specifications: { orderBy: { position: "asc" } },
       filterSelections: { include: { option: { include: { filter: true } } } },

@@ -20,11 +20,31 @@ export default function CatalogCarousel({ slides }: { slides: CatalogSlide[] }) 
   const [active, setActive] = useState(0);
   const available = slides.slice(0, 5);
 
+  const activeSlide = available[active];
+  const isCurrentVideo = isVideoUrl(activeSlide?.imageUrl);
+
   useEffect(() => {
     if (available.length < 2) return;
-    const timer = window.setInterval(() => setActive((current) => (current + 1) % available.length), 6500);
+
+    if (isCurrentVideo) {
+      const fallbackTimer = window.setTimeout(() => {
+        setActive((current) => (current + 1) % available.length);
+      }, 60000);
+      return () => window.clearTimeout(fallbackTimer);
+    }
+
+    const timer = window.setInterval(() => {
+      setActive((current) => (current + 1) % available.length);
+    }, 6500);
+
     return () => window.clearInterval(timer);
-  }, [available.length]);
+  }, [active, available.length, isCurrentVideo]);
+
+  function handleVideoEnded() {
+    if (available.length > 1) {
+      setActive((current) => (current + 1) % available.length);
+    }
+  }
 
   if (!available.length) return null;
 
@@ -48,6 +68,8 @@ export default function CatalogCarousel({ slides }: { slides: CatalogSlide[] }) 
                 <AutoplayVideo
                   src={slide.imageUrl}
                   active={index === active}
+                  loop={false}
+                  onEnded={handleVideoEnded}
                   className="catalog-slide-video"
                   aria-label={slide.title || `Banner do catálogo ${index + 1}`}
                 />

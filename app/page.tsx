@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { BadgeCheck, Check, PackageCheck, ShieldCheck } from "lucide-react";
 import HeroCarousel, { type HeroSlide } from "../src/components/HeroCarousel";
-import ProductCard from "../src/components/ProductCard";
+import FeaturedCarousel from "../src/components/FeaturedCarousel";
 import QuickActions from "../src/components/QuickActions";
 import { getProducts, getSiteContent } from "../src/lib/storefront";
 
@@ -34,23 +33,15 @@ function readSlides(content: Awaited<ReturnType<typeof getSiteContent>>["content
 
 export default async function Home() {
   const [{ content }, featuredProducts] = await Promise.all([getSiteContent(), getProducts(true)]);
-  const selected = featuredProducts.slice(0, 10);
+  const selected = featuredProducts.slice(0, 60);
 
   return <main className="storefront-home">
     <HeroCarousel slides={readSlides(content)} />
 
-    {/* 4 Quick Action Cards (Mais Vendidos & Ofertas with Live Fire Effect) */}
+    {/* 4 Quick Action Cards (Mais Vendidos & Ofertas com efeito de fogo vivo) */}
     <QuickActions />
 
-    <section className="home-section">
-      <div className="section-heading"><div><h2>Destaques da semana</h2></div><Link href="/celulares">Ver catálogo completo →</Link></div>
-      <div className="product-grid">{selected.map((product) => <ProductCard key={product.id} product={product} />)}</div>
-    </section>
-
-    <section className="benefits" aria-label="Benefícios">
-      <div><ShieldCheck /><span><strong>Garantia</strong>Produtos Originais</span></div>
-      <div><BadgeCheck /><span><strong>100% Revisados</strong>Testados por especialistas</span></div>
-      <div><PackageCheck /><span><strong>Frete Grátis</strong>Para todo o Brasil</span></div>
-    </section>
+    {/* Carrossel de 60 Telefones em 6 Passadas de Ofertas */}
+    <FeaturedCarousel products={selected} />
   </main>;
 }

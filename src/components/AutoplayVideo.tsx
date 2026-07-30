@@ -36,20 +36,18 @@ export default function AutoplayVideo({ active = true, className = "", poster, .
   }, []);
 
   const prepareVideo = useCallback((video: HTMLVideoElement) => {
-    // Definir também como propriedades/atributos é importante no Safari móvel,
-    // que decide a elegibilidade do autoplay antes do primeiro play().
     video.muted = true;
     video.defaultMuted = true;
     video.playsInline = true;
     video.autoplay = true;
-    video.loop = true;
+    video.loop = props.loop ?? true;
     video.controls = false;
     video.setAttribute("muted", "");
     video.setAttribute("playsinline", "");
     video.setAttribute("webkit-playsinline", "");
     video.setAttribute("x5-playsinline", "");
     video.setAttribute("disablepictureinpicture", "");
-  }, []);
+  }, [props.loop]);
 
   const requestPlayback = useCallback(async (fromUserGesture = false) => {
     const video = ref.current;
@@ -99,6 +97,10 @@ export default function AutoplayVideo({ active = true, className = "", poster, .
       setBlocked(false);
       return;
     }
+
+    try {
+      video.currentTime = 0;
+    } catch {}
 
     const onReady = () => schedulePlaybackRetries();
     const onPlaying = () => {

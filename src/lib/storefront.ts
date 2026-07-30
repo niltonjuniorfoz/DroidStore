@@ -60,12 +60,93 @@ export async function getProducts(featuredOnly = false) {
         filterSelections: { include: { option: { include: { filter: true } } } },
       },
       orderBy: { updatedAt: "desc" },
-      take: featuredOnly ? 8 : 100,
+      take: featuredOnly ? 60 : 120,
     });
     return rows.length ? rows.map(mapProduct) : products;
   } catch {
     return products;
   }
+}
+
+export type ProductVariantOption = {
+  id: string;
+  productId: string;
+  slug: string;
+  color: string;
+  storage: string;
+  condition: CatalogProduct["condition"];
+  price: number;
+  stock: number;
+  imageUrl?: string;
+};
+
+export function getBaseModelName(name: string) {
+  return name
+    .replace(/\s*-\s*\d+\s*(GB|TB).*/i, "")
+    .replace(/\s*-\s*(Seminovo|Novo|Excelente|Muito Bom|Outlet|Reembalado).*/i, "")
+    .trim();
+}
+
+export async function getFamilyVariantsForProduct(targetProduct: CatalogProduct): Promise<ProductVariantOption[]> {
+  const baseModel = getBaseModelName(targetProduct.name).toLowerCase();
+  
+  try {
+    const familyProducts = await prisma.product.findMany({
+      where: {
+        active: true,
+        brand: targetProduct.brand,
+      },
+      include: {
+        variants: true,
+        images: { orderBy: { position: "asc" }, take: 1 },
+      },
+    });
+
+    const matching = familyProducts.filter(
+      (p) => getBaseModelName(p.name).toLowerCase() === baseModel
+    );
+
+    const variantOptions: ProductVariantOption[] = [];
+
+    for (const p of matching) {
+      for (const v of p.variants) {
+        variantOptions.push({
+          id: v.id,
+          productId: p.id,
+          slug: p.slug,
+          color: v.color ?? targetProduct.color,
+          storage: v.storage ?? targetProduct.storage,
+          condition: conditionLabels[v.condition] ?? "Novo",
+          price: Number(v.price),
+          stock: v.stock,
+          imageUrl: p.images[0]?.url ?? p.imageUrl ?? undefined,
+        });
+      }
+    }
+
+    if (variantOptions.length > 0) {
+      return variantOptions;
+    }
+  } catch {
+    // Fallback se houver erro no Prisma
+  }
+
+  // Fallback a partir do catálogo estático em memória
+  const fallbackMatches = products.filter(
+    (p) => getBaseModelName(p.name).toLowerCase() === baseModel || p.brand.toLowerCase() === targetProduct.brand.toLowerCase()
+  );
+
+  return fallbackMatches.map((p) => ({
+    id: p.id,
+    productId: p.productId ?? p.id,
+    slug: p.slug,
+    color: p.color,
+    storage: p.storage,
+    condition: p.condition,
+    price: p.price,
+    stock: p.stock,
+    imageUrl: p.imageUrl,
+  }));
 }
 
 export async function getSiteContent() {
@@ -82,3 +163,4 @@ export async function getSiteContent() {
     return { content: null, navigation: [] };
   }
 }
+

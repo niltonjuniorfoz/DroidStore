@@ -121,7 +121,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return tx.product.findUniqueOrThrow({
       where: { id },
       include: {
-        variants: true,
+        variants: { include: { deviceUnits: true } },
         images: { orderBy: { position: "asc" } },
         specifications: { orderBy: { position: "asc" } },
         filterSelections: { include: { option: { include: { filter: true } } } },

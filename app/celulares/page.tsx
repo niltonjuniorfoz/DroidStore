@@ -21,6 +21,14 @@ const defaultBanner: CatalogBanner = {
   imageUrl: "",
 };
 
+function getBaseModelName(name: string) {
+  return name
+    .replace(/\s*-\s*\d+\s*(GB|TB).*/i, "")
+    .replace(/\s*-\s*(Seminovo|Novo|Excelente|Muito Bom|Outlet|Reembalado).*/i, "")
+    .replace(/\s*-\s*(Preto|Branco|Roxo|Verde|Vermelho|Amarelo|Estelar|Azul|Rosa|Grafite|Cinza).*/i, "")
+    .trim();
+}
+
 function CatalogContent() {
   const searchParams = useSearchParams();
   const paramsKey = searchParams.toString();
@@ -29,6 +37,7 @@ function CatalogContent() {
   const [banner, setBanner] = useState<CatalogBanner>(defaultBanner);
   const [catalogSlides, setCatalogSlides] = useState<CatalogSlide[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string>>({});
+  const [selectedModel, setSelectedModel] = useState<string>("");
   const [query, setQuery] = useState("");
   const [condition, setCondition] = useState("Todas");
   const [sort, setSort] = useState("relevance");
@@ -44,7 +53,18 @@ function CatalogContent() {
       fetch("/api/site-content").then((response) => response.json()),
     ]).then(([catalogData, filterData, siteData]: [CatalogProduct[], PublicFilter[], { content?: { catalogBanner?: Partial<CatalogBanner>; catalogSlides?: CatalogSlide[] } }]) => {
       setCatalog(catalogData);
-      setFilters(filterData);
+      const defaultFilters: PublicFilter[] = [
+        { id: "filter-marca", name: "Marca", slug: "marca", options: [] },
+        { id: "filter-tipo-de-produto", name: "Categoria", slug: "tipo-de-produto", options: [] },
+      ];
+      const mergedFilters = Array.isArray(filterData) ? [...filterData] : [];
+      if (!mergedFilters.some((f) => f.slug === "marca")) {
+        mergedFilters.unshift(defaultFilters[0]);
+      }
+      if (!mergedFilters.some((f) => f.slug === "tipo-de-produto" || f.slug === "categoria")) {
+        mergedFilters.splice(1, 0, defaultFilters[1]);
+      }
+      setFilters(mergedFilters);
       const prices = catalogData.map((product) => product.price).filter(Number.isFinite);
       setMinPrice(prices.length ? Math.floor(Math.min(...prices)) : 0);
       setMaxPrice(prices.length ? Math.ceil(Math.max(...prices)) : 0);
@@ -57,9 +77,11 @@ function CatalogContent() {
     }).catch(() => undefined);
   }, []);
 
+
   useEffect(() => {
     setQuery(searchParams.get("q") ?? "");
     setCondition(searchParams.get("condition") ?? "Todas");
+    setSelectedModel(searchParams.get("model") ?? "");
     const initialSelections: Record<string, string> = {};
     for (const filter of filters) {
       const requested = searchParams.get(filter.slug) ?? (filter.slug === "marca" ? searchParams.get("brand") : null);
@@ -72,7 +94,6 @@ function CatalogContent() {
     }
     setSelectedFilters(initialSelections);
   }, [filters, paramsKey, searchParams]);
-
 
   useEffect(() => {
     const footer = document.querySelector<HTMLElement>(".site-footer");
@@ -112,14 +133,106 @@ function CatalogContent() {
       max: values.length ? Math.ceil(Math.max(...values)) : 0,
     };
   }, [catalog]);
+
   const effectiveMaxPrice = maxPrice || priceLimits.max;
   const conditions = ["Todas", ...Array.from(new Set(catalog.map((product) => product.condition)))];
+
+  // Extrai dinamicamente as opções de filtro (ex: Marca, Categoria) garantindo que TODAS as marcas e categorias do catálogo apareçam
+  const getAvailableOptionsForFilter = (filterGroupSlug: string) => {
+    const relevantProducts = catalog.filter((product) => {
+      return Object.entries(selectedFilters).every(([gSlug, oSlug]) => {
+        if (!oSlug || gSlug === filterGroupSlug) return true;
+        if (gSlug === "marca") {
+          return product.brand.toLowerCase() === oSlug.toLowerCase() ||
+                 product.filters?.some((f) => f.groupSlug === "marca" && f.optionSlug.toLowerCase() === oSlug.toLowerCase());
+        }
+        return product.filters?.some((f) => f.groupSlug === gSlug && f.optionSlug.toLowerCase() === oSlug.toLowerCase());
+      });
+    });
+
+    if (filterGroupSlug === "marca") {
+      const allBrands = Array.from(new Set(relevantProducts.map((p) => p.brand).filter(Boolean)));
+      const filterObj = filters.find((f) => f.slug === "marca");
+      const dbBrands = filterObj?.options.map((o) => o.label) ?? [];
+      const combined = Array.from(new Set([...allBrands, ...dbBrands].map((b) => b.trim()))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+      
+      const seenSlugs = new Set<string>();
+      const result: Array<{ id: string; label: string; slug: string }> = [];
+      for (const b of combined) {
+        const s = b.toLowerCase();
+        if (!seenSlugs.has(s)) {
+          seenSlugs.add(s);
+          result.push({
+            id: `brand-${s}`,
+            label: b,
+            slug: s,
+          });
+        }
+      }
+      return result;
+    }
+
+
+    if (filterGroupSlug === "tipo-de-produto" || filterGroupSlug === "categoria") {
+      const allCats = Array.from(new Set(relevantProducts.map((p) => {
+        const isNotebook = p.brand.toLowerCase() === "acer" || p.name.toLowerCase().includes("notebook") || p.name.toLowerCase().includes("macbook") || p.name.toLowerCase().includes("aspire") || p.name.toLowerCase().includes("nitro");
+        return isNotebook ? "Notebooks" : "Smartphones";
+      })));
+      const filterObj = filters.find((f) => f.slug === "tipo-de-produto" || f.slug === "categoria");
+      const dbCats = filterObj?.options.map((o) => o.label) ?? [];
+      const combined = Array.from(new Set([...allCats, ...dbCats])).sort((a, b) => a.localeCompare(b, "pt-BR"));
+      return combined.map((c) => ({
+        id: `type-${c.toLowerCase()}`,
+        label: c,
+        slug: c.toLowerCase() === "notebooks" ? "notebooks" : "smartphones",
+      }));
+    }
+
+    const filterObj = filters.find((f) => f.slug === filterGroupSlug);
+    if (!filterObj) return [];
+
+    return filterObj.options.filter((option) =>
+      relevantProducts.some((p) => p.filters?.some((f) => f.groupSlug === filterGroupSlug && f.optionSlug.toLowerCase() === option.slug.toLowerCase()))
+    );
+  };
+
+
+  // Extrai dinamicamente todos os modelos da família para a Marca e Categoria selecionadas
+  const availableModels = useMemo(() => {
+    const relevantProducts = catalog.filter((product) => {
+      const selectedBrandSlug = selectedFilters["marca"];
+      const matchesBrand = !selectedBrandSlug ||
+        product.brand.toLowerCase() === selectedBrandSlug.toLowerCase() ||
+        product.filters?.some((f) => f.groupSlug === "marca" && f.optionSlug.toLowerCase() === selectedBrandSlug.toLowerCase());
+
+      const selectedCategorySlug = selectedFilters["tipo-de-produto"];
+      const matchesCategory = !selectedCategorySlug ||
+        product.filters?.some((f) => f.groupSlug === "tipo-de-produto" && f.optionSlug.toLowerCase() === selectedCategorySlug.toLowerCase());
+
+      return matchesBrand && matchesCategory;
+    });
+
+    const models = Array.from(new Set(relevantProducts.map((p) => getBaseModelName(p.name)).filter(Boolean)));
+    return models.sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [catalog, selectedFilters]);
+
   const filtered = useMemo(() => {
     const list = catalog.filter((product) => {
-      const matchesCustomFilters = Object.entries(selectedFilters).every(([groupSlug, optionSlug]) =>
-        !optionSlug || product.filters?.some((filter) => filter.groupSlug === groupSlug && filter.optionSlug === optionSlug),
-      );
+      const matchesCustomFilters = Object.entries(selectedFilters).every(([groupSlug, optionSlug]) => {
+        if (!optionSlug) return true;
+        if (groupSlug === "marca") {
+          return product.brand.toLowerCase() === optionSlug.toLowerCase() ||
+                 product.filters?.some((f) => f.groupSlug === "marca" && f.optionSlug.toLowerCase() === optionSlug.toLowerCase());
+        }
+        return product.filters?.some((filter) => filter.groupSlug === groupSlug && filter.optionSlug.toLowerCase() === optionSlug.toLowerCase());
+      });
+
+      const matchesModel = !selectedModel ||
+        getBaseModelName(product.name).toLowerCase() === selectedModel.toLowerCase() ||
+        product.name.toLowerCase().includes(selectedModel.toLowerCase());
+
       return matchesCustomFilters &&
+        matchesModel &&
         (condition === "Todas" || product.condition === condition) &&
         product.price >= minPrice &&
         product.price <= effectiveMaxPrice &&
@@ -127,12 +240,13 @@ function CatalogContent() {
           .toLowerCase().includes(query.toLowerCase());
     });
     return [...list].sort((a, b) => sort === "low" ? a.price - b.price : sort === "high" ? b.price - a.price : b.stock - a.stock);
-  }, [catalog, condition, effectiveMaxPrice, minPrice, query, selectedFilters, sort]);
+  }, [catalog, condition, effectiveMaxPrice, minPrice, query, selectedFilters, selectedModel, sort]);
 
   function clearFilters() {
     setQuery("");
     setCondition("Todas");
     setSelectedFilters({});
+    setSelectedModel("");
     setMinPrice(priceLimits.min);
     setMaxPrice(priceLimits.max);
   }
@@ -143,6 +257,7 @@ function CatalogContent() {
   const activeFilterCount =
     (query.trim() ? 1 : 0) +
     (condition !== "Todas" ? 1 : 0) +
+    (selectedModel ? 1 : 0) +
     Object.values(selectedFilters).filter(Boolean).length +
     (minPrice > priceLimits.min || effectiveMaxPrice < priceLimits.max ? 1 : 0);
 
@@ -157,16 +272,93 @@ function CatalogContent() {
         />
       </label>
 
-      {filters.filter((filter) => filter.options.length > 0).map((filter) => <label className="catalog-filter-field" key={filter.id}>
-        <span>{filter.name}</span>
-        <select
-          value={selectedFilters[filter.slug] ?? ""}
-          onChange={(event) => setSelectedFilters((current) => ({ ...current, [filter.slug]: event.target.value }))}
-        >
-          <option value="">Todos</option>
-          {filter.options.map((option) => <option key={option.id} value={option.slug}>{option.label}</option>)}
-        </select>
-      </label>)}
+      {filters.map((filter) => {
+        const availableOptions = getAvailableOptionsForFilter(filter.slug);
+        const currentOptions = availableOptions.length > 0 ? availableOptions : filter.options;
+
+        return (
+          <label className="catalog-filter-field" key={filter.id}>
+            <span>{filter.name}</span>
+            <select
+              value={selectedFilters[filter.slug] ?? ""}
+              onChange={(event) => {
+                const val = event.target.value;
+                setSelectedFilters((current) => {
+                  const next = { ...current, [filter.slug]: val };
+                  if (filter.slug === "marca" && val) {
+                    // Validar se a categoria atualmente selecionada é compatível com a nova marca
+                    const catSlug = next["tipo-de-produto"];
+                    if (catSlug) {
+                      const validOptions = getAvailableOptionsForFilter("tipo-de-produto");
+                      if (!validOptions.some((opt) => opt.slug.toLowerCase() === catSlug.toLowerCase())) {
+                        delete next["tipo-de-produto"];
+                      }
+                    }
+                  }
+                  return next;
+                });
+                setSelectedModel(""); // Resetar modelo ao alterar marca ou categoria
+              }}
+            >
+              <option value="">Todos</option>
+              {currentOptions.map((option) => (
+                <option key={option.id} value={option.slug}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        );
+      })}
+
+      {/* 3º BOX DEDICADO: MODELO (GENÉRICO PARA QUALQUER CATEGORIA/MARCA) */}
+      <label className="catalog-filter-field">
+        <span>Modelo</span>
+        {(!selectedFilters["marca"] && !selectedFilters["tipo-de-produto"]) ? (
+          <div style={{ minHeight: '42px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: 'transparent' }} />
+        ) : (
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+            padding: '8px',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            maxHeight: '180px',
+            overflowY: 'auto',
+            backgroundColor: '#ffffff'
+          }}>
+            {availableModels.length > 0 ? (
+              availableModels.map((modelName) => (
+                <button
+                  key={modelName}
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setSelectedModel(selectedModel === modelName ? "" : modelName); }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    border: '1px solid',
+                    borderColor: selectedModel === modelName ? '#FF7900' : '#e2e8f0',
+                    backgroundColor: selectedModel === modelName ? '#FFF1E5' : '#f8fafc',
+                    color: selectedModel === modelName ? '#FF7900' : '#334155',
+                    cursor: 'pointer',
+                    fontWeight: selectedModel === modelName ? '600' : '500',
+                    transition: 'all 0.2s',
+                    textAlign: 'left'
+                  }}
+                >
+                  {modelName}
+                </button>
+              ))
+            ) : (
+              <span style={{ fontSize: '0.85rem', color: '#64748b', padding: '4px' }}>Nenhum modelo...</span>
+            )}
+          </div>
+        )}
+      </label>
+
+
 
       <section className="price-filter">
         <strong>Preço</strong>
@@ -245,3 +437,4 @@ function CatalogContent() {
 export default function CatalogPage() {
   return <Suspense fallback={<main className="catalog-page"><div className="empty-state"><h2>Carregando catálogo...</h2></div></main>}><CatalogContent /></Suspense>;
 }
+

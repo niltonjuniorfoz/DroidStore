@@ -811,14 +811,46 @@ body {
 .storefront-brand>span:last-child,.auth-page-brand span{font-family:"Arial Black",Arial,Helvetica,sans-serif;font-weight:900;letter-spacing:-.065em}
 .header-mascot{width:48px;height:54px;object-fit:contain;flex:none;filter:drop-shadow(0 5px 7px rgba(19,145,64,.2));transition:transform .25s}
 .storefront-brand:hover .header-mascot{transform:rotate(-5deg) translateY(-1px)}
-.storefront-theme .card-buy-button{
-  width:auto!important;
-  min-width:86px!important;
-  padding:.44rem .7rem!important;
-  gap:.34rem!important;
-  font-size:.61rem!important;
+.storefront-theme .card-buy-button {
+  width: 100% !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  padding: 0 1rem !important;
+  margin-top: 0.85rem !important;
+  background: #FF7900 !important;
+  color: #ffffff !important;
+  font-size: 1.1rem !important;
+  font-weight: 800 !important;
+  border-radius: 10px !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease !important;
+  box-shadow: 0 4px 14px rgba(255, 121, 0, 0.28) !important;
+  text-align: center !important;
 }
-.storefront-theme .card-buy-button span{display:inline}
+
+.storefront-theme .card-buy-button:hover:not(:disabled) {
+  background: #E66D00 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(255, 121, 0, 0.38) !important;
+}
+
+.storefront-theme .card-buy-button:disabled {
+  background: #FF7900 !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+.storefront-theme .card-buy-button span {
+  display: inline-block !important;
+  font-size: 1.1rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  letter-spacing: -0.01em !important;
+}
 .storefront-theme .site-footer{
   color:var(--store-ink);
   background:rgba(255,255,255,.94);
@@ -3019,3 +3051,450 @@ body {
     min-height: 0;
   }
 }
+
+/* Custom PIX Badge & Card Installments Layout */
+.pix-badge-line {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.pix-tag-green {
+  display: inline-block;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+}
+
+.pix-amount-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 6px;
+}
+
+.pix-amount-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin: 2px 0 4px;
+  width: 100%;
+}
+
+.pix-from-label {
+  font-size: 0.92rem;
+  color: #4b5563;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.pix-amount-val {
+  font-size: 2.35rem;
+  font-weight: 900;
+  color: #FF7900;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  display: inline-block;
+  transform: scaleX(1.12);
+  transform-origin: left center;
+  margin: 2px 0 1px;
+}
+
+.pix-sub-label {
+  font-size: 0.88rem;
+  color: #15803d;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.03em;
+}
+
+.card-installments-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.card-payment-icon {
+  width: 17px;
+  height: 17px;
+  color: #4b5563;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.installments-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.installment-line-item {
+  font-size: 0.74rem;
+  color: #374151;
+  line-height: 1.25;
+}
+
+.installment-line-item b {
+  font-weight: 800;
+  color: #111827;
+}
+
+.installment-line-item strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Product Detail Page Purchase Card */
+.pix-badge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.pix-tag-green-lg {
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: -0.01em;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+}
+
+.pix-badge-header small {
+  color: #86f39d;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pix-price-highlight {
+  font-size: 3.1rem !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+  color: #ffffff !important;
+  margin: 0.2rem 0 0.8rem !important;
+}
+
+.card-payment-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 1.2rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.card-total-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #9ca3af;
+  font-size: 0.88rem;
+  margin-bottom: 4px;
+}
+
+.card-icon-lg {
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
+}
+
+.installment-detail-line {
+  font-size: 0.85rem;
+  color: #e5e7eb;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.installment-detail-line b {
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* Featured Carousel Pass Controls & Dots */
+.featured-carousel-section {
+  position: relative;
+}
+
+.featured-heading-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.sparkle-icon {
+  width: 22px;
+  height: 22px;
+  color: #FF7900;
+  display: inline-block;
+  vertical-align: sub;
+  margin-right: 4px;
+}
+
+.featured-pass-badge {
+  display: block;
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.featured-pass-badge b {
+  color: #FF7900;
+  font-weight: 800;
+}
+
+.featured-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.featured-arrows-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.featured-arrow-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.featured-arrow-btn:hover {
+  background: #FF7900;
+  color: #ffffff;
+  border-color: #FF7900;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(255, 121, 0, 0.3);
+}
+
+.featured-arrow-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.featured-see-all {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #FF7900;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.featured-see-all:hover {
+  color: #E66D00;
+  text-decoration: underline;
+}
+
+.featured-carousel-viewport {
+  width: 100%;
+  min-height: 480px;
+}
+
+.featured-grid {
+  animation: gridFadeIn 0.3s ease-out;
+}
+
+@keyframes gridFadeIn {
+  from {
+    opacity: 0.4;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.featured-pagination-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1.8rem;
+}
+
+.featured-page-dot {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.featured-page-dot:hover {
+  border-color: #FF7900;
+  color: #FF7900;
+}
+
+.featured-page-dot.active {
+  background: #FF7900;
+  color: #ffffff;
+  border-color: #FF7900;
+  box-shadow: 0 4px 14px rgba(255, 121, 0, 0.35);
+  transform: scale(1.04);
+}
+
+.product-title-link {
+  text-decoration: none;
+  display: block;
+}
+
+.product-brand-kicker,
+.brand-logo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #FF7900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.2rem;
+  margin-bottom: 0.2rem;
+}
+
+.brand-logo-pill svg {
+  color: #FF7900;
+  flex-shrink: 0;
+}
+
+.product-card-clean-title {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  margin: 0.15rem 0 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.7em;
+  transition: color 0.15s ease;
+}
+
+.product-title-link:hover .product-card-clean-title {
+  color: #FF7900;
+}
+
+.installment-line-item .val-text {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.storefront-theme .card-buy-button.disabled-btn,
+.storefront-theme .card-buy-button:disabled {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+}
+
+.storefront-theme .card-buy-button.disabled-btn span,
+.storefront-theme .card-buy-button:disabled span {
+  color: #6b7280 !important;
+  font-weight: 700 !important;
+}
+
+.btn-bag-icon {
+  width: 17px;
+  height: 17px;
+}
+
+/* Badge de Desconto PIX no Topo Direito da Foto do Produto (Vermelho Vivo com Efeito Brilho Suave e Lento) */
+.discount-badge-top-right {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff !important;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 900;
+  padding: 5px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+  line-height: 1.1;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  white-space: nowrap;
+  text-transform: uppercase;
+  overflow: hidden;
+  animation: badgePulse 5s infinite ease-in-out;
+}
+
+/* Faixa de Brilho Reflexo Passante Suave */
+.discount-badge-top-right::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -75%;
+  width: 45%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(25deg);
+  animation: badgeSheen 5.5s infinite ease-in-out;
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  }
+  50% {
+    transform: scale(1.025);
+    box-shadow: 0 5px 15px rgba(239, 68, 68, 0.45);
+  }
+}
+
+@keyframes badgeSheen {
+  0% {
+    left: -75%;
+  }
+  30%, 100% {
+    left: 135%;
+  }
+}
+
+
+
+

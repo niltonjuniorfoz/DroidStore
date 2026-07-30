@@ -24,14 +24,36 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   const [active, setActive] = useState(0);
   const available = slides.slice(0, 5);
 
+  const activeSlide = available[active];
+  const isCurrentVideo = isVideoUrl(activeSlide?.imageUrl);
+
   useEffect(() => {
     if (available.length < 2) return;
-    const timer = window.setInterval(() => setActive((current) => (current + 1) % available.length), 6500);
+
+    // Se o slide atual for um vídeo, esperamos ele terminar (onEnded) para mudar.
+    // Usamos um fallback de segurança de 60s apenas se o vídeo falhar no carregamento.
+    if (isCurrentVideo) {
+      const fallbackTimer = window.setTimeout(() => {
+        setActive((current) => (current + 1) % available.length);
+      }, 60000);
+      return () => window.clearTimeout(fallbackTimer);
+    }
+
+    const timer = window.setInterval(() => {
+      setActive((current) => (current + 1) % available.length);
+    }, 6500);
+
     return () => window.clearInterval(timer);
-  }, [available.length]);
+  }, [active, available.length, isCurrentVideo]);
 
   function move(direction: number) {
     setActive((current) => (current + direction + available.length) % available.length);
+  }
+
+  function handleVideoEnded() {
+    if (available.length > 1) {
+      setActive((current) => (current + 1) % available.length);
+    }
   }
 
   return (
@@ -55,6 +77,8 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                 <AutoplayVideo
                   src={slide.imageUrl}
                   active={index === active}
+                  loop={false}
+                  onEnded={handleVideoEnded}
                   className="hero-slide-video"
                   aria-label={slide.title || `Banner ${index + 1}`}
                 />
