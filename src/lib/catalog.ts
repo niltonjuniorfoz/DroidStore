@@ -22,7 +22,68 @@ export type CatalogProduct = {
     optionSlug: string;
   }>;
   description: string;
+  variantCount?: number;
+  availableColors?: string[];
+  availableStorages?: string[];
+  catalogSection?: CatalogSection;
 };
+
+export type CatalogSection = "Novos" | "Seminovos";
+
+const NEW_CONDITIONS = new Set<CatalogProduct["condition"]>(["Novo", "Novo Reembalado"]);
+
+export function getCatalogSection(condition: CatalogProduct["condition"]): CatalogSection {
+  return NEW_CONDITIONS.has(condition) ? "Novos" : "Seminovos";
+}
+
+export function getBaseModelName(name: string): string {
+  return name
+    .replace(/\s*-\s*(seminovo|novo reembalado|novo|excelente|muito bom|bom|outlet)\s*$/i, "")
+    .replace(/\s*-\s*\d+\s*(GB|TB)(?:\s*SSD)?\b.*$/i, "")
+    .replace(/\s+\d+\s*(GB|TB)(?:\s*SSD)?\b.*$/i, "")
+    .replace(/\s*-\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function familyKey(product: CatalogProduct): string {
+  return `${getCatalogSection(product.condition)}:${getBaseModelName(product.name)}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+export function groupCatalogProducts(items: CatalogProduct[]): CatalogProduct[] {
+  const families = new Map<string, CatalogProduct[]>();
+
+  for (const product of items) {
+    const key = familyKey(product);
+    const current = families.get(key);
+    if (current) current.push(product);
+    else families.set(key, [product]);
+  }
+
+  return Array.from(families.values()).map((family) => {
+    const sorted = [...family].sort((a, b) => {
+      if ((a.stock > 0) !== (b.stock > 0)) return a.stock > 0 ? -1 : 1;
+      return a.price - b.price;
+    });
+    const representative = sorted[0];
+    const colors = Array.from(new Set(family.map((item) => item.color).filter(Boolean)));
+    const storages = Array.from(new Set(family.map((item) => item.storage).filter(Boolean)));
+
+    return {
+      ...representative,
+      name: getBaseModelName(representative.name),
+      price: Math.min(...family.map((item) => item.price)),
+      stock: family.reduce((total, item) => total + Math.max(0, item.stock), 0),
+      variantCount: family.length,
+      availableColors: colors,
+      availableStorages: storages,
+      catalogSection: getCatalogSection(representative.condition),
+    };
+  });
+}
 
 const names = [
   ["Apple", "iPhone 15 Pro", "256 GB", "Titânio Natural"],

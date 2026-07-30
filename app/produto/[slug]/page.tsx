@@ -8,7 +8,13 @@ import { use, useEffect, useMemo, useState } from "react";
 import { useCart } from "../../../src/components/CartProvider";
 import { useAuthGate } from "../../../src/components/AuthGateProvider";
 import RecommendationCarousel from "../../../src/components/RecommendationCarousel";
-import { findProduct, money, type CatalogProduct } from "../../../src/lib/catalog";
+import {
+  findProduct,
+  getBaseModelName,
+  getCatalogSection,
+  money,
+  type CatalogProduct,
+} from "../../../src/lib/catalog";
 
 type ProductVariantOption = {
   id: string;
@@ -38,10 +44,6 @@ function getColorHex(colorName?: string) {
   if (c.includes("dourado") || c.includes("gold") || c.includes("creme")) return "#fbbf24";
   return "#9ca3af";
 }
-
-const allConditions: CatalogProduct["condition"][] = [
-  "Novo", "Novo Reembalado", "Excelente", "Muito Bom", "Bom", "Outlet",
-];
 
 function parseStorageInMb(storageStr: string): number {
   const match = storageStr.match(/(\d+)\s*(GB|TB|MB)/i);
@@ -96,8 +98,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         setFavorite(favorites.some((item) => item.product.slug === slug));
       }
     });
-    void fetch("/api/products").then((response) => response.json()).then((items: CatalogProduct[]) => {
-      setRecommendations(items.filter((item) => item.slug !== slug).slice(0, 12));
+    void fetch(`/api/products?limit=12&exclude=${encodeURIComponent(slug)}`).then((response) => response.json()).then((items: CatalogProduct[]) => {
+      setRecommendations(items);
     }).catch(() => undefined);
   }, [slug]);
 
@@ -125,18 +127,6 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const rawList: string[] = familyVariants.map((v) => v.color).filter(Boolean);
     if (product?.color) rawList.push(product.color);
 
-    const brandLower = (product?.brand || "").toLowerCase();
-    const nameLower = (product?.name || "").toLowerCase();
-    const isApple = brandLower === "apple" || nameLower.includes("iphone") || nameLower.includes("apple");
-
-    if (isApple) {
-      if (nameLower.includes("11")) {
-        rawList.push("Roxo", "Verde", "Preto", "Vermelho", "Branco", "Amarelo");
-      } else {
-        rawList.push("Preto", "Estelar", "Azul", "Rosa", "Roxo", "Amarelo", "Verde");
-      }
-    }
-
     const seen = new Set<string>();
     const result: string[] = [];
     for (const c of rawList) {
@@ -154,15 +144,18 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const rawList: string[] = familyVariants.map((v) => v.storage).filter(Boolean);
     if (product?.storage) rawList.push(product.storage);
 
-    const nameLower = (product?.name || "").toLowerCase();
-    if (!rawList.includes("64 GB") && (nameLower.includes("11") || nameLower.includes("12") || nameLower.includes("se"))) {
-      rawList.push("64 GB");
-    }
-    if (!rawList.includes("128 GB")) rawList.push("128 GB");
-    if (!rawList.includes("256 GB")) rawList.push("256 GB");
-
     const unique = Array.from(new Set(rawList));
     return unique.sort((a, b) => parseStorageInMb(a) - parseStorageInMb(b));
+  }, [familyVariants, product]);
+
+  const availableConditions = useMemo(() => {
+    if (!product) return [];
+    const section = getCatalogSection(product.condition);
+    const values = familyVariants
+      .map((variant) => variant.condition)
+      .filter((variantCondition) => getCatalogSection(variantCondition) === section);
+    values.push(product.condition);
+    return Array.from(new Set(values));
   }, [familyVariants, product]);
 
   // Troca dinâmica de variante / produto ao clicar em Cor, Capacidade ou Condição
@@ -195,6 +188,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           const fullItem: CatalogProduct & { familyVariants?: ProductVariantOption[] } = await res.json();
           setProduct(fullItem);
           setSelectedImage(0);
+          setSelectedColor(fullItem.color);
+          setSelectedStorage(fullItem.storage);
+          setSelectedCondition(fullItem.condition);
           if (fullItem.familyVariants?.length) setFamilyVariants(fullItem.familyVariants);
           window.history.replaceState(null, "", `/produto/${fullItem.slug}`);
           return;
@@ -204,30 +200,31 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       }
     }
 
+    if (!match) return;
+
     setProduct((prev) => {
       if (!prev) return prev;
-      const baseModel = prev.name
-        .replace(/\s*-\s*\d+\s*(GB|TB).*/i, "")
-        .replace(/\s*-\s*(Seminovo|Novo|Excelente|Muito Bom|Outlet|Reembalado).*/i, "")
-        .replace(/\s*-\s*(Preto|Branco|Roxo|Verde|Vermelho|Amarelo|Estelar|Azul|Rosa|Grafite|Cinza|Meia-noite).*/i, "")
-        .trim();
+      const baseModel = getBaseModelName(prev.name);
 
-      const newTitle = `${baseModel} - ${storage} - ${color} - ${condition}`;
+      const newTitle = `${baseModel} - ${match.storage} - ${match.color} - ${match.condition}`;
       const basePrice = prev.price > 0 ? prev.price : 3499;
 
       return {
         ...prev,
         name: newTitle,
-        color,
-        storage,
-        condition,
+        color: match.color,
+        storage: match.storage,
+        condition: match.condition,
         price: match?.price ?? basePrice,
-        stock: match?.stock ?? (prev.stock > 0 ? prev.stock : 5),
+        stock: match.stock,
         imageUrl: match?.imageUrl ?? prev.imageUrl,
         images: match?.imageUrl ? [match.imageUrl] : prev.images,
         slug: match?.slug ?? prev.slug,
       };
     });
+    setSelectedColor(match.color);
+    setSelectedStorage(match.storage);
+    setSelectedCondition(match.condition);
     setSelectedImage(0);
   }
 
@@ -278,7 +275,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
         <div className="product-summary">
           <div className="product-code"><span>{product.brand}</span><small>Cód. {product.id.slice(0, 8).toUpperCase()}</small></div>
-          <h1>{product.name}</h1>
+          <h1>{getBaseModelName(product.name)}</h1>
           <button className={`favorite-button ${favorite ? "active" : ""}`} onClick={() => void toggleFavorite()}><Heart /> {favorite ? "Salvo nos favoritos" : "Adicionar aos favoritos"}</button>
           
           {/* SELETOR INTERATIVO DE VARIANTES (COR, ARMAZENAMENTO E CONDIÇÃO ESTILO TROCAFONE) */}
@@ -334,19 +331,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             <div className="variant-section">
               <div className="variant-label">Condição:</div>
               <div className="condition-grid">
-                {allConditions.map((condName) => {
+                {availableConditions.map((condName) => {
                   const isActive = selectedCondition === condName;
                   const matchingVar = familyVariants.find(
                     (v) => (v.color?.toLowerCase() === (selectedColor || product.color).toLowerCase() || !v.color) &&
                            (v.storage === (selectedStorage || product.storage) || !v.storage) &&
                            v.condition === condName
                   );
-                  const hasStock = matchingVar ? matchingVar.stock > 0 : (condName === "Excelente" || condName === "Muito Bom" || condName === "Outlet");
-                  const priceVal = matchingVar ? matchingVar.price : (
-                    condName === "Excelente" ? product.price * 1.15 :
-                    condName === "Muito Bom" ? product.price :
-                    condName === "Outlet" ? product.price * 0.85 : 0
-                  );
+                  const isCurrentVariant =
+                    condName === product.condition &&
+                    (selectedColor || product.color).toLowerCase() === product.color.toLowerCase() &&
+                    (selectedStorage || product.storage) === product.storage;
+                  const hasStock = matchingVar ? matchingVar.stock > 0 : isCurrentVariant && product.stock > 0;
+                  const priceVal = matchingVar?.price ?? (isCurrentVariant ? product.price : 0);
                   const priceDisplay = hasStock && priceVal > 0 ? money(priceVal) : "Esgotado";
 
                   return (
@@ -427,5 +424,3 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     </main>
   );
 }
-
-

@@ -3495,6 +3495,388 @@ body {
   }
 }
 
+/* ==========================================================================
+   Refinamento minimalista aprovado — catálogo, produto e cabeçalho
+   ========================================================================== */
+:root {
+  --store-orange: #f47a22;
+  --store-orange-soft: #fff3e9;
+  --store-orange-line: #ffd4b4;
+}
+
+/* Mantém a estrutura atual do cabeçalho e reduz apenas a altura. */
+.storefront-theme .top-utility-bar {
+  padding: .12rem 0;
+}
+
+.storefront-theme .main-header-container {
+  height: 76px;
+}
+
+.storefront-theme .brasil-store-logo-img {
+  height: 61px;
+}
+
+.storefront-theme .trocafone-search-bar {
+  height: 40px;
+}
+
+/* Cards menores, imagens inteiras e hierarquia de preço mais leve. */
+.storefront-theme .catalog-results .product-grid {
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: .85rem;
+}
+
+.storefront-theme .product-card {
+  border-radius: 14px;
+  box-shadow: 0 5px 18px rgba(24, 32, 28, .06);
+}
+
+.storefront-theme .product-visual {
+  height: 205px;
+}
+
+.storefront-theme .catalog-photo {
+  width: 100%;
+  height: 100%;
+  padding: .85rem 1rem;
+  object-fit: contain;
+  object-position: center;
+}
+
+.storefront-theme .product-body {
+  padding: .8rem .85rem .9rem;
+}
+
+.storefront-theme .product-card-clean-title {
+  min-height: 2.5em;
+  margin: .1rem 0 .25rem;
+  font-size: .78rem;
+  line-height: 1.28;
+}
+
+.storefront-theme .product-variant-summary {
+  min-height: 1.25rem;
+  display: block;
+  overflow: hidden;
+  color: #66716b;
+  font-size: .6rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storefront-theme .pix-from-label {
+  font-size: .64rem;
+  color: #68736d;
+}
+
+.storefront-theme .pix-amount-val {
+  margin: 2px 0;
+  color: var(--store-orange);
+  font-size: 1.45rem;
+  line-height: 1;
+  letter-spacing: -.035em;
+  transform: none;
+}
+
+.storefront-theme .pix-sub-label {
+  font-size: .62rem;
+}
+
+.storefront-theme .card-installments-block {
+  margin-top: .42rem;
+  padding-top: .42rem;
+}
+
+.storefront-theme .installment-line-item {
+  font-size: .61rem;
+}
+
+.storefront-theme .card-buy-button {
+  min-height: 36px;
+  margin-top: .7rem;
+  padding: .5rem .7rem;
+  border-radius: 9px;
+  background: var(--store-orange);
+  color: #fff;
+  font-size: .68rem;
+  box-shadow: none;
+}
+
+.storefront-theme .discount-badge-top-right {
+  top: 7px;
+  right: 7px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #ed5a54;
+  font-size: .58rem;
+  animation: none;
+}
+
+.storefront-theme .condition {
+  padding: 4px 7px;
+  font-size: .56rem;
+}
+
+/* Produto aberto: foto centralizada, conteúdo menor e preço legível. */
+.storefront-theme .product-page {
+  padding-top: 2.3rem;
+}
+
+.storefront-theme .product-showcase {
+  grid-template-columns: minmax(0, .95fr) minmax(390px, 1.05fr);
+  gap: 2rem;
+}
+
+.storefront-theme .gallery-main {
+  height: 480px;
+  border-radius: 17px;
+}
+
+.storefront-theme .gallery-main > img {
+  width: 100%;
+  height: 100%;
+  padding: 1.35rem;
+  object-fit: contain;
+  object-position: center;
+}
+
+.storefront-theme .gallery-thumbnails {
+  grid-template-columns: repeat(4, 72px);
+  gap: .5rem;
+}
+
+.storefront-theme .gallery-thumbnails button {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+}
+
+.storefront-theme .product-summary h1 {
+  margin: .7rem 0 .75rem;
+  font-size: clamp(1.65rem, 2.2vw, 2.1rem);
+  line-height: 1.12;
+  letter-spacing: -.03em;
+}
+
+.storefront-theme .favorite-button {
+  min-height: 34px;
+  padding: .45rem .65rem;
+  font-size: .65rem;
+}
+
+.storefront-theme .variant-selector-group {
+  margin: .9rem 0;
+  padding: .9rem;
+  gap: .85rem;
+  border-radius: 13px;
+  background: #fbfcfb;
+}
+
+.storefront-theme .variant-section {
+  gap: .42rem;
+}
+
+.storefront-theme .variant-label {
+  font-size: .72rem;
+}
+
+.storefront-theme .color-swatch-btn {
+  width: 31px;
+  height: 31px;
+}
+
+.storefront-theme .storage-pill-btn {
+  padding: .42rem .8rem;
+  border-radius: 8px;
+  font-size: .7rem;
+}
+
+.storefront-theme .condition-grid {
+  gap: .45rem;
+}
+
+.storefront-theme .condition-card-btn {
+  min-height: 52px;
+  padding: .52rem .35rem;
+  border-radius: 9px;
+}
+
+.storefront-theme .condition-card-btn .condition-name {
+  font-size: .68rem;
+}
+
+.storefront-theme .condition-card-btn .condition-price {
+  font-size: .63rem;
+}
+
+.storefront-theme .availability {
+  margin: .9rem 0;
+  padding: .72rem .85rem;
+  border-radius: 11px;
+}
+
+.storefront-theme .availability strong {
+  font-size: .72rem;
+}
+
+.storefront-theme .availability small {
+  font-size: .62rem;
+}
+
+.storefront-theme .purchase-card {
+  padding: 1.15rem;
+  border: 1px solid var(--store-orange-line);
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--store-orange-soft), #fffaf6 70%);
+  color: #202822;
+  box-shadow: 0 12px 28px rgba(108, 62, 25, .08);
+}
+
+.storefront-theme .pix-tag-green-lg {
+  padding: 4px 9px;
+  font-size: .68rem;
+}
+
+.storefront-theme .pix-badge-header small {
+  color: #68736d;
+  font-size: .64rem;
+}
+
+.storefront-theme .pix-price-highlight {
+  margin: .25rem 0 .65rem !important;
+  color: #202822 !important;
+  font-size: 2.35rem !important;
+  font-weight: 850 !important;
+}
+
+.storefront-theme .card-payment-breakdown {
+  margin-bottom: .85rem;
+  padding-top: .65rem;
+  gap: 2px;
+  border-top: 1px solid #eaded5;
+}
+
+.storefront-theme .card-total-row,
+.storefront-theme .card-icon-lg {
+  color: #626d67;
+}
+
+.storefront-theme .card-total-row {
+  font-size: .74rem;
+}
+
+.storefront-theme .installment-detail-line {
+  color: #69736e;
+  font-size: .68rem;
+}
+
+.storefront-theme .installment-detail-line b {
+  color: #2b332f;
+}
+
+.storefront-theme .purchase-card .buy-button {
+  min-height: 42px;
+  padding: .7rem 1rem;
+  border-radius: 10px;
+  background: var(--store-orange);
+  color: #fff;
+  font-size: .74rem;
+}
+
+.storefront-theme .purchase-card .buy-button:hover {
+  background: #df6819;
+}
+
+.storefront-theme .summary-trust {
+  gap: .45rem;
+  margin-top: .7rem;
+}
+
+.storefront-theme .summary-trust > span {
+  padding: .6rem;
+  border-radius: 9px;
+}
+
+.storefront-theme .product-content {
+  margin-top: 2.4rem;
+  gap: 1rem;
+}
+
+.storefront-theme .product-content article,
+.storefront-theme .product-description {
+  padding: 1.35rem !important;
+  border-radius: 16px;
+}
+
+.storefront-theme .product-content h2 {
+  margin: .3rem 0 .9rem;
+  font-size: 1.32rem;
+  line-height: 1.2;
+}
+
+.storefront-theme .description-copy p {
+  font-size: .82rem;
+  line-height: 1.65;
+}
+
+.storefront-theme .specification-table dt,
+.storefront-theme .specification-table dd {
+  padding: .62rem .75rem;
+  font-size: .69rem;
+}
+
+@media (max-width: 992px) {
+  .storefront-theme .main-header-container {
+    height: 56px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .storefront-theme .brasil-store-logo-img {
+    height: 39px;
+  }
+
+  .storefront-theme .trocafone-search-bar {
+    height: 36px;
+  }
+
+  .storefront-theme .product-showcase {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefront-theme .gallery-main {
+    height: 430px;
+  }
+}
+
+@media (max-width: 650px) {
+  .storefront-theme .catalog-results .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .6rem;
+  }
+
+  .storefront-theme .product-visual {
+    height: 165px;
+  }
+
+  .storefront-theme .gallery-main {
+    height: 360px;
+  }
+
+  .storefront-theme .gallery-main > img {
+    padding: .85rem;
+  }
+
+  .storefront-theme .product-summary h1 {
+    font-size: 1.55rem;
+  }
+
+  .storefront-theme .pix-price-highlight {
+    font-size: 2rem !important;
+  }
+}
 
 
 

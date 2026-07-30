@@ -1,5 +1,10 @@
 import prisma from "./prisma";
-import { products, type CatalogProduct } from "./catalog";
+import {
+  getBaseModelName,
+  getCatalogSection,
+  products,
+  type CatalogProduct,
+} from "./catalog";
 import { readInstagramFromCatalogBanner } from "./contact";
 
 const conditionLabels: Record<string, CatalogProduct["condition"]> = {
@@ -49,22 +54,31 @@ export function mapProduct(product: {
   };
 }
 
-export async function getProducts(featuredOnly = false) {
+export async function getProducts(
+  featuredOnly = false,
+  options: { take?: number; excludeSlug?: string } = {},
+) {
+  const take = Math.min(Math.max(options.take ?? (featuredOnly ? 60 : 120), 1), 120);
   try {
     const rows = await prisma.product.findMany({
-      where: { active: true, ...(featuredOnly ? { featured: true } : {}) },
+      where: {
+        active: true,
+        ...(featuredOnly ? { featured: true } : {}),
+        ...(options.excludeSlug ? { slug: { not: options.excludeSlug } } : {}),
+      },
       include: {
         variants: { orderBy: { price: "asc" }, take: 1 },
-        images: { orderBy: { position: "asc" } },
-        specifications: { orderBy: { position: "asc" } },
+        images: { orderBy: { position: "asc" }, take: 2 },
         filterSelections: { include: { option: { include: { filter: true } } } },
       },
       orderBy: { updatedAt: "desc" },
-      take: featuredOnly ? 60 : 120,
+      take,
     });
-    return rows.length ? rows.map(mapProduct) : products;
+    return rows.length
+      ? rows.map(mapProduct)
+      : products.filter((product) => product.slug !== options.excludeSlug).slice(0, take);
   } catch {
-    return products;
+    return products.filter((product) => product.slug !== options.excludeSlug).slice(0, take);
   }
 }
 
@@ -80,22 +94,24 @@ export type ProductVariantOption = {
   imageUrl?: string;
 };
 
-export function getBaseModelName(name: string) {
-  return name
-    .replace(/\s*-\s*\d+\s*(GB|TB).*/i, "")
-    .replace(/\s*-\s*(Seminovo|Novo|Excelente|Muito Bom|Outlet|Reembalado).*/i, "")
-    .trim();
-}
+export { getBaseModelName };
 
 export async function getFamilyVariantsForProduct(targetProduct: CatalogProduct): Promise<ProductVariantOption[]> {
   const baseModel = getBaseModelName(targetProduct.name).toLowerCase();
+  const targetSection = getCatalogSection(targetProduct.condition);
+  const familyPrefix = targetProduct.name
+    .replace(/\s*-\s*\d+\s*(GB|TB)(?:\s*SSD)?\b.*$/i, "")
+    .replace(/\s+\d+\s*(GB|TB)(?:\s*SSD)?\b.*$/i, "")
+    .trim();
   
   try {
     const familyProducts = await prisma.product.findMany({
       where: {
         active: true,
         brand: targetProduct.brand,
+        name: { startsWith: familyPrefix, mode: "insensitive" },
       },
+      take: 40,
       include: {
         variants: true,
         images: { orderBy: { position: "asc" }, take: 1 },
@@ -110,13 +126,15 @@ export async function getFamilyVariantsForProduct(targetProduct: CatalogProduct)
 
     for (const p of matching) {
       for (const v of p.variants) {
+        const condition = conditionLabels[v.condition] ?? "Novo";
+        if (getCatalogSection(condition) !== targetSection) continue;
         variantOptions.push({
           id: v.id,
           productId: p.id,
           slug: p.slug,
           color: v.color ?? targetProduct.color,
           storage: v.storage ?? targetProduct.storage,
-          condition: conditionLabels[v.condition] ?? "Novo",
+          condition,
           price: Number(v.price),
           stock: v.stock,
           imageUrl: p.images[0]?.url ?? p.imageUrl ?? undefined,
@@ -133,7 +151,9 @@ export async function getFamilyVariantsForProduct(targetProduct: CatalogProduct)
 
   // Fallback a partir do catálogo estático em memória
   const fallbackMatches = products.filter(
-    (p) => getBaseModelName(p.name).toLowerCase() === baseModel || p.brand.toLowerCase() === targetProduct.brand.toLowerCase()
+    (p) =>
+      getBaseModelName(p.name).toLowerCase() === baseModel &&
+      getCatalogSection(p.condition) === targetSection
   );
 
   return fallbackMatches.map((p) => ({
@@ -163,4 +183,3 @@ export async function getSiteContent() {
     return { content: null, navigation: [] };
   }
 }
-

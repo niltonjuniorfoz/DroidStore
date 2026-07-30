@@ -9,19 +9,18 @@ import { money, type CatalogProduct } from "../lib/catalog";
 export default function ProductCard({ product }: { product: CatalogProduct }) {
   const { add } = useCart();
   const { requireAuth } = useAuthGate();
-  
-  // Configuração do Desconto PIX (10% OFF)
   const pixDiscountPercent = 10;
   const pixPrice = product.price * (1 - pixDiscountPercent / 100);
-
-  // Parcelamento no Cartão
   const installmentNoInterest = product.price > 0 ? product.price / 12 : 0;
   const totalWithInterest = product.price * 1.285;
   const installmentWithInterest = product.price > 0 ? totalWithInterest / 21 : 0;
-
   const primaryImage = product.images?.[0] ?? product.imageUrl;
   const secondaryImage = product.images?.[1];
   const isAvailable = product.stock > 0;
+  const hasGroupedVariants = (product.variantCount ?? 1) > 1;
+  const variantSummary = hasGroupedVariants
+    ? `${product.availableColors?.length ?? 0} cores · ${product.availableStorages?.join(", ") ?? ""}`
+    : "";
 
   return (
     <article className={`product-card ${!isAvailable ? "is-out-of-stock" : ""}`}>
@@ -45,9 +44,9 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
           <Link href={`/produto/${product.slug}`} className="product-title-link">
             <h3 className="product-card-clean-title">{product.name}</h3>
           </Link>
+          {variantSummary && <span className="product-variant-summary">{variantSummary}</span>}
         </div>
-        
-        {/* BLOCO DE PREÇO E DESTAQUE DE PARCELAMENTO */}
+
         <div className="product-price">
           <div className="pix-amount-wrapper">
             <span className="pix-from-label">A partir de</span>
@@ -70,15 +69,21 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
           </div>
         </div>
 
-        <button
-          className={`card-buy-button ${!isAvailable ? "disabled-btn" : ""}`}
-          disabled={!isAvailable}
-          onClick={() => void requireAuth(() => add(product))}
-          aria-label={!isAvailable ? `${product.name} indisponível` : `Adicionar ${product.name} ao carrinho`}
-        >
-          {isAvailable && <ShoppingBag className="btn-bag-icon" />}
-          <span>{isAvailable ? "Comprar" : "Indisponível"}</span>
-        </button>
+        {hasGroupedVariants ? (
+          <Link className="card-buy-button" href={`/produto/${product.slug}`} aria-label={`Ver opções de ${product.name}`}>
+            <span>Ver opções</span>
+          </Link>
+        ) : (
+          <button
+            className={`card-buy-button ${!isAvailable ? "disabled-btn" : ""}`}
+            disabled={!isAvailable}
+            onClick={() => void requireAuth(() => add(product))}
+            aria-label={!isAvailable ? `${product.name} indisponível` : `Adicionar ${product.name} ao carrinho`}
+          >
+            {isAvailable && <ShoppingBag className="btn-bag-icon" />}
+            <span>{isAvailable ? "Comprar" : "Indisponível"}</span>
+          </button>
+        )}
       </div>
     </article>
   );

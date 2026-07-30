@@ -760,7 +760,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { 
   font-size: 0.72rem !important;
   font-weight: 800 !important;
   color: #4b5563 !important;
-  text-transform: uppercase !alignment;
+  text-transform: uppercase;
   letter-spacing: 0.04em !important;
 }
 

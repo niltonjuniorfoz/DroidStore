@@ -4,7 +4,14 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SlidersHorizontal, X } from "lucide-react";
 import ProductCard from "../../src/components/ProductCard";
-import { products, type CatalogProduct } from "../../src/lib/catalog";
+import {
+  getBaseModelName,
+  getCatalogSection,
+  groupCatalogProducts,
+  products,
+  type CatalogProduct,
+  type CatalogSection,
+} from "../../src/lib/catalog";
 import CatalogCarousel, { type CatalogSlide } from "../../src/components/CatalogCarousel";
 
 type PublicFilter = {
@@ -21,14 +28,6 @@ const defaultBanner: CatalogBanner = {
   imageUrl: "",
 };
 
-function getBaseModelName(name: string) {
-  return name
-    .replace(/\s*-\s*\d+\s*(GB|TB).*/i, "")
-    .replace(/\s*-\s*(Seminovo|Novo|Excelente|Muito Bom|Outlet|Reembalado).*/i, "")
-    .replace(/\s*-\s*(Preto|Branco|Roxo|Verde|Vermelho|Amarelo|Estelar|Azul|Rosa|Grafite|Cinza).*/i, "")
-    .trim();
-}
-
 function CatalogContent() {
   const searchParams = useSearchParams();
   const paramsKey = searchParams.toString();
@@ -39,7 +38,7 @@ function CatalogContent() {
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string>>({});
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [query, setQuery] = useState("");
-  const [condition, setCondition] = useState("Todas");
+  const [condition, setCondition] = useState<CatalogSection>("Novos");
   const [sort, setSort] = useState("relevance");
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(0);
@@ -80,7 +79,16 @@ function CatalogContent() {
 
   useEffect(() => {
     setQuery(searchParams.get("q") ?? "");
-    setCondition(searchParams.get("condition") ?? "Todas");
+    const requestedCondition = searchParams.get("condition");
+    const requestedSection: CatalogSection =
+      requestedCondition === "Seminovos" ||
+      requestedCondition === "Excelente" ||
+      requestedCondition === "Muito Bom" ||
+      requestedCondition === "Bom" ||
+      requestedCondition === "Outlet"
+        ? "Seminovos"
+        : "Novos";
+    setCondition(requestedSection);
     setSelectedModel(searchParams.get("model") ?? "");
     const initialSelections: Record<string, string> = {};
     for (const filter of filters) {
@@ -135,11 +143,12 @@ function CatalogContent() {
   }, [catalog]);
 
   const effectiveMaxPrice = maxPrice || priceLimits.max;
-  const conditions = ["Todas", ...Array.from(new Set(catalog.map((product) => product.condition)))];
+  const conditions: CatalogSection[] = ["Novos", "Seminovos"];
 
   // Extrai dinamicamente as opções de filtro (ex: Marca, Categoria) garantindo que TODAS as marcas e categorias do catálogo apareçam
   const getAvailableOptionsForFilter = (filterGroupSlug: string) => {
     const relevantProducts = catalog.filter((product) => {
+      if (getCatalogSection(product.condition) !== condition) return false;
       return Object.entries(selectedFilters).every(([gSlug, oSlug]) => {
         if (!oSlug || gSlug === filterGroupSlug) return true;
         if (gSlug === "marca") {
@@ -200,6 +209,7 @@ function CatalogContent() {
   // Extrai dinamicamente todos os modelos da família para a Marca e Categoria selecionadas
   const availableModels = useMemo(() => {
     const relevantProducts = catalog.filter((product) => {
+      if (getCatalogSection(product.condition) !== condition) return false;
       const selectedBrandSlug = selectedFilters["marca"];
       const matchesBrand = !selectedBrandSlug ||
         product.brand.toLowerCase() === selectedBrandSlug.toLowerCase() ||
@@ -214,7 +224,7 @@ function CatalogContent() {
 
     const models = Array.from(new Set(relevantProducts.map((p) => getBaseModelName(p.name)).filter(Boolean)));
     return models.sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [catalog, selectedFilters]);
+  }, [catalog, condition, selectedFilters]);
 
   const filtered = useMemo(() => {
     const list = catalog.filter((product) => {
@@ -233,18 +243,19 @@ function CatalogContent() {
 
       return matchesCustomFilters &&
         matchesModel &&
-        (condition === "Todas" || product.condition === condition) &&
+        getCatalogSection(product.condition) === condition &&
         product.price >= minPrice &&
         product.price <= effectiveMaxPrice &&
         `${product.brand} ${product.name} ${product.filters?.map((filter) => filter.optionLabel).join(" ") ?? ""}`
           .toLowerCase().includes(query.toLowerCase());
     });
-    return [...list].sort((a, b) => sort === "low" ? a.price - b.price : sort === "high" ? b.price - a.price : b.stock - a.stock);
+    const grouped = groupCatalogProducts(list);
+    return grouped.sort((a, b) => sort === "low" ? a.price - b.price : sort === "high" ? b.price - a.price : b.stock - a.stock);
   }, [catalog, condition, effectiveMaxPrice, minPrice, query, selectedFilters, selectedModel, sort]);
 
   function clearFilters() {
     setQuery("");
-    setCondition("Todas");
+    setCondition("Novos");
     setSelectedFilters({});
     setSelectedModel("");
     setMinPrice(priceLimits.min);
@@ -256,7 +267,7 @@ function CatalogContent() {
   const end = ((effectiveMaxPrice - priceLimits.min) / priceSpan) * 100;
   const activeFilterCount =
     (query.trim() ? 1 : 0) +
-    (condition !== "Todas" ? 1 : 0) +
+    (condition !== "Novos" ? 1 : 0) +
     (selectedModel ? 1 : 0) +
     Object.values(selectedFilters).filter(Boolean).length +
     (minPrice > priceLimits.min || effectiveMaxPrice < priceLimits.max ? 1 : 0);
@@ -379,7 +390,7 @@ function CatalogContent() {
 
       <label className="catalog-filter-field">
         <span>Condição</span>
-        <select value={condition} onChange={(event) => setCondition(event.target.value)}>
+        <select value={condition} onChange={(event) => setCondition(event.target.value as CatalogSection)}>
           {conditions.map((item) => <option key={item}>{item}</option>)}
         </select>
       </label>
@@ -397,7 +408,7 @@ function CatalogContent() {
 
       <section className="catalog-results">
         <div className="results-bar">
-          <span>{filtered.length} produtos encontrados</span>
+          <span>{filtered.length} modelos encontrados</span>
           <label>Ordenar <select value={sort} onChange={(event) => setSort(event.target.value)}><option value="relevance">Relevância</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></label>
         </div>
         {filtered.length ? <div className="product-grid">{filtered.map((product) => <ProductCard key={product.id} product={product} />)}</div> : <div className="empty-state"><h2>Nenhum produto encontrado</h2><p>Tente remover algum filtro.</p></div>}
@@ -410,7 +421,7 @@ function CatalogContent() {
         <span>Filtros</span>
         {activeFilterCount > 0 && <b>{activeFilterCount}</b>}
       </button>
-      <span className="mobile-filter-result-count">{filtered.length} produtos</span>
+      <span className="mobile-filter-result-count">{filtered.length} modelos</span>
       <button type="button" className="mobile-filter-clear" onClick={clearFilters} disabled={activeFilterCount === 0}>Limpar</button>
     </div>
 
@@ -427,7 +438,7 @@ function CatalogContent() {
         <div className="mobile-filter-sheet-content">{filterFields()}</div>
         <footer>
           <button type="button" className="mobile-sheet-clear" onClick={clearFilters} disabled={activeFilterCount === 0}>Limpar</button>
-          <button type="button" className="mobile-sheet-apply" onClick={() => setMobileFiltersOpen(false)}>Ver {filtered.length} produtos</button>
+          <button type="button" className="mobile-sheet-apply" onClick={() => setMobileFiltersOpen(false)}>Ver {filtered.length} modelos</button>
         </footer>
       </section>
     </>}
@@ -437,4 +448,3 @@ function CatalogContent() {
 export default function CatalogPage() {
   return <Suspense fallback={<main className="catalog-page"><div className="empty-state"><h2>Carregando catálogo...</h2></div></main>}><CatalogContent /></Suspense>;
 }
-

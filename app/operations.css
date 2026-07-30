@@ -1657,3 +1657,148 @@
     padding: .7rem 1rem;
   }
 }
+
+/* Painel administrativo minimalista aprovado */
+.admin-shell .admin-content,
+.admin-shell .admin-main {
+  padding-top: .85rem;
+}
+
+.product-toolbar-pro {
+  padding: .68rem;
+  gap: .55rem;
+  border-radius: 12px;
+}
+
+.pro-search,
+.pro-select,
+.view-mode-toggle {
+  min-height: 34px;
+  height: 34px;
+}
+
+.pro-tabs {
+  min-height: 34px;
+}
+
+.pro-tab {
+  padding: .4rem .65rem;
+  font-size: .62rem;
+}
+
+.pro-tab-toggle-group {
+  min-height: 32px;
+  padding: .32rem .55rem;
+  font-size: .62rem;
+}
+
+.pro-table-container {
+  border-radius: 12px;
+}
+
+.pro-table-header {
+  min-height: 34px;
+  padding-top: .45rem;
+  padding-bottom: .45rem;
+  font-size: .56rem;
+}
+
+.pro-table-row,
+.table-mode-comfortable .pro-table-row,
+.table-mode-compact .pro-table-row {
+  min-height: 54px;
+  padding-top: .42rem;
+  padding-bottom: .42rem;
+}
+
+.pro-table-row .mini-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 7px;
+}
+
+.pro-table-row .item-name {
+  font-size: .68rem;
+  line-height: 1.25;
+}
+
+.pro-table-row .tag-storage,
+.pro-table-row .tag-condition,
+.pro-table-row .tag-color,
+.pro-table-row .tag-brand {
+  padding: 2px 5px;
+  font-size: .5rem;
+}
+
+.pro-table-row .col-price strong {
+  font-size: .69rem;
+}
+
+.pro-table-row .col-price small,
+.pro-table-row .col-profit,
+.pro-table-row .col-profit small {
+  font-size: .53rem;
+}
+
+.pro-table-row .pill-stock,
+.pro-table-row .btn-pill-toggle,
+.pro-table-row .btn-imei-badge {
+  min-height: 25px;
+  padding: .2rem .4rem;
+  font-size: .54rem;
+}
+
+.pro-table-row .row-action-btn,
+.pro-table-row .btn-pill-star,
+.pro-table-row .checkbox-btn {
+  width: 27px;
+  height: 27px;
+  border-radius: 6px;
+}
+
+.pro-table-row svg {
+  width: 13px;
+  height: 13px;
+}
+
+.group-header-row {
+  min-height: 58px;
+}
+
+.group-header-row .model-name {
+  font-size: .72rem;
+}
+
+.pro-product-grid {
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: .6rem;
+}
+
+.grid-product-card {
+  padding: .55rem;
+  border-radius: 10px;
+}
+
+.grid-product-card .card-thumb {
+  width: 58px;
+  height: 58px;
+}
+
+.grid-product-card .card-title {
+  font-size: .66rem;
+}
+
+.grid-product-card .card-price {
+  font-size: .78rem;
+}
+
+.button,
+.admin-shell button {
+  border-radius: 8px;
+}
+
+.admin-shell .button {
+  min-height: 36px;
+  padding: .55rem .8rem;
+  font-size: .66rem;
+}
