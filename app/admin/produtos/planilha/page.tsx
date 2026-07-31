@@ -23,9 +23,9 @@ type ChangeItem = {
   brand: string;
   sheet: string;
   row: number;
-  fields: Array<"price" | "costPrice" | "stock" | "active">;
-  before: { price: string; costPrice?: string; stock: number; active: boolean };
-  after: { price: string; costPrice?: string; stock: number; active: boolean };
+  fields: Array<"price" | "costPrice" | "stock" | "active" | "condition">;
+  before: { price: string; costPrice?: string; stock: number; active: boolean; condition: string };
+  after: { price: string; costPrice?: string; stock: number; active: boolean; condition: string };
 };
 
 type Preview = {
@@ -36,6 +36,7 @@ type Preview = {
   costChanges: number;
   stockChanges: number;
   statusChanges: number;
+  conditionChanges: number;
   increases: number;
   decreases: number;
   stockIncreases: number;
@@ -62,7 +63,7 @@ type ImportHistory = {
   rolledBackAt?: string;
 };
 
-const fieldLabels = { price: "Venda", costPrice: "Custo", stock: "Estoque", active: "Status" };
+const fieldLabels = { price: "Venda", costPrice: "Custo", stock: "Estoque", active: "Status", condition: "Condição" };
 
 function money(value: string) {
   return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -72,6 +73,7 @@ function fieldValue(change: ChangeItem, field: ChangeItem["fields"][number], sid
   const value = change[side][field];
   if (field === "price" || field === "costPrice") return money(String(value ?? 0));
   if (field === "active") return value ? "Ativo" : "Inativo";
+  if (field === "condition") return String(value).replaceAll("_", " ").toLocaleLowerCase("pt-BR").replace(/^./, (letter) => letter.toUpperCase());
   return String(value);
 }
 
@@ -155,7 +157,7 @@ export default function ProductSpreadsheetPage() {
         <div>
           <span className="eyebrow">ATUALIZAÇÃO EM LOTE</span>
           <h1>Planilha de produtos</h1>
-          <p>Atualize preços, estoque e status com prévia e confirmação antes de salvar.</p>
+          <p>Atualize condição, preços, estoque e status com prévia antes de salvar.</p>
         </div>
         <a className="button primary" href="/api/admin/product-spreadsheet/export">
           <Download size={17} /> Exportar produtos
@@ -222,6 +224,7 @@ export default function ProductSpreadsheetPage() {
             <div><small>Preços</small><strong>{preview.priceChanges}</strong></div>
             <div><small>Estoques</small><strong>{preview.stockChanges}</strong></div>
             <div><small>Status</small><strong>{preview.statusChanges}</strong></div>
+            <div><small>Condições</small><strong>{preview.conditionChanges}</strong></div>
           </div>
 
           {!preview.errors.length && preview.changedRows > 0 && (

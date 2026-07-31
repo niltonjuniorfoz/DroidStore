@@ -19,8 +19,8 @@ export async function POST(request: Request) {
       ...preview,
       changes: preview.changes.map((change) => ({
         ...change,
-        before: { price: change.before.price, stock: change.before.stock, active: change.before.active },
-        after: { price: change.after.price, stock: change.after.stock, active: change.after.active },
+        before: { price: change.before.price, stock: change.before.stock, active: change.before.active, condition: change.before.condition },
+        after: { price: change.after.price, stock: change.after.stock, active: change.after.active, condition: change.after.condition },
       })),
     });
   } catch (error) {

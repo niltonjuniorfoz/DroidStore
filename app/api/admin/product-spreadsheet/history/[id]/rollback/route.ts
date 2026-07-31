@@ -30,6 +30,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       (change.fields.includes("price") && decimal(current.price) !== change.after.price) ||
       (change.fields.includes("costPrice") && decimal(current.costPrice) !== change.after.costPrice) ||
       (change.fields.includes("stock") && current.stock !== change.after.stock) ||
+      (change.fields.includes("condition") && current.condition !== change.after.condition) ||
       (change.fields.includes("active") && current.product.active !== change.after.active);
     if (changedAfterImport) {
       return NextResponse.json({ error: `Não foi possível desfazer porque “${change.productName}” foi alterado depois desta importação.` }, { status: 409 });
@@ -45,6 +46,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
           ...(change.fields.includes("price") ? { price: change.before.price } : {}),
           ...(change.fields.includes("costPrice") ? { costPrice: change.before.costPrice } : {}),
           ...(change.fields.includes("stock") ? { stock: change.before.stock } : {}),
+          ...(change.fields.includes("condition") ? { condition: change.before.condition } : {}),
         },
       });
       if (change.fields.includes("stock")) {

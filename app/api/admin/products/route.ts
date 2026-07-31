@@ -40,9 +40,44 @@ function slugify(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const summary = new URL(request.url).searchParams.get("view") === "summary";
+  if (summary) {
+    const rows = await prisma.product.findMany({
+      select: {
+        id: true,
+        name: true,
+        brand: true,
+        active: true,
+        featured: true,
+        imageUrl: true,
+        variants: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            price: true,
+            costPrice: true,
+            stock: true,
+            lowStockThreshold: true,
+            storage: true,
+            color: true,
+            condition: true,
+            sku: true,
+            barcode: true,
+            deviceUnits: { select: { id: true } },
+          },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+    if (isOwnerAdmin(session)) return NextResponse.json(rows, { headers: { "X-Owner-View": "true" } });
+    return NextResponse.json(rows.map((product) => ({
+      ...product,
+      variants: product.variants.map(({ costPrice: _costPrice, ...variant }) => variant),
+    })), { headers: { "X-Owner-View": "false" } });
+  }
   const rows = await prisma.product.findMany({
     include: {
       variants: { include: { deviceUnits: true } },

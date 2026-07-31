@@ -6,7 +6,10 @@ export type ProductSpreadsheetState = {
   costPrice: string;
   stock: number;
   active: boolean;
+  condition: ProductCondition;
 };
+
+export type ProductCondition = "NOVO" | "NOVO_REEMBALADO" | "EXCELENTE" | "MUITO_BOM" | "BOM" | "OUTLET";
 
 export type ProductSpreadsheetChange = {
   variantId: string;
@@ -17,7 +20,7 @@ export type ProductSpreadsheetChange = {
   row: number;
   before: ProductSpreadsheetState;
   after: ProductSpreadsheetState;
-  fields: Array<"price" | "costPrice" | "stock" | "active">;
+  fields: Array<"price" | "costPrice" | "stock" | "active" | "condition">;
 };
 
 export type ProductSpreadsheetError = {
@@ -35,6 +38,7 @@ export type ProductSpreadsheetPreview = {
   costChanges: number;
   stockChanges: number;
   statusChanges: number;
+  conditionChanges: number;
   increases: number;
   decreases: number;
   stockIncreases: number;
@@ -86,6 +90,20 @@ function parseStatus(value: string): boolean | null {
   return null;
 }
 
+function parseCondition(value: string): ProductCondition | null {
+  const condition = normalize(value).replace(/[\s-]+/g, "_");
+  const aliases: Record<string, ProductCondition> = {
+    NOVO: "NOVO",
+    NOVO_REEMBALADO: "NOVO_REEMBALADO",
+    REEMBALADO: "NOVO_REEMBALADO",
+    EXCELENTE: "EXCELENTE",
+    MUITO_BOM: "MUITO_BOM",
+    BOM: "BOM",
+    OUTLET: "OUTLET",
+  };
+  return aliases[condition] ?? null;
+}
+
 function decimal(value: unknown) {
   return Number(value).toFixed(2);
 }
@@ -115,9 +133,9 @@ export async function createProductsWorkbook(includeCost: boolean) {
   const guide = workbook.addWorksheet("INSTRUÇÕES", { views: [{ state: "frozen", ySplit: 1 }] });
   guide.columns = [{ width: 100 }];
   guide.addRow(["PLANILHA DE PRODUTOS — DROIDSTORE"]);
-  guide.addRow(["Edite somente as colunas verdes: preço de venda, estoque, status e, para o administrador principal, preço de custo."]);
+  guide.addRow(["Edite somente as colunas verdes: condição, preço de venda, estoque, status e, para o administrador principal, preço de custo."]);
   guide.addRow(["Não altere o ID. Ele identifica exatamente qual item será atualizado."]);
-  guide.addRow(["Status aceitos: ATIVO ou INATIVO. Preços não podem ser negativos e o estoque deve ser um número inteiro a partir de zero."]);
+  guide.addRow(["Condições: NOVO, NOVO REEMBALADO, EXCELENTE, MUITO BOM, BOM ou OUTLET. Status: ATIVO ou INATIVO."]);
   guide.addRow(["Depois de editar, salve o arquivo .xlsx e envie na tela Planilha de produtos. Nada será salvo antes da sua confirmação."]);
   guide.getRow(1).height = 30;
   guide.getCell("A1").font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
@@ -154,7 +172,7 @@ export async function createProductsWorkbook(includeCost: boolean) {
       { header: "Status", key: "status", width: 13 },
     ];
     sheet.columns = columns;
-    const editableKeys = new Set([...(includeCost ? ["cost"] : []), "price", "stock", "status"]);
+    const editableKeys = new Set(["condition", ...(includeCost ? ["cost"] : []), "price", "stock", "status"]);
     const header = sheet.getRow(1);
     header.height = 28;
     header.eachCell((cell) => {
@@ -195,6 +213,16 @@ export async function createProductsWorkbook(includeCost: boolean) {
             right: { style: "thin", color: { argb: "FF9AA39F" } },
           };
           if (key === "cost" || key === "price") cell.numFmt = 'R$ #,##0.00';
+          if (key === "condition") {
+            cell.dataValidation = {
+              type: "list",
+              allowBlank: false,
+              formulae: ['"NOVO,NOVO REEMBALADO,EXCELENTE,MUITO BOM,BOM,OUTLET"'],
+              showErrorMessage: true,
+              errorTitle: "Condição inválida",
+              error: "Escolha uma das condições da lista.",
+            };
+          }
           if (key === "status") {
             cell.dataValidation = { type: "list", allowBlank: false, formulae: ['"ATIVO,INATIVO"'], showErrorMessage: true, errorTitle: "Status inválido", error: "Escolha ATIVO ou INATIVO." };
           }
@@ -228,6 +256,7 @@ type ParsedRow = {
   costText?: string;
   stockText: string;
   statusText: string;
+  conditionText: string;
 };
 
 export async function previewProductsWorkbook(buffer: Buffer, canEditCost: boolean): Promise<ProductSpreadsheetPreview> {
@@ -251,9 +280,10 @@ export async function previewProductsWorkbook(buffer: Buffer, canEditCost: boole
     const costColumn = headers.get("CUSTO") ?? headers.get("PRECO DE CUSTO");
     const stockColumn = headers.get("ESTOQUE") ?? headers.get("QUANTIDADE");
     const statusColumn = headers.get("STATUS");
+    const conditionColumn = headers.get("CONDICAO");
     if (!idColumn && sheet.actualRowCount <= 1) continue;
-    if (!idColumn || !priceColumn || !stockColumn || !statusColumn) {
-      errors.push({ sheet: sheet.name, row: 1, message: "A aba não possui as colunas obrigatórias ID, Venda, Estoque e Status." });
+    if (!idColumn || !priceColumn || !stockColumn || !statusColumn || !conditionColumn) {
+      errors.push({ sheet: sheet.name, row: 1, message: "A aba não possui as colunas obrigatórias ID, Condição, Venda, Estoque e Status." });
       continue;
     }
     for (let rowNumber = 2; rowNumber <= sheet.actualRowCount; rowNumber++) {
@@ -273,6 +303,7 @@ export async function previewProductsWorkbook(buffer: Buffer, canEditCost: boole
         costText: costColumn ? cellText(row.getCell(costColumn)) : undefined,
         stockText: cellText(row.getCell(stockColumn)),
         statusText: cellText(row.getCell(statusColumn)),
+        conditionText: cellText(row.getCell(conditionColumn)),
       });
     }
   }
@@ -304,26 +335,62 @@ export async function previewProductsWorkbook(buffer: Buffer, canEditCost: boole
     const cost = row.costText === undefined || row.costText === "" ? Number(variant.costPrice) : parseMoney(row.costText);
     const stock = parseStock(row.stockText);
     const active = parseStatus(row.statusText);
-    if (price === null || price <= 0 || price > 1_000_000) errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Preço de venda inválido." });
-    if (cost === null || cost < 0 || cost > 1_000_000) errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Preço de custo inválido." });
-    if (!canEditCost && cost !== Number(variant.costPrice)) errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Seu usuário não tem permissão para alterar o custo." });
-    if (stock === null || stock < 0 || stock > 100_000) errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Estoque deve ser um número inteiro entre 0 e 100.000." });
-    if (active === null) errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Status deve ser ATIVO ou INATIVO." });
-    if (price === null || cost === null || stock === null || active === null || price <= 0 || price > 1_000_000 || cost < 0 || cost > 1_000_000 || stock < 0 || stock > 100_000 || (!canEditCost && cost !== Number(variant.costPrice))) continue;
+    const condition = parseCondition(row.conditionText);
+    const before = {
+      price: decimal(variant.price),
+      costPrice: decimal(variant.costPrice),
+      stock: variant.stock,
+      active: variant.product.active,
+      condition: variant.condition as ProductCondition,
+    };
+    const priceChanged = price === null || before.price !== price.toFixed(2);
+    const costChanged = cost === null || before.costPrice !== cost.toFixed(2);
+    const stockChanged = stock === null || before.stock !== stock;
+    const activeChanged = active === null || before.active !== active;
+    const conditionChanged = condition === null || before.condition !== condition;
 
-    const previousStatus = requestedProductStatuses.get(variant.productId);
-    if (previousStatus !== undefined && previousStatus !== active) {
-      errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "As variações do mesmo produto possuem status diferentes." });
-      continue;
+    let rowIsValid = true;
+    if (priceChanged && (price === null || price <= 0 || price > 1_000_000)) {
+      errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Preço de venda inválido." });
+      rowIsValid = false;
     }
-    requestedProductStatuses.set(variant.productId, active);
-    const before = { price: decimal(variant.price), costPrice: decimal(variant.costPrice), stock: variant.stock, active: variant.product.active };
-    const after = { price: price.toFixed(2), costPrice: cost.toFixed(2), stock, active };
+    if (costChanged && (cost === null || cost < 0 || cost > 1_000_000)) {
+      errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Preço de custo inválido." });
+      rowIsValid = false;
+    }
+    if (costChanged && !canEditCost) {
+      errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Seu usuário não tem permissão para alterar o custo." });
+      rowIsValid = false;
+    }
+    if (stockChanged && (stock === null || stock < 0 || stock > 100_000)) {
+      errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Estoque deve ser um número inteiro entre 0 e 100.000." });
+      rowIsValid = false;
+    }
+    if (activeChanged && active === null) {
+      errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Status deve ser ATIVO ou INATIVO." });
+      rowIsValid = false;
+    }
+    if (conditionChanged && condition === null) {
+      errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "Condição inválida. Escolha uma opção da lista." });
+      rowIsValid = false;
+    }
+    if (!rowIsValid || price === null || cost === null || stock === null || active === null || condition === null) continue;
+
+    if (activeChanged) {
+      const previousStatus = requestedProductStatuses.get(variant.productId);
+      if (previousStatus !== undefined && previousStatus !== active) {
+        errors.push({ sheet: row.sheet, row: row.row, id: row.id, message: "As variações alteradas do mesmo produto possuem status diferentes." });
+        continue;
+      }
+      requestedProductStatuses.set(variant.productId, active);
+    }
+    const after = { price: price.toFixed(2), costPrice: cost.toFixed(2), stock, active, condition };
     const fields: ProductSpreadsheetChange["fields"] = [];
     if (before.price !== after.price) fields.push("price");
     if (before.costPrice !== after.costPrice) fields.push("costPrice");
     if (before.stock !== after.stock) fields.push("stock");
     if (before.active !== after.active) fields.push("active");
+    if (before.condition !== after.condition) fields.push("condition");
     if (!fields.length) unchangedRows++;
     else changes.push({ variantId: variant.id, productId: variant.productId, productName: variant.product.name, brand: variant.product.brand, sheet: row.sheet, row: row.row, before, after, fields });
   }
@@ -336,6 +403,7 @@ export async function previewProductsWorkbook(buffer: Buffer, canEditCost: boole
     costChanges: changes.filter((change) => change.fields.includes("costPrice")).length,
     stockChanges: changes.filter((change) => change.fields.includes("stock")).length,
     statusChanges: changes.filter((change) => change.fields.includes("active")).length,
+    conditionChanges: changes.filter((change) => change.fields.includes("condition")).length,
     increases: changes.filter((change) => change.fields.includes("price") && Number(change.after.price) > Number(change.before.price)).length,
     decreases: changes.filter((change) => change.fields.includes("price") && Number(change.after.price) < Number(change.before.price)).length,
     stockIncreases: changes.filter((change) => change.fields.includes("stock") && change.after.stock > change.before.stock).length,

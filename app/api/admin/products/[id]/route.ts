@@ -34,6 +34,27 @@ const patchSchema = z.object({
   filterOptionIds: z.array(z.string().min(1).max(100)).max(30).optional(),
 });
 
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await requireAdmin();
+  if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const { id } = await params;
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      variants: { include: { deviceUnits: true }, orderBy: { createdAt: "asc" } },
+      images: { orderBy: { position: "asc" } },
+      specifications: { orderBy: { position: "asc" } },
+      filterSelections: { include: { option: { include: { filter: true } } } },
+    },
+  });
+  if (!product) return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+  if (isOwnerAdmin(session)) return NextResponse.json(product, { headers: { "X-Owner-View": "true" } });
+  return NextResponse.json({
+    ...product,
+    variants: product.variants.map(({ costPrice: _costPrice, ...variant }) => variant),
+  }, { headers: { "X-Owner-View": "false" } });
+}
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });

@@ -20,6 +20,7 @@ import {
   Layers,
   LayoutList,
   Link2,
+  LoaderCircle,
   MapPin,
   Package,
   Pencil,
@@ -135,6 +136,7 @@ export default function AdminProdutos() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
+  const [editorLoading, setEditorLoading] = useState(false);
   const [ownerView, setOwnerView] = useState(false);
 
   // --- RECURSOS ERP DE ESCALA ---
@@ -167,7 +169,7 @@ export default function AdminProdutos() {
 
   async function load() {
     const [response, filtersResponse] = await Promise.all([
-      fetch("/api/admin/products", { cache: "no-store" }),
+      fetch("/api/admin/products?view=summary", { cache: "no-store" }),
       fetch("/api/admin/filters", { cache: "no-store" }),
     ]);
     if (response.ok) {
@@ -181,6 +183,17 @@ export default function AdminProdutos() {
   useEffect(() => { void load(); }, []);
   useEffect(() => { setSearch(searchParams.get("q") ?? ""); }, [searchParams]);
   useEffect(() => { setPage(1); }, [search, statusFilter, stockFilter, brandFilter, conditionFilter, pageSize]);
+  useEffect(() => {
+    if (!open) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape" && !busy) {
+        setOpen(false);
+        setEditing(null);
+      }
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open, busy]);
 
   function toggleModelExpand(modelKey: string) {
     setExpandedModels((prev) => {
@@ -191,6 +204,7 @@ export default function AdminProdutos() {
   }
 
   function newProduct() {
+    setEditorLoading(false);
     setEditing(null);
     setTitle("");
     setDescription("");
@@ -201,7 +215,7 @@ export default function AdminProdutos() {
     setOpen(true);
   }
 
-  function editProduct(item: AdminProduct) {
+  function populateEditor(item: AdminProduct) {
     const savedImages = item.images?.map((image) => image.url) ?? [];
     const initialImages = savedImages.length ? savedImages : item.imageUrl ? [item.imageUrl] : [];
     setEditing(item);
@@ -213,7 +227,28 @@ export default function AdminProdutos() {
       (item.filterSelections ?? []).map((selection) => [selection.option.filterId, selection.option.id]),
     ));
     setMessage("");
+  }
+
+  async function editProduct(item: AdminProduct) {
+    setEditing(item);
     setOpen(true);
+    setEditorLoading(true);
+    const response = await fetch(`/api/admin/products/${item.id}`, { cache: "no-store" });
+    if (!response.ok) {
+      setOpen(false);
+      setEditing(null);
+      setMessage("Não foi possível carregar os dados deste aparelho.");
+      setEditorLoading(false);
+      return;
+    }
+    populateEditor(await response.json());
+    setEditorLoading(false);
+  }
+
+  async function openImeiManager(item: AdminProduct) {
+    setImeiProduct(item);
+    const response = await fetch(`/api/admin/products/${item.id}`, { cache: "no-store" });
+    if (response.ok) setImeiProduct(await response.json());
   }
 
   function updateImage(index: number, value: string) {
@@ -866,7 +901,7 @@ export default function AdminProdutos() {
                               <span className={`pill-stock ${stock === 0 ? "zero" : stock <= (variant?.lowStockThreshold ?? 5) ? "low" : "ok"}`}>
                                 {stock === 0 ? "Esgotado" : `${stock} un.`}
                               </span>
-                              <button className="btn-imei-badge" onClick={(e) => { e.stopPropagation(); setImeiProduct(item); }}>
+                              <button className="btn-imei-badge" onClick={(e) => { e.stopPropagation(); void openImeiManager(item); }}>
                                 <Barcode size={11} />
                                 <span>{unitsCount} IMEI(s)</span>
                               </button>
@@ -1012,7 +1047,7 @@ export default function AdminProdutos() {
                     </span>
                     <button
                       className="btn-imei-badge"
-                      onClick={() => setImeiProduct(item)}
+                      onClick={() => void openImeiManager(item)}
                       title="Gerenciar IMEIs e unidades físicas"
                     >
                       <Barcode size={12} />
@@ -1329,13 +1364,20 @@ export default function AdminProdutos() {
 
       {/* --- MODAL DE CADASTRO / EDIÇÃO DE PRODUTO --- */}
       {open && (
-        <div className="admin-modal" role="dialog" aria-modal="true" aria-label={editing ? "Editar produto" : "Novo produto"}>
-          <form key={editing?.id ?? "new"} onSubmit={save}>
-            <button type="button" className="modal-close" onClick={() => setOpen(false)} aria-label="Fechar"><X /></button>
-            <span className="eyebrow">{editing ? "Editar aparelho" : "Novo aparelho"}</span>
-            <h2>{editing ? editing.name : "Cadastrar produto"}</h2>
+        <div className="admin-modal product-editor-modal" role="dialog" aria-modal="true" aria-label={editing ? "Editar produto" : "Novo produto"} onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !busy) {
+            setOpen(false);
+            setEditing(null);
+          }
+        }}>
+          <form className="product-editor-form" key={editing?.id ?? "new"} onSubmit={save}>
+            <header className="product-editor-heading">
+              <div><span className="eyebrow">{editing ? "Editar aparelho" : "Novo aparelho"}</span><h2>{editing ? editing.name : "Cadastrar produto"}</h2></div>
+              <button type="button" className="modal-close" onClick={() => { setOpen(false); setEditing(null); }} aria-label="Fechar"><X /></button>
+            </header>
 
-            <div className="admin-form-grid">
+            {editorLoading ? <div className="product-editor-loading"><LoaderCircle className="spin" /><span>Carregando aparelho...</span></div> : <>
+              <div className="admin-form-grid">
               <label className="wide">
                 Título completo do produto
                 <input required name="name" value={title} onChange={(event) => setTitle(event.target.value)} />
@@ -1379,13 +1421,13 @@ export default function AdminProdutos() {
               <section className="product-images-editor wide">
                 <header><div><h3>Fotos do produto</h3><p>Cole até quatro links. A prévia aparece automaticamente.</p></div><Link2 /></header>
                 <div className="image-url-grid">
-                  {imageUrls.map((url, index) => <label key={index}>
-                    <span>Foto {index + 1}</span>
-                    <input type="url" value={url} onChange={(event) => updateImage(index, event.target.value)} />
+                  {imageUrls.map((url, index) => <article className="image-edit-card" key={index}>
+                    <label><span>Foto {index + 1}</span><input type="url" value={url} onChange={(event) => updateImage(index, event.target.value)} placeholder="https://..." /></label>
                     <div className="image-link-preview">
                       {url ? <img src={url} alt={`Prévia da foto ${index + 1}`} /> : <ImagePlus />}
                     </div>
-                  </label>)}
+                    <button type="button" className="image-remove-button" onClick={() => updateImage(index, "")} disabled={!url} aria-label={`Remover foto ${index + 1}`} title="Remover foto"><Trash2 /></button>
+                  </article>)}
                 </div>
                 <label className="upload-box">
                   <ImagePlus /> {busy ? "Enviando..." : "Ou envie uma foto do computador"}
@@ -1399,22 +1441,23 @@ export default function AdminProdutos() {
                   <button type="button" onClick={() => setSpecifications((current) => [...current, { label: "", value: "" }])}><Plus /> Adicionar</button>
                 </header>
                 {specifications.length === 0 && <p className="spec-empty">Use “Gerar com IA” ou adicione uma especificação.</p>}
-                {specifications.map((item, index) => <div key={index} className="spec-row">
+                {specifications.map((item, index) => <div key={index} className="spec-edit-row">
                   <input placeholder="Rótulo" value={item.label} onChange={(event) => updateSpecification(index, "label", event.target.value)} />
                   <input placeholder="Valor" value={item.value} onChange={(event) => updateSpecification(index, "value", event.target.value)} />
-                  <button type="button" onClick={() => setSpecifications((current) => current.filter((_, position) => position !== index))} aria-label="Remover especificação"><X /></button>
+                  <button type="button" onClick={() => setSpecifications((current) => current.filter((_, position) => position !== index))} aria-label="Remover especificação" title="Remover especificação"><Trash2 /></button>
                 </div>)}
               </section>
 
               <div className="admin-form-options wide">
                 <label className="checkbox-field"><input type="checkbox" name="featured" defaultChecked={editing?.featured} /> Destacar este produto na capa do site</label>
               </div>
-            </div>
+              </div>
 
-            <div className="modal-actions">
-              <button type="button" className="button secondary" onClick={() => setOpen(false)}>Cancelar</button>
-              <button type="submit" disabled={busy} className="button primary">{busy ? "Salvando..." : editing ? "Salvar alterações" : "Cadastrar produto"}</button>
-            </div>
+              <div className="modal-actions">
+                <button type="button" className="button secondary" onClick={() => { setOpen(false); setEditing(null); }}>Cancelar</button>
+                <button type="submit" disabled={busy} className="button primary">{busy ? "Salvando..." : editing ? "Salvar alterações" : "Cadastrar produto"}</button>
+              </div>
+            </>}
           </form>
         </div>
       )}
