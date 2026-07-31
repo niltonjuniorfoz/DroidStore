@@ -142,8 +142,8 @@ export async function createProductsWorkbook(includeCost: boolean) {
       properties: { defaultRowHeight: 21 },
     });
     const columns: Partial<ExcelJS.Column>[] = [
-      { header: "ID", key: "id", width: 39 },
-      { header: "Produto", key: "product", width: 38 },
+      { header: "ID", key: "id", width: 12 },
+      { header: "Produto", key: "product", width: 46 },
       { header: "Marca", key: "brand", width: 18 },
       { header: "Cor", key: "color", width: 20 },
       { header: "Capacidade", key: "storage", width: 15 },
