@@ -54,7 +54,7 @@ model ProductImage {
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
-  color     String?  // Cor vinculada (ex: "Titânio Deserto")
+  color     String? // Cor vinculada (ex: "Titânio Deserto")
   position  Int      @default(0)
   createdAt DateTime @default(now())
 
@@ -110,7 +110,7 @@ model Variant {
   storage           String?
   condition         Condition
   sku               String?   @unique
-  barcode           String?   // Código EAN / GTIN / Etiqueta Zebra
+  barcode           String? // Código EAN / GTIN / Etiqueta Zebra
   price             Decimal   @db.Decimal(12, 2)
   costPrice         Decimal   @default(0) @db.Decimal(12, 2)
   stock             Int       @default(0)
@@ -130,9 +130,9 @@ model DeviceUnit {
   imei1             String?      @unique
   imei2             String?
   serialNumber      String?      @unique
-  batteryHealth     Int?         // % de Saúde da Bateria (ex: 88, 95, 100)
-  repairedParts     String?      // Laudo de peças trocadas (ex: "Bateria Trocada", "Tela Original")
-  warehouseLocation String?      // Endereçamento físico (ex: "GAVETA-03 / CORREDOR A")
+  batteryHealth     Int? // % de Saúde da Bateria (ex: 88, 95, 100)
+  repairedParts     String? // Laudo de peças trocadas (ex: "Bateria Trocada", "Tela Original")
+  warehouseLocation String? // Endereçamento físico (ex: "GAVETA-03 / CORREDOR A")
   costPrice         Decimal?     @db.Decimal(12, 2)
   notes             String?
   status            DeviceStatus @default(IN_STOCK)
@@ -317,4 +317,31 @@ model ProductFilterSelection {
 
   @@id([productId, optionId])
   @@index([optionId])
+}
+
+model ProductImport {
+  id            String              @id @default(uuid())
+  fileName      String
+  status        ProductImportStatus @default(APPLIED)
+  totalRows     Int
+  changedRows   Int
+  unchangedRows Int
+  priceChanges  Int                 @default(0)
+  costChanges   Int                 @default(0)
+  stockChanges  Int                 @default(0)
+  statusChanges Int                 @default(0)
+  changes       Json
+  createdById   String?
+  createdByName String?
+  createdAt     DateTime            @default(now())
+  rolledBackAt  DateTime?
+  rollbackById  String?
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
+enum ProductImportStatus {
+  APPLIED
+  ROLLED_BACK
 }

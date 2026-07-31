@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Boxes, FileText, LayoutDashboard, LogOut, PanelsTopLeft, Settings, SlidersHorizontal, Smartphone, Tags, Users, X } from "lucide-react";
+import { Boxes, FileSpreadsheet, FileText, LayoutDashboard, LogOut, PanelsTopLeft, Settings, SlidersHorizontal, Smartphone, Tags, Users, X } from "lucide-react";
 
 const items = [
   { href: "/admin", label: "Visão geral", icon: LayoutDashboard, exact: true },
   { href: "/admin/pedidos", label: "Pedidos", icon: FileText },
-  { href: "/admin/produtos", label: "Produtos", icon: Smartphone },
+  { href: "/admin/produtos", label: "Produtos", icon: Smartphone, exact: true },
+  { href: "/admin/produtos/planilha", label: "Planilha de produtos", icon: FileSpreadsheet, exact: true },
   { href: "/admin/filtros", label: "Filtros e categorias", icon: SlidersHorizontal },
   { href: "/admin/conteudo", label: "Vitrine e menu", icon: PanelsTopLeft },
   { href: "/admin/estoque", label: "Estoque", icon: Tags },
