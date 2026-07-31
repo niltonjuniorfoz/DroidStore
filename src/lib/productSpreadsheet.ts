@@ -161,6 +161,12 @@ export async function createProductsWorkbook(includeCost: boolean) {
       cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF11241F" } };
       cell.alignment = { vertical: "middle" };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FF6B7470" } },
+        left: { style: "thin", color: { argb: "FF6B7470" } },
+        bottom: { style: "thin", color: { argb: "FF6B7470" } },
+        right: { style: "thin", color: { argb: "FF6B7470" } },
+      };
     });
 
     for (const product of brandProducts) {
@@ -182,7 +188,12 @@ export async function createProductsWorkbook(includeCost: boolean) {
           const editable = editableKeys.has(key);
           cell.protection = { locked: !editable };
           cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: editable ? "FFE9FBEF" : "FFF5F7F6" } };
-          cell.border = { bottom: { style: "hair", color: { argb: "FFDDE5E1" } } };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FF9AA39F" } },
+            left: { style: "thin", color: { argb: "FF9AA39F" } },
+            bottom: { style: "thin", color: { argb: "FF9AA39F" } },
+            right: { style: "thin", color: { argb: "FF9AA39F" } },
+          };
           if (key === "cost" || key === "price") cell.numFmt = 'R$ #,##0.00';
           if (key === "status") {
             cell.dataValidation = { type: "list", allowBlank: false, formulae: ['"ATIVO,INATIVO"'], showErrorMessage: true, errorTitle: "Status inválido", error: "Escolha ATIVO ou INATIVO." };
