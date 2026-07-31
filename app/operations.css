@@ -2001,3 +2001,41 @@
   .product-editor-form .modal-actions { padding: .7rem .85rem; }
   .preview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Estoque: grade estável para impedir colisão entre valores e movimentações. */
+.admin-shell .pro-table-container:has(.inventory-table-cols) { overflow-x: auto; border: 1px solid #e1e6e3; background: #fff; }
+.admin-shell .inventory-table-cols {
+  display: grid !important;
+  grid-template-columns: 38px minmax(240px, 2fr) minmax(140px, 1fr) 90px 60px minmax(130px, .85fr) minmax(150px, 1fr) 105px !important;
+  gap: 12px !important;
+  min-width: 1080px;
+  align-items: center !important;
+}
+.admin-shell .inventory-table-cols > * { width: auto !important; min-width: 0 !important; max-width: 100%; overflow: hidden; }
+.admin-shell .inventory-table-cols .col-item { flex: none !important; }
+.admin-shell .inventory-table-cols .col-prices,
+.admin-shell .inventory-table-cols .col-last-mov { display: flex !important; flex-direction: column; align-items: flex-start !important; }
+.admin-shell .inventory-table-cols .col-actions { justify-content: flex-end !important; }
+.admin-shell .inventory-table-cols .col-actions .button { width: 102px; padding: .52rem .55rem; }
+.admin-shell .inventory-table-cols .item-subtags { display: flex; flex-wrap: wrap; gap: 4px; }
+.admin-shell .inventory-table-cols .last-mov-cell strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stock-status-dot { width: 8px; height: 8px; flex: 0 0 8px; display: inline-block; border-radius: 50%; background: #43c98b; }
+.stock-status-dot.zero { background: #ef5b62; }
+.stock-status-dot.low { background: #e7b83d; }
+.stock-status-dot.ok { background: #43c98b; }
+
+.settings-wide-panel { grid-column: 1 / -1; }
+.settings-grid > .integration-panel { grid-column: 2; grid-row: 1; }
+.settings-switch-row { display: flex !important; flex-direction: row !important; align-items: center; justify-content: space-between; gap: 1rem; margin: 0 0 1rem; padding: .9rem 1rem; border: 1px solid #dfe7e2; border-radius: 8px; background: #f8faf9; }
+.settings-switch-row > span { display: flex; flex-direction: column; gap: .2rem; }
+.settings-switch-row small { color: var(--muted); font-size: .64rem; font-weight: 600; }
+.settings-switch-row input { width: 42px !important; height: 22px; accent-color: #0cbc3e; }
+.email-layout-preview { max-width: 620px; margin: 1rem auto 0; padding: 1.25rem; text-align: center; border: 1px solid #dfe6e2; border-top: 4px solid #ff7900; border-radius: 7px; background: #fff; }
+.email-layout-preview span { display: block; color: #e66d00; font-size: .58rem; font-weight: 900; letter-spacing: .08em; }
+.email-layout-preview strong { display: block; margin: .45rem 0; font-size: 1rem; }
+.email-layout-preview i { display: block; height: 1px; margin: .8rem 0; background: #e3e8e5; }
+.email-layout-preview p { margin: 0; color: var(--muted); font-size: .68rem; line-height: 1.55; }
+
+@media (max-width: 1000px) {
+  .settings-grid > .integration-panel { grid-column: auto; grid-row: auto; }
+}

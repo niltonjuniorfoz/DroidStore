@@ -3,10 +3,8 @@
 import Link from "next/link";
 import {
   ChevronRight,
-  Headphones,
   Heart,
   Home,
-  Instagram,
   Menu,
   PackageCheck,
   Search,
@@ -19,9 +17,9 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "./CartProvider";
 import MegaMenu from "./MegaMenu";
-import { normalizeInstagramUrl } from "../lib/contact";
 
 type MenuItem = { label: string; href: string };
+type QuickBuyState = { active: boolean; title: string; price: string; disabled: boolean };
 
 const defaultNavigation: MenuItem[] = [
   { label: "Todos os celulares", href: "/celulares" },
@@ -48,7 +46,8 @@ const mobileCategories: MenuItem[] = [
 export default function Header() {
   const { count } = useCart();
   const [navigation, setNavigation] = useState<MenuItem[]>(defaultNavigation);
-  const [instagramUrl, setInstagramUrl] = useState<string | null>(null);
+  const [customerLoginEnabled, setCustomerLoginEnabled] = useState(true);
+  const [quickBuy, setQuickBuy] = useState<QuickBuyState | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesHidden, setCategoriesHidden] = useState(false);
@@ -59,9 +58,17 @@ export default function Header() {
       .then((response) => response.json())
       .then((data) => {
         if (data.navigation?.length) setNavigation(data.navigation.slice(0, 8));
-        setInstagramUrl(normalizeInstagramUrl(data.content?.instagramUrl));
+        setCustomerLoginEnabled(data.content?.customerLoginEnabled !== false);
       })
       .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    const updateQuickBuy = (event: Event) => {
+      setQuickBuy((event as CustomEvent<QuickBuyState>).detail);
+    };
+    window.addEventListener("product-quick-buy-state", updateQuickBuy);
+    return () => window.removeEventListener("product-quick-buy-state", updateQuickBuy);
   }, []);
 
   useEffect(() => {
@@ -209,30 +216,7 @@ export default function Header() {
 
   return (
     <>
-      <header className={`storefront-header-wrapper ${categoriesHidden ? "categories-hidden" : ""}`}>
-        <div className="top-utility-bar">
-          <div className="top-utility-container">
-            <div className="top-bar-announcement">
-              <span>Especialistas em tecnologia!</span>
-            </div>
-            <div className="top-bar-links">
-              <Link href="/atendimento" className="top-link">
-                <Headphones size={13} />
-                <span>Atendimento</span>
-              </Link>
-              <Link href="/conta/pedidos" className="top-link">
-                <PackageCheck size={13} />
-                <span>Meus Pedidos</span>
-              </Link>
-              {instagramUrl && <div className="top-social-pills">
-                <a href={instagramUrl} target="_blank" rel="noreferrer" aria-label="Abrir Instagram da loja" className="social-pill">
-                  <Instagram size={12} />
-                </a>
-              </div>}
-            </div>
-          </div>
-        </div>
-
+      <header className={`storefront-header-wrapper ${categoriesHidden && !quickBuy?.active ? "categories-hidden" : ""}`}>
         <div className="main-header-bar">
           <div className="main-header-container">
             <Link
@@ -272,7 +256,7 @@ export default function Header() {
                 <span className="action-label">Carrinho</span>
               </Link>
 
-              <Link
+              {customerLoginEnabled && <Link
                 href="/conta"
                 className="user-login-btn interactive-user-btn"
                 aria-label={authenticated ? "Minha conta" : "Entrar na conta"}
@@ -281,7 +265,7 @@ export default function Header() {
                   <UserRound size={20} className="user-icon" />
                 </div>
                 <span className="action-label">{authenticated ? "Minha Conta" : "Entrar"}</span>
-              </Link>
+              </Link>}
 
               <button
                 type="button"
@@ -295,15 +279,21 @@ export default function Header() {
             </nav>
           </div>
 
-          <MegaMenu customNavigation={navigation} />
-
-          <nav className="mobile-category-strip" aria-label="Categorias da loja">
-            {mobileCategories.map((item) => (
-              <Link key={`${item.label}-${item.href}`} href={item.href}>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          {quickBuy?.active ? (
+            <div className="product-quick-buy-bar">
+              <div><strong>{quickBuy.title}</strong><span>{quickBuy.price}</span></div>
+              <button type="button" disabled={quickBuy.disabled} onClick={() => window.dispatchEvent(new Event("product-quick-buy-request"))}>
+                <ShoppingBag size={17} /> Adicionar à sacola
+              </button>
+            </div>
+          ) : <>
+            <MegaMenu customNavigation={navigation} />
+            <nav className="mobile-category-strip" aria-label="Categorias da loja">
+              {mobileCategories.map((item) => (
+                <Link key={`${item.label}-${item.href}`} href={item.href}>{item.label}</Link>
+              ))}
+            </nav>
+          </>}
         </div>
       </header>
 

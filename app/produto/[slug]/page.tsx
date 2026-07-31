@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   BadgeCheck, CreditCard, Heart, PackageCheck, ShieldCheck, ShoppingBag, Truck,
 } from "lucide-react";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "../../../src/components/CartProvider";
 import { useAuthGate } from "../../../src/components/AuthGateProvider";
 import RecommendationCarousel from "../../../src/components/RecommendationCarousel";
@@ -69,6 +69,45 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [recommendations, setRecommendations] = useState<CatalogProduct[]>([]);
   const { add } = useCart();
   const { requireAuth } = useAuthGate();
+  const buyButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!product) return;
+    let active = false;
+    let frame = 0;
+    const publish = (nextActive: boolean) => {
+      active = nextActive;
+      window.dispatchEvent(new CustomEvent("product-quick-buy-state", { detail: {
+        active: nextActive,
+        title: getBaseModelName(product.name),
+        price: money(product.price * (1 - pixDiscount / 100)),
+        disabled: !product.stock,
+      } }));
+    };
+    const measure = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const button = buyButtonRef.current;
+        if (!button) return;
+        const headerBottom = document.querySelector(".storefront-header-wrapper")?.getBoundingClientRect().bottom ?? 0;
+        const nextActive = button.getBoundingClientRect().bottom < headerBottom;
+        if (nextActive !== active) publish(nextActive);
+      });
+    };
+    const quickAdd = () => void requireAuth(() => add(product));
+    publish(false);
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    window.addEventListener("product-quick-buy-request", quickAdd);
+    measure();
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("product-quick-buy-request", quickAdd);
+      window.dispatchEvent(new CustomEvent("product-quick-buy-state", { detail: { active: false, title: "", price: "", disabled: true } }));
+    };
+  }, [add, pixDiscount, product, requireAuth]);
 
   useEffect(() => {
     fetch(`/api/products/${encodeURIComponent(slug)}`)
@@ -387,7 +426,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
               </p>
             </div>
 
-            <button className="buy-button" disabled={!product.stock} onClick={() => void requireAuth(() => add(product))}>
+            <button ref={buyButtonRef} className="buy-button" disabled={!product.stock} onClick={() => void requireAuth(() => add(product))}>
               <ShoppingBag /> Adicionar ao carrinho
             </button>
           </div>

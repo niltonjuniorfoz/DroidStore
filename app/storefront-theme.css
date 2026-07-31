@@ -28,6 +28,14 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
+.product-quick-buy-bar { width: 100%; min-height: 48px; padding: 7px max(2.5%, calc((100% - 1360px) / 2)); display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid #ecefec; background: #fff; }
+.product-quick-buy-bar > div { min-width: 0; display: flex; align-items: baseline; gap: 1rem; }
+.product-quick-buy-bar strong { max-width: min(55vw, 720px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .78rem; }
+.product-quick-buy-bar span { color: #1d2822; font-size: .86rem; font-weight: 900; white-space: nowrap; }
+.product-quick-buy-bar button { min-height: 36px; padding: .55rem .9rem; display: inline-flex; align-items: center; justify-content: center; gap: .45rem; border: 0; border-radius: 7px; background: var(--store-orange); color: #fff; font-size: .7rem; font-weight: 850; cursor: pointer; white-space: nowrap; }
+.product-quick-buy-bar button:hover { background: var(--store-orange-dark); }
+.product-quick-buy-bar button:disabled { background: #bcc4bf; cursor: not-allowed; }
+
 /* Top Utility Bar */
 .top-utility-bar {
   background: #f8f9fa;
@@ -768,6 +776,8 @@ body {
 .storefront-theme .account-heading h1,.storefront-theme .order-detail-head h2{color:var(--store-ink)}.storefront-theme .account-heading p,.storefront-theme .order-detail-head p{color:var(--store-muted)}.storefront-theme .account-sidebar,.storefront-theme .profile-card{color:#111914;box-shadow:0 12px 38px rgba(0,0,0,.04)}
 .storefront-theme .legal-page{color:#4d5d54}.storefront-theme .legal-page h1,.storefront-theme .legal-page h2{color:var(--store-ink)}
 .storefront-theme .auth-page{min-height:calc(100vh - 160px)}.storefront-theme .auth-card{box-shadow:0 22px 65px rgba(0,0,0,.08)}.auth-brand{font-size:1.3rem;margin-bottom:.35rem}.google-button{min-height:46px;border:1px solid #d7dfda;border-radius:11px;background:#fff;color:#1d2923;display:flex;align-items:center;justify-content:center;gap:.65rem;font-weight:800;cursor:pointer}.google-button:hover{background:#f7faf8;border-color:#b8c7be}.google-button span{font-size:1.05rem;font-weight:900;color:#4285f4}.auth-divider{display:flex;align-items:center;gap:.7rem;color:#8a958f;font-size:.65rem}.auth-divider:before,.auth-divider:after{content:"";height:1px;flex:1;background:#e1e6e3}
+.auth-panel-subtitle,.auth-disabled-panel>p { margin: -.2rem 0 .2rem; color: #6f7a74; font-size: .72rem; line-height: 1.55; text-align: center; }
+.auth-disabled-panel { min-height: 230px; justify-content: center; }
 .storefront-theme .site-footer{color:#e9ecef;background:#1E2229;border-top:4px solid var(--store-orange)}.storefront-theme .site-footer p{color:#adb5bd}
 
 /* Mobile */
@@ -3632,13 +3642,21 @@ body {
 .storefront-theme .gallery-main {
   height: 480px;
   border-radius: 17px;
+  position: relative;
 }
 
 .storefront-theme .gallery-main > img {
-  width: 100%;
-  height: 100%;
-  padding: 1.35rem;
-  object-fit: contain;
+  display: block;
+  position: absolute;
+  inset: 1.35rem;
+  width: calc(100% - 2.7rem) !important;
+  height: calc(100% - 2.7rem) !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  object-fit: contain !important;
   object-position: center;
 }
 
@@ -3852,6 +3870,11 @@ body {
 }
 
 @media (max-width: 650px) {
+  .product-quick-buy-bar { min-height: 54px; padding: 7px 10px; gap: .55rem; }
+  .product-quick-buy-bar > div { display: block; }
+  .product-quick-buy-bar strong { display: block; max-width: 48vw; font-size: .66rem; }
+  .product-quick-buy-bar span { display: block; margin-top: 2px; font-size: .72rem; }
+  .product-quick-buy-bar button { min-width: 142px; padding: .55rem .65rem; font-size: .64rem; }
   .storefront-theme .catalog-results .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: .6rem;
@@ -3866,7 +3889,10 @@ body {
   }
 
   .storefront-theme .gallery-main > img {
-    padding: .85rem;
+    inset: .75rem;
+    width: calc(100% - 1.5rem) !important;
+    height: calc(100% - 1.5rem) !important;
+    padding: 0;
   }
 
   .storefront-theme .product-summary h1 {

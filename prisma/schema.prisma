@@ -86,20 +86,34 @@ model NavigationItem {
 }
 
 model SiteContent {
-  id              String   @id @default("main")
-  storeName       String   @default("DroidStore")
-  heroEyebrow     String   @default("Tecnologia boa cabe no seu bolso")
-  heroTitle       String   @default("Seu próximo Android, escolhido sem complicação.")
-  heroDescription String   @default("Novos e seminovos com procedência, revisão técnica e garantia.")
-  heroImageUrl    String?
-  heroSlides      Json     @default("[]")
-  catalogBanner   Json     @default("{}")
-  catalogSlides   Json     @default("[]")
-  contactEmail    String?
-  whatsapp        String?
-  pixDiscount     Int      @default(10)
-  maxInstallments Int      @default(12)
-  updatedAt       DateTime @updatedAt
+  id                        String   @id @default("main")
+  storeName                 String   @default("DroidStore")
+  heroEyebrow               String   @default("Tecnologia boa cabe no seu bolso")
+  heroTitle                 String   @default("Seu próximo Android, escolhido sem complicação.")
+  heroDescription           String   @default("Novos e seminovos com procedência, revisão técnica e garantia.")
+  heroImageUrl              String?
+  heroSlides                Json     @default("[]")
+  catalogBanner             Json     @default("{}")
+  catalogSlides             Json     @default("[]")
+  contactEmail              String?
+  whatsapp                  String?
+  pixDiscount               Int      @default(10)
+  maxInstallments           Int      @default(12)
+  companyLegalName          String?
+  companyTaxId              String?
+  companyPhone              String?
+  companyAddress            String?
+  companyCity               String?
+  companyState              String?
+  companyZipCode            String?
+  customerLoginEnabled      Boolean  @default(true)
+  loginTitle                String   @default("Acesse sua conta")
+  loginSubtitle             String   @default("Entre para acompanhar pedidos, favoritos e finalizar suas compras.")
+  transactionalEmailEnabled Boolean  @default(false)
+  transactionalFromName     String?
+  transactionalFromEmail    String?
+  transactionalReplyTo      String?
+  updatedAt                 DateTime @updatedAt
 }
 
 model Variant {
@@ -179,6 +193,7 @@ model Order {
   shippedAt            DateTime?
   deliveredAt          DateTime?
   cancelledAt          DateTime?
+  paidEmailSentAt      DateTime?
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 

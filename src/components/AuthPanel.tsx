@@ -14,10 +14,20 @@ export default function AuthPanel({ onClose, onAuthenticated }: Props) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [loginContent, setLoginContent] = useState({ enabled: true, title: "Faça seu login", subtitle: "Entre para acompanhar seus pedidos e finalizar suas compras." });
+  const adminAccess = typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("callbackUrl") ?? "").startsWith("/admin");
   useEffect(() => {
     void fetch("/api/auth/providers")
       .then((response) => response.json())
       .then((providers) => setGoogleEnabled(Boolean(providers.google)))
+      .catch(() => undefined);
+    void fetch("/api/site-content")
+      .then((response) => response.json())
+      .then((data) => setLoginContent({
+        enabled: data.content?.customerLoginEnabled !== false,
+        title: data.content?.loginTitle || "Faça seu login",
+        subtitle: data.content?.loginSubtitle || "Entre para acompanhar seus pedidos e finalizar suas compras.",
+      }))
       .catch(() => undefined);
   }, []);
 
@@ -69,12 +79,18 @@ export default function AuthPanel({ onClose, onAuthenticated }: Props) {
     void signIn("google", { callbackUrl: callbackUrl() === "/login" ? "/conta" : callbackUrl() });
   }
 
+  if (!loginContent.enabled && !adminAccess) return <section className="auth-panel auth-disabled-panel">
+    <header className="auth-panel-header"><span><UserRound /></span><strong>Área de clientes indisponível</strong>{onClose ? <button type="button" onClick={onClose} aria-label="Fechar"><X /></button> : <i />}</header>
+    <p>O acesso de clientes foi pausado temporariamente pela loja. Tente novamente mais tarde.</p>
+  </section>;
+
   return <form className="auth-panel" onSubmit={submit}>
     <header className="auth-panel-header">
       <span><UserRound /></span>
-      <strong>{mode === "login" ? "Faça seu login" : "Crie sua conta"}</strong>
+      <strong>{mode === "login" ? loginContent.title : "Crie sua conta"}</strong>
       {onClose ? <button type="button" onClick={onClose} aria-label="Fechar"><X /></button> : <i />}
     </header>
+    {mode === "login" && <p className="auth-panel-subtitle">{loginContent.subtitle}</p>}
     <div className="auth-panel-fields">
       {mode === "register" && <label><span>Nome completo</span><input name="name" required autoComplete="name" /></label>}
       <label><span>E-mail</span><input name="email" type="email" required autoComplete="email" /></label>

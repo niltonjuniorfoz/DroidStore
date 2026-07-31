@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { NextResponse } from "next/server";
 import prisma from "../../../../src/lib/prisma";
+import { sendPaidOrderEmail } from "../../../../src/lib/orderEmail";
 
 function validSignature(req: Request, paymentId: string) {
   const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
     const alreadyProcessed = await prisma.paymentEvent.findUnique({ where: { providerEventId: id } });
     if (alreadyProcessed) return new NextResponse("OK", { status: 200 });
 
-    await prisma.$transaction(async (tx) => {
+    const approvedNow = await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
         include: { items: true },
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
             note: "Pagamento confirmado pelo Mercado Pago.",
           },
         });
+        return true;
       }
 
       if (["cancelled", "rejected"].includes(payment.status ?? "") && order.status === "PENDING") {
@@ -93,7 +95,10 @@ export async function POST(req: Request) {
           },
         });
       }
+      return false;
     }, { isolationLevel: "Serializable" });
+
+    if (approvedNow) await sendPaidOrderEmail(orderId);
 
     return new NextResponse("OK", { status: 200 });
   } catch (error) {

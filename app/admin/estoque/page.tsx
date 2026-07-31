@@ -248,13 +248,13 @@ export default function AdminEstoque() {
             Todos ({items.length})
           </button>
           <button className={`pro-tab ${stockStatusFilter === "outOfStock" ? "active" : ""}`} onClick={() => setStockStatusFilter("outOfStock")}>
-            🔴 Esgotados ({outOfStockCount})
+            <span className="stock-status-dot zero" /> Esgotados ({outOfStockCount})
           </button>
           <button className={`pro-tab ${stockStatusFilter === "lowStock" ? "active" : ""}`} onClick={() => setStockStatusFilter("lowStock")}>
-            🟡 Estoque Baixo ({lowItemsCount})
+            <span className="stock-status-dot low" /> Estoque Baixo ({lowItemsCount})
           </button>
           <button className={`pro-tab ${stockStatusFilter === "inStock" ? "active" : ""}`} onClick={() => setStockStatusFilter("inStock")}>
-            🟢 Estoque OK ({items.length - outOfStockCount - lowItemsCount})
+            <span className="stock-status-dot ok" /> Estoque OK ({items.length - outOfStockCount - lowItemsCount})
           </button>
         </div>
 
@@ -364,7 +364,8 @@ export default function AdminEstoque() {
                   {/* Disponível */}
                   <div className="col-stock-qty">
                     <span className={`pill-stock ${item.stock === 0 ? "zero" : low ? "low" : "ok"}`}>
-                      {item.stock === 0 ? "🔴 Esgotado" : low ? `🟡 ${item.stock} un.` : `🟢 ${item.stock} un.`}
+                      <span className={`stock-status-dot ${item.stock === 0 ? "zero" : low ? "low" : "ok"}`} />
+                      {item.stock === 0 ? "Esgotado" : `${item.stock} un.`}
                     </span>
                   </div>
 

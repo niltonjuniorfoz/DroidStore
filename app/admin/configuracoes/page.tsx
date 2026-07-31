@@ -4,9 +4,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { formatBrazilPhone } from "../../../src/lib/brazil";
 import {
   Bot,
+  Building2,
   CheckCircle2,
   CreditCard,
   Instagram,
+  LogIn,
   Mail,
   MessageCircle,
   Save,
@@ -22,6 +24,20 @@ type SettingsResponse = {
     instagramUrl: string | null;
     pixDiscount: number;
     maxInstallments: number;
+    companyLegalName: string | null;
+    companyTaxId: string | null;
+    companyPhone: string | null;
+    companyAddress: string | null;
+    companyCity: string | null;
+    companyState: string | null;
+    companyZipCode: string | null;
+    customerLoginEnabled: boolean;
+    loginTitle: string;
+    loginSubtitle: string;
+    transactionalEmailEnabled: boolean;
+    transactionalFromName: string | null;
+    transactionalFromEmail: string | null;
+    transactionalReplyTo: string | null;
   };
   integrations: { ollama: boolean; mercadoPago: boolean; email: boolean };
   ownerView: boolean;
@@ -43,7 +59,7 @@ export default function AdminConfiguracoes() {
     });
   }, []);
 
-  function update(field: keyof SettingsResponse["content"], value: string | number) {
+  function update(field: keyof SettingsResponse["content"], value: string | number | boolean) {
     if (!data) return;
     setData({ ...data, content: { ...data.content, [field]: value } });
   }
@@ -63,7 +79,7 @@ export default function AdminConfiguracoes() {
     if (!response.ok) setError(body.error ?? "Não foi possível salvar.");
     else {
       setData({ ...body, content: { ...body.content, whatsapp: formatBrazilPhone(body.content.whatsapp ?? "") } });
-      setMessage("Configurações salvas. Os canais de atendimento e o Instagram já estão atualizados no site.");
+      setMessage("Configurações salvas. Os dados da empresa, login e comunicações já estão atualizados.");
     }
     setSaving(false);
   }
@@ -125,6 +141,57 @@ export default function AdminConfiguracoes() {
           </label>
         </div>
         {data.ownerView && <button disabled={saving} className="button primary"><Save /> {saving ? "Salvando..." : "Salvar configurações"}</button>}
+      </section>
+
+      <section className="admin-panel settings-form settings-wide-panel">
+        <header>
+          <Building2 />
+          <div><h2>Dados da empresa</h2><p>Dados usados nos e-mails, documentos e identificação da loja.</p></div>
+        </header>
+        <div className="admin-form-grid">
+          <label className="wide">Razão social ou nome empresarial<input disabled={!data.ownerView} value={data.content.companyLegalName ?? ""} onChange={(event) => update("companyLegalName", event.target.value)} /></label>
+          <label>CNPJ ou CPF<input disabled={!data.ownerView} value={data.content.companyTaxId ?? ""} onChange={(event) => update("companyTaxId", event.target.value)} /></label>
+          <label>Telefone da empresa<input disabled={!data.ownerView} value={data.content.companyPhone ?? ""} onChange={(event) => update("companyPhone", event.target.value)} /></label>
+          <label className="wide">Endereço<input disabled={!data.ownerView} value={data.content.companyAddress ?? ""} onChange={(event) => update("companyAddress", event.target.value)} placeholder="Rua, número, complemento e bairro" /></label>
+          <label>Cidade<input disabled={!data.ownerView} value={data.content.companyCity ?? ""} onChange={(event) => update("companyCity", event.target.value)} /></label>
+          <label>Estado (UF)<input disabled={!data.ownerView} maxLength={2} value={data.content.companyState ?? ""} onChange={(event) => update("companyState", event.target.value.toUpperCase())} /></label>
+          <label>CEP<input disabled={!data.ownerView} value={data.content.companyZipCode ?? ""} onChange={(event) => update("companyZipCode", event.target.value)} /></label>
+        </div>
+      </section>
+
+      <section className="admin-panel settings-form settings-wide-panel">
+        <header>
+          <LogIn />
+          <div><h2>Área de login</h2><p>Edite a mensagem ou pause temporariamente o acesso dos clientes.</p></div>
+        </header>
+        <label className="settings-switch-row">
+          <span><strong>Login de clientes ativo</strong><small>O acesso administrativo continua funcionando mesmo com esta opção desligada.</small></span>
+          <input disabled={!data.ownerView} type="checkbox" checked={data.content.customerLoginEnabled} onChange={(event) => update("customerLoginEnabled", event.target.checked)} />
+        </label>
+        <div className="admin-form-grid">
+          <label>Título da tela<input disabled={!data.ownerView} value={data.content.loginTitle} onChange={(event) => update("loginTitle", event.target.value)} /></label>
+          <label className="wide">Mensagem de apoio<textarea disabled={!data.ownerView} rows={3} value={data.content.loginSubtitle} onChange={(event) => update("loginSubtitle", event.target.value)} /></label>
+        </div>
+      </section>
+
+      <section className="admin-panel settings-form settings-wide-panel">
+        <header>
+          <Mail />
+          <div><h2>E-mail de compra aprovada</h2><p>Mensagem visual enviada somente depois que o pagamento for confirmado.</p></div>
+        </header>
+        <label className="settings-switch-row">
+          <span><strong>Envio automático ativo</strong><small>Requer a chave RESEND_API_KEY configurada com segurança no servidor.</small></span>
+          <input disabled={!data.ownerView || !data.integrations.email} type="checkbox" checked={data.content.transactionalEmailEnabled} onChange={(event) => update("transactionalEmailEnabled", event.target.checked)} />
+        </label>
+        <div className="admin-form-grid">
+          <label>Nome do remetente<input disabled={!data.ownerView} value={data.content.transactionalFromName ?? ""} onChange={(event) => update("transactionalFromName", event.target.value)} placeholder={data.content.storeName} /></label>
+          <label>E-mail remetente<input disabled={!data.ownerView} type="email" value={data.content.transactionalFromEmail ?? ""} onChange={(event) => update("transactionalFromEmail", event.target.value)} placeholder="pedidos@seudominio.com" /></label>
+          <label className="wide">Responder para<input disabled={!data.ownerView} type="email" value={data.content.transactionalReplyTo ?? ""} onChange={(event) => update("transactionalReplyTo", event.target.value)} placeholder="atendimento@seudominio.com" /></label>
+        </div>
+        <div className="email-layout-preview" aria-label="Prévia do formato do e-mail">
+          <span>COMPRA APROVADA</span><strong>Seu pedido já está sendo embalado</strong><i />
+          <p>Mensagem centralizada com resumo do pedido, produtos, pagamento, entrega e totais separados por linhas.</p>
+        </div>
       </section>
 
       <section className="admin-panel integration-panel">

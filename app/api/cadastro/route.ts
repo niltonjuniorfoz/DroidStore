@@ -10,6 +10,10 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
+  const content = await prisma.siteContent.findUnique({ where: { id: "main" }, select: { customerLoginEnabled: true } });
+  if (content?.customerLoginEnabled === false) {
+    return NextResponse.json({ error: "O cadastro de clientes está temporariamente desativado." }, { status: 403 });
+  }
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Use nome, e-mail válido e senha com 10 caracteres, maiúscula, minúscula e número." }, { status: 400 });

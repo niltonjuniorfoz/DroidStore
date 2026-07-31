@@ -3,6 +3,7 @@ import { OrderStatus } from "@prisma/client";
 import { z } from "zod";
 import prisma from "../../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
+import { sendPaidOrderEmail } from "../../../../../src/lib/orderEmail";
 
 const patchSchema = z.object({
   status: z.nativeEnum(OrderStatus).optional(),
@@ -88,6 +89,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
     return result;
   });
+
+  if (order.status === "PENDING" && nextStatus === "PAID") await sendPaidOrderEmail(order.id);
 
   if (isOwnerAdmin(session)) return NextResponse.json(updated);
   return NextResponse.json({
