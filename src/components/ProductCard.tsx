@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard, ShoppingBag } from "lucide-react";
+import { Box, CreditCard, ShoppingBag } from "lucide-react";
 import { useCart } from "./CartProvider";
 import { useAuthGate } from "./AuthGateProvider";
 import { money, type CatalogProduct } from "../lib/catalog";
@@ -28,6 +28,30 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
         <Link href={`/produto/${product.slug}`} className="product-image-link" aria-label={`Ver ${product.name}`}>
           <span className="condition">{product.condition}</span>
           <span className="discount-badge-top-right">{pixDiscountPercent}% OFF NO PIX</span>
+          {product.model3dUrl && (
+            <span
+              style={{
+                position: "absolute",
+                bottom: "8px",
+                left: "8px",
+                zIndex: 4,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                background: "rgba(16, 185, 129, 0.95)",
+                color: "#ffffff",
+                padding: "3px 8px",
+                borderRadius: "999px",
+                fontSize: "0.65rem",
+                fontWeight: 800,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                backdropFilter: "blur(4px)",
+              }}
+            >
+              <Box style={{ width: "12px", height: "12px" }} />
+              <span>3D 360°</span>
+            </span>
+          )}
           {primaryImage ? (
             <>
               <img className="catalog-photo product-photo-primary" src={primaryImage} alt={product.name} />

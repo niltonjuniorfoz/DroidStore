@@ -14,7 +14,7 @@ const conditionLabels: Record<string, CatalogProduct["condition"]> = {
 
 export function mapProduct(product: {
   id: string; slug: string; name: string; brand: string; description: string | null;
-  imageUrl: string | null; variants: Array<{ id: string; storage: string | null; color: string | null; condition: string; price: unknown; stock: number }>;
+  imageUrl: string | null; model3dUrl?: string | null; variants: Array<{ id: string; storage: string | null; color: string | null; condition: string; price: unknown; stock: number }>;
   images?: Array<{ url: string }>;
   specifications?: Array<{ label: string; value: string }>;
   filterSelections?: Array<{
@@ -38,6 +38,7 @@ export function mapProduct(product: {
     stock: variant?.stock ?? 0,
     accent: "#0f766e",
     imageUrl: product.images?.[0]?.url ?? product.imageUrl ?? undefined,
+    model3dUrl: product.model3dUrl ?? undefined,
     images: product.images?.map((image) => image.url) ?? (product.imageUrl ? [product.imageUrl] : []),
     specifications: product.specifications ?? [],
     filters: (product.filterSelections ?? [])
@@ -92,6 +93,7 @@ export type ProductVariantOption = {
   price: number;
   stock: number;
   imageUrl?: string;
+  model3dUrl?: string | null;
 };
 
 export { getBaseModelName };

@@ -18,6 +18,17 @@ const specificationsSchema = z.array(z.object({
   value: z.string().trim().min(1).max(500),
 })).max(60);
 
+const model3dUrlSchema = z.string().trim().max(1000).refine((value) => {
+  if (!value) return true;
+  if (value.startsWith("/uploads/")) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}, "Link 3D inválido").nullable().optional();
+
 const productSchema = z.object({
   name: z.string().trim().min(3).max(120),
   brand: z.string().trim().min(2).max(60),
@@ -31,6 +42,7 @@ const productSchema = z.object({
   lowStockThreshold: z.coerce.number().int().min(0).max(10000).default(5),
   filterOptionIds: z.array(z.string().min(1).max(100)).max(30).default([]),
   imageUrls: z.array(imageUrlSchema).max(4).default([]),
+  model3dUrl: model3dUrlSchema,
   specifications: specificationsSchema.default([]),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
@@ -122,6 +134,7 @@ export async function POST(req: Request) {
       brand: selectedBrand?.label ?? data.brand,
       description: data.description,
       imageUrl: data.imageUrls[0] ?? null,
+      model3dUrl: data.model3dUrl || null,
       active: data.active,
       featured: data.featured,
       variants: {

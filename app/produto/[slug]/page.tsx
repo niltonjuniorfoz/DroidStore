@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import {
-  BadgeCheck, CreditCard, Heart, PackageCheck, ShieldCheck, ShoppingBag, Truck,
+  BadgeCheck, Box, CreditCard, Heart, PackageCheck, ShieldCheck, ShoppingBag, Truck,
 } from "lucide-react";
+import ModelViewer3D from "../../../src/components/ModelViewer3D";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "../../../src/components/CartProvider";
 import { useAuthGate } from "../../../src/components/AuthGateProvider";
@@ -26,6 +27,7 @@ type ProductVariantOption = {
   price: number;
   stock: number;
   imageUrl?: string;
+  model3dUrl?: string | null;
 };
 
 
@@ -63,6 +65,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [selectedStorage, setSelectedStorage] = useState<string>("");
   const [selectedCondition, setSelectedCondition] = useState<CatalogProduct["condition"]>("Excelente");
   const [selectedImage, setSelectedImage] = useState(0);
+  const [viewing3D, setViewing3D] = useState(Boolean(findProduct(slug)?.model3dUrl));
   const [favorite, setFavorite] = useState(false);
   const [pixDiscount, setPixDiscount] = useState(10);
   const [maxInstallments, setMaxInstallments] = useState(12);
@@ -115,6 +118,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       .then((item: CatalogProduct & { familyVariants?: ProductVariantOption[] }) => {
         setProduct(item);
         setSelectedImage(0);
+        if (item.model3dUrl) {
+          setViewing3D(true);
+        }
         const variants = item.familyVariants ?? [];
         setFamilyVariants(variants);
         setSelectedColor(item.color || "Preto");
@@ -227,6 +233,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           const fullItem: CatalogProduct & { familyVariants?: ProductVariantOption[] } = await res.json();
           setProduct(fullItem);
           setSelectedImage(0);
+          setViewing3D(false);
           setSelectedColor(fullItem.color);
           setSelectedStorage(fullItem.storage);
           setSelectedCondition(fullItem.condition);
@@ -257,6 +264,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         price: match?.price ?? basePrice,
         stock: match.stock,
         imageUrl: match?.imageUrl ?? prev.imageUrl,
+        model3dUrl: match?.model3dUrl ?? prev.model3dUrl,
         images: match?.imageUrl ? [match.imageUrl] : prev.images,
         slug: match?.slug ?? prev.slug,
       };
@@ -295,21 +303,62 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       <section className="product-showcase">
         <div className="product-gallery">
           <div className="gallery-main" style={{ "--phone": product.accent } as React.CSSProperties}>
-            {images[selectedImage]
-              ? <img src={images[selectedImage]} alt={`${product.name} - foto ${selectedImage + 1}`} />
-              : <span className="phone-shape large"><i /></span>}
+            {viewing3D && product.model3dUrl ? (
+              <ModelViewer3D src={product.model3dUrl} alt={`Modelo 3D de ${product.name}`} />
+            ) : images[selectedImage] ? (
+              <img src={images[selectedImage]} alt={`${product.name} - foto ${selectedImage + 1}`} />
+            ) : (
+              <span className="phone-shape large"><i /></span>
+            )}
           </div>
-          {images.length > 1 && <div className="gallery-thumbnails" aria-label="Fotos do produto">
-            {images.slice(0, 4).map((image, index) => <button
-              type="button"
-              key={`${image}-${index}`}
-              className={selectedImage === index ? "active" : ""}
-              onClick={() => setSelectedImage(index)}
-              aria-label={`Ver foto ${index + 1}`}
-            >
-              <img src={image} alt="" />
-            </button>)}
-          </div>}
+          {(images.length > 0 || Boolean(product.model3dUrl)) && (
+            <div className="gallery-thumbnails" aria-label="Fotos e modelo 3D do produto" style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginTop: "0.8rem", flexWrap: "wrap" }}>
+              {/* 1. PRIMEIRO O BOTÃO 3D 360° */}
+              {product.model3dUrl && (
+                <button
+                  type="button"
+                  className={`thumbnail-3d-button ${viewing3D ? "active" : ""}`}
+                  onClick={() => setViewing3D(true)}
+                  title="Ver Modelo 3D Interativo 360°"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "2px",
+                    width: "90px",
+                    height: "90px",
+                    background: viewing3D ? "var(--store-orange, #f97316)" : "#ffffff",
+                    color: viewing3D ? "#ffffff" : "#1f2937",
+                    border: viewing3D ? "2px solid var(--store-orange, #f97316)" : "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    padding: "4px",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <Box style={{ width: "22px", height: "22px", color: viewing3D ? "#ffffff" : "var(--store-orange, #f97316)" }} />
+                  <span style={{ fontSize: "0.68rem", fontWeight: 800 }}>3D 360°</span>
+                </button>
+              )}
+
+              {/* 2. DEPOIS AS FOTOS NA SEQUÊNCIA */}
+              {images.slice(0, 4).map((image, index) => (
+                <button
+                  type="button"
+                  key={`${image}-${index}`}
+                  className={!viewing3D && selectedImage === index ? "active" : ""}
+                  onClick={() => {
+                    setViewing3D(false);
+                    setSelectedImage(index);
+                  }}
+                  aria-label={`Ver foto ${index + 1}`}
+                >
+                  <img src={image} alt="" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="product-summary">

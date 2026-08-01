@@ -11,6 +11,7 @@ export type CatalogProduct = {
   stock: number;
   accent: string;
   imageUrl?: string;
+  model3dUrl?: string | null;
   images?: string[];
   specifications?: Array<{ label: string; value: string }>;
   filters?: Array<{

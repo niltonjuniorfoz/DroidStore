@@ -13,11 +13,23 @@ const imageUrlSchema = z.string().trim().max(1000).refine((value) => {
   }
 }, "Link de imagem inválido");
 
+const model3dUrlSchema = z.string().trim().max(1000).refine((value) => {
+  if (!value) return true;
+  if (value.startsWith("/uploads/")) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}, "Link 3D inválido").nullable().optional();
+
 const patchSchema = z.object({
   name: z.string().trim().min(3).max(120).optional(),
   brand: z.string().trim().min(2).max(60).optional(),
   description: z.string().trim().min(10).max(5000).optional(),
   imageUrls: z.array(imageUrlSchema).max(4).optional(),
+  model3dUrl: model3dUrlSchema,
   specifications: z.array(z.object({
     label: z.string().trim().min(1).max(80),
     value: z.string().trim().min(1).max(500),

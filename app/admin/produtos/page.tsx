@@ -6,6 +6,7 @@ import {
   ArrowUpDown,
   Barcode,
   Battery,
+  Box,
   CheckSquare,
   ChevronDown,
   ChevronLeft,
@@ -37,6 +38,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
+import ModelViewer3D from "../../../src/components/ModelViewer3D";
 
 type DeviceUnit = {
   id: string;
@@ -80,6 +82,7 @@ type AdminProduct = {
   active: boolean;
   featured: boolean;
   imageUrl?: string;
+  model3dUrl?: string | null;
   images?: ProductImage[];
   specifications?: Specification[];
   filterSelections?: Array<{ option: { id: string; filterId: string; label: string; filter: { id: string; name: string; slug: string } } }>;
@@ -132,6 +135,7 @@ export default function AdminProdutos() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>(emptyImages);
+  const [model3dUrl, setModel3dUrl] = useState<string>("");
   const [specifications, setSpecifications] = useState<Specification[]>([]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -209,6 +213,7 @@ export default function AdminProdutos() {
     setTitle("");
     setDescription("");
     setImageUrls(emptyImages());
+    setModel3dUrl("");
     setSpecifications([]);
     setSelectedFilters({});
     setMessage("");
@@ -222,6 +227,7 @@ export default function AdminProdutos() {
     setTitle(item.name);
     setDescription(item.description ?? "");
     setImageUrls([...initialImages, "", "", "", ""].slice(0, 4));
+    setModel3dUrl(item.model3dUrl ?? "");
     setSpecifications(item.specifications?.map(({ label, value }) => ({ label, value })) ?? []);
     setSelectedFilters(Object.fromEntries(
       (item.filterSelections ?? []).map((selection) => [selection.option.filterId, selection.option.id]),
@@ -275,6 +281,21 @@ export default function AdminProdutos() {
     setBusy(false);
   }
 
+  async function upload3DModel(file?: File) {
+    if (!file) return;
+    setBusy(true);
+    const form = new FormData();
+    form.set("file", file);
+    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
+    const result = await response.json();
+    if (response.ok) {
+      setModel3dUrl(result.url);
+    } else {
+      setMessage(result.error);
+    }
+    setBusy(false);
+  }
+
   async function generateWithAI() {
     if (title.trim().length < 5) {
       setMessage("Digite o título completo do produto antes de usar a IA.");
@@ -319,6 +340,7 @@ export default function AdminProdutos() {
       brand: selectedBrandOption?.label ?? editing?.brand ?? "Sem marca",
       description,
       imageUrls: imageUrls.map((url) => url.trim()).filter(Boolean),
+      model3dUrl: model3dUrl.trim() || null,
       specifications: specifications
         .map((item) => ({ label: item.label.trim(), value: item.value.trim() }))
         .filter((item) => item.label && item.value),
@@ -1422,7 +1444,7 @@ export default function AdminProdutos() {
                 <header><div><h3>Fotos do produto</h3><p>Cole até quatro links. A prévia aparece automaticamente.</p></div><Link2 /></header>
                 <div className="image-url-grid">
                   {imageUrls.map((url, index) => <article className="image-edit-card" key={index}>
-                    <label><span>Foto {index + 1}</span><input type="url" value={url} onChange={(event) => updateImage(index, event.target.value)} placeholder="https://..." /></label>
+                    <label><span>Foto {index + 1}</span><input type="text" value={url} onChange={(event) => updateImage(index, event.target.value)} placeholder="https://... ou /uploads/..." /></label>
                     <div className="image-link-preview">
                       {url ? <img src={url} alt={`Prévia da foto ${index + 1}`} /> : <ImagePlus />}
                     </div>
@@ -1433,6 +1455,39 @@ export default function AdminProdutos() {
                   <ImagePlus /> {busy ? "Enviando..." : "Ou envie uma foto do computador"}
                   <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => upload(event.target.files?.[0])} />
                 </label>
+              </section>
+
+              <section className="product-images-editor wide">
+                <header><div><h3>Modelo 3D Interativo 360° (.glb)</h3><p>Cole a URL do arquivo 3D ou envie do computador para exibir a rotação 360° do aparelho.</p></div><Box style={{ color: "var(--store-orange)" }} /></header>
+                <div style={{ display: "flex", gap: "0.7rem", alignItems: "center", marginBottom: "0.8rem" }}>
+                  <input
+                    type="text"
+                    placeholder="https://.../modelo.glb ou /uploads/...glb"
+                    value={model3dUrl}
+                    onChange={(event) => setModel3dUrl(event.target.value)}
+                    style={{ flex: 1, height: "42px", padding: "0 0.8rem", borderRadius: "10px", border: "1px solid #d8e1dc", background: "#f8faf9" }}
+                  />
+                  {model3dUrl && (
+                    <button
+                      type="button"
+                      className="image-remove-button"
+                      onClick={() => setModel3dUrl("")}
+                      title="Remover modelo 3D"
+                      style={{ height: "42px", width: "42px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "10px", background: "#fee2e2", color: "#dc2626", border: "none", cursor: "pointer" }}
+                    >
+                      <Trash2 style={{ width: "18px", height: "18px" }} />
+                    </button>
+                  )}
+                </div>
+                <label className="upload-box" style={{ marginTop: 0 }}>
+                  <Box style={{ color: "var(--store-orange)" }} /> {busy ? "Enviando..." : "Enviar modelo 3D (.glb) do computador"}
+                  <input type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json,application/octet-stream" onChange={(event) => upload3DModel(event.target.files?.[0])} />
+                </label>
+                {model3dUrl && (
+                  <div style={{ marginTop: "1rem", height: "300px", borderRadius: "14px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                    <ModelViewer3D src={model3dUrl} />
+                  </div>
+                )}
               </section>
 
               <section className="spec-editor wide">

@@ -118,13 +118,13 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
                           <div className="brand-column">
                             <h4 className="column-title">iPhone</h4>
                             <ul>
+                              <li><Link href="/celulares?q=iPhone+17">iPhone 17</Link></li>
                               <li><Link href="/celulares?q=iPhone+16">iPhone 16</Link></li>
                               <li><Link href="/celulares?q=iPhone+15">iPhone 15</Link></li>
                               <li><Link href="/celulares?q=iPhone+14">iPhone 14</Link></li>
                               <li><Link href="/celulares?q=iPhone+13">iPhone 13</Link></li>
                               <li><Link href="/celulares?q=iPhone+12">iPhone 12</Link></li>
                               <li><Link href="/celulares?q=iPhone+11">iPhone 11</Link></li>
-                              <li><Link href="/celulares?q=iPhone+XR">iPhone XR</Link></li>
                               <li><Link href="/celulares?brand=Apple" className="more-link">Ver mais</Link></li>
                             </ul>
                           </div>
@@ -155,10 +155,9 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
                           <div className="brand-column">
                             <h4 className="column-title">Xiaomi</h4>
                             <ul>
-                              <li><Link href="/celulares?q=Redmi+9T">Redmi 9T</Link></li>
-                              <li><Link href="/celulares?q=Redmi+8">Redmi 8</Link></li>
-                              <li><Link href="/celulares?q=Mi+9T+Pro">Mi 9T Pro</Link></li>
-                              <li><Link href="/celulares?q=Mi+9">Mi 9</Link></li>
+                              <li><Link href="/celulares?q=Redmi">Redmi</Link></li>
+                              <li><Link href="/celulares?q=POCO">Poco</Link></li>
+                              <li><Link href="/celulares?brand=Xiaomi">Xiaomi</Link></li>
                               <li><Link href="/celulares?brand=Xiaomi" className="more-link">Ver mais</Link></li>
                             </ul>
                           </div>
@@ -273,8 +272,9 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
             </Link>
             {openBrand === "iphone" && (
               <div className="quick-dropdown-menu">
-                <Link href="/celulares?q=iPhone+16">iPhone 16 Pro Max</Link>
-                <Link href="/celulares?q=iPhone+15">iPhone 15 Pro</Link>
+                <Link href="/celulares?q=iPhone+17">iPhone 17</Link>
+                <Link href="/celulares?q=iPhone+16">iPhone 16</Link>
+                <Link href="/celulares?q=iPhone+15">iPhone 15</Link>
                 <Link href="/celulares?q=iPhone+14">iPhone 14</Link>
                 <Link href="/celulares?q=iPhone+13">iPhone 13</Link>
                 <Link href="/celulares?q=iPhone+12">iPhone 12</Link>
@@ -336,10 +336,9 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
             </Link>
             {openBrand === "xiaomi" && (
               <div className="quick-dropdown-menu">
-                <Link href="/celulares?q=Redmi+Note">Linha Redmi Note</Link>
-                <Link href="/celulares?q=POCO">Linha POCO</Link>
-                <Link href="/celulares?q=Mi+11">Linha Xiaomi Mi</Link>
-                <Link href="/celulares?q=Redmi+9T">Redmi 9T</Link>
+                <Link href="/celulares?q=Redmi">Redmi</Link>
+                <Link href="/celulares?q=POCO">Poco</Link>
+                <Link href="/celulares?brand=Xiaomi">Xiaomi</Link>
               </div>
             )}
           </div>
