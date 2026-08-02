@@ -11,13 +11,14 @@ type Props = {
 export default function MobileAutoCarousel({ children, className = "", label }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
-  const interactionTimerRef = useRef<number | null>(null);
+  const lastManualInteractionRef = useRef(0);
   const [isInteracting, setIsInteracting] = useState(false);
 
   const markInteracting = () => {
-    setIsInteracting(true);
-    if (interactionTimerRef.current !== null) window.clearTimeout(interactionTimerRef.current);
-    interactionTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1200);
+    lastManualInteractionRef.current = Date.now();
+    const heading = trackRef.current?.closest(".home-section")?.querySelector(".home-shelf-heading");
+    const bounds = heading?.getBoundingClientRect();
+    if (bounds && bounds.bottom > 0 && bounds.top < window.innerHeight) setIsInteracting(true);
   };
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
     if (!track || !mobile.matches || reduceMotion.matches || track.children.length < 2) return;
 
     const advance = () => {
-      if (pausedRef.current || document.hidden) return;
+      if (pausedRef.current || document.hidden || Date.now() - lastManualInteractionRef.current < 8000) return;
       const firstCard = track.firstElementChild as HTMLElement | null;
       if (!firstCard) return;
       const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
@@ -40,8 +41,16 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
     return () => window.clearInterval(timer);
   }, []);
 
-  useEffect(() => () => {
-    if (interactionTimerRef.current !== null) window.clearTimeout(interactionTimerRef.current);
+  useEffect(() => {
+    const heading = trackRef.current?.closest(".home-section")?.querySelector(".home-shelf-heading");
+    if (!heading) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) setIsInteracting(false);
+    });
+
+    observer.observe(heading);
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -55,9 +64,9 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
       onPointerCancel={() => { pausedRef.current = false; markInteracting(); }}
       onWheel={markInteracting}
       onMouseEnter={() => { pausedRef.current = true; markInteracting(); }}
-      onMouseLeave={() => { pausedRef.current = false; }}
+      onMouseLeave={() => { pausedRef.current = false; markInteracting(); }}
       onFocus={() => { pausedRef.current = true; markInteracting(); }}
-      onBlur={() => { pausedRef.current = false; }}
+      onBlur={() => { pausedRef.current = false; markInteracting(); }}
     >
       {children}
     </div>

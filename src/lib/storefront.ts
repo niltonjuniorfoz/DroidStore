@@ -115,6 +115,35 @@ export type ProductVariantOption = {
   model3dUrl?: string | null;
 };
 
+export type StorefrontProductDetail = CatalogProduct & {
+  familyVariants: ProductVariantOption[];
+};
+
+export async function getProductBySlug(slug: string): Promise<StorefrontProductDetail | null> {
+  try {
+    const product = await prisma.product.findFirst({
+      where: { slug, active: true },
+      include: {
+        variants: { orderBy: { price: "asc" } },
+        images: { orderBy: { position: "asc" } },
+        specifications: { orderBy: { position: "asc" } },
+        filterSelections: { include: { option: { include: { filter: true } } } },
+      },
+    });
+
+    if (product) {
+      const mapped = mapProduct(product);
+      return { ...mapped, familyVariants: await getFamilyVariantsForProduct(mapped) };
+    }
+  } catch {
+    // The static catalog below keeps the storefront available during database outages.
+  }
+
+  const fallback = products.find((item) => item.slug === slug);
+  if (!fallback) return null;
+  return { ...fallback, familyVariants: await getFamilyVariantsForProduct(fallback) };
+}
+
 export { getBaseModelName };
 
 export async function getFamilyVariantsForProduct(targetProduct: CatalogProduct): Promise<ProductVariantOption[]> {
