@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 type Props = {
   children: ReactNode;
@@ -11,6 +11,14 @@ type Props = {
 export default function MobileAutoCarousel({ children, className = "", label }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
+  const interactionTimerRef = useRef<number | null>(null);
+  const [isInteracting, setIsInteracting] = useState(false);
+
+  const markInteracting = () => {
+    setIsInteracting(true);
+    if (interactionTimerRef.current !== null) window.clearTimeout(interactionTimerRef.current);
+    interactionTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1200);
+  };
 
   useEffect(() => {
     const track = trackRef.current;
@@ -32,17 +40,23 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => () => {
+    if (interactionTimerRef.current !== null) window.clearTimeout(interactionTimerRef.current);
+  }, []);
+
   return (
     <div
       ref={trackRef}
-      className={`product-grid mobile-auto-track ${className}`.trim()}
+      className={`product-grid mobile-auto-track ${isInteracting ? "is-interacting" : ""} ${className}`.trim()}
       aria-label={label}
-      onPointerDown={() => { pausedRef.current = true; }}
-      onPointerUp={() => { pausedRef.current = false; }}
-      onPointerCancel={() => { pausedRef.current = false; }}
-      onMouseEnter={() => { pausedRef.current = true; }}
+      onPointerDown={() => { pausedRef.current = true; markInteracting(); }}
+      onPointerMove={() => { if (pausedRef.current) markInteracting(); }}
+      onPointerUp={() => { pausedRef.current = false; markInteracting(); }}
+      onPointerCancel={() => { pausedRef.current = false; markInteracting(); }}
+      onWheel={markInteracting}
+      onMouseEnter={() => { pausedRef.current = true; markInteracting(); }}
       onMouseLeave={() => { pausedRef.current = false; }}
-      onFocus={() => { pausedRef.current = true; }}
+      onFocus={() => { pausedRef.current = true; markInteracting(); }}
       onBlur={() => { pausedRef.current = false; }}
     >
       {children}

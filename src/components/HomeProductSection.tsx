@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Tags } from "lucide-react";
 import type { CatalogProduct } from "../lib/catalog";
 import MobileAutoCarousel from "./MobileAutoCarousel";
 import ProductCard from "./ProductCard";
@@ -15,7 +15,7 @@ export default function HomeProductSection({ title, buttonLabel, buttonHref, pro
   return (
     <section className="home-section home-product-shelf">
       <header className="home-shelf-heading">
-        <h2>{title}</h2>
+        <h2><Tags className="mobile-shelf-icon" aria-hidden="true" />{title}</h2>
         <Link href={buttonHref}>{buttonLabel} <ArrowRight size={14} /></Link>
       </header>
       {products.length ? (

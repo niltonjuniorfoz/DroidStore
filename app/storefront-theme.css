@@ -4351,5 +4351,154 @@ body {
   .storefront-theme .condition-card-btn { flex: 1 1 calc(50% - .45rem); min-width: 130px; }
 }
 
+/* Compact quick links with a clear interaction state */
+.storefront-theme .quick-action-card {
+  height: 72px;
+  min-height: 72px;
+  padding: .65rem .75rem;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: .65rem;
+  border: 1px solid #e3e7e4;
+  border-radius: 12px;
+  color: #202521;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(30, 34, 41, .06);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.storefront-theme .quick-action-card .quick-action-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--store-orange);
+  background: #fff2e7;
+}
+
+.storefront-theme .quick-action-icon svg { width: 19px; height: 19px; }
+.storefront-theme .quick-action-card .quick-action-copy { min-width: 0; display: grid; gap: 2px; color: inherit; text-align: left; }
+.storefront-theme .quick-action-card .quick-action-copy strong { color: inherit; font-size: .79rem; line-height: 1.15; }
+.storefront-theme .quick-action-card .quick-action-copy small { color: #77807a; font-size: .62rem; font-weight: 650; line-height: 1.15; }
+.storefront-theme .quick-action-card .quick-action-arrow { width: 16px; height: 16px; color: var(--store-orange); }
+
+@media (hover: hover) {
+  .storefront-theme .quick-action-card:hover {
+    color: #fff;
+    border-color: var(--store-orange);
+    background: linear-gradient(110deg, var(--store-orange), #ff922f);
+    box-shadow: 0 8px 20px rgba(255, 121, 0, .22);
+    transform: none;
+  }
+}
+
+.storefront-theme .quick-action-card:active,
+.storefront-theme .quick-action-card:focus-visible {
+  color: #fff;
+  border-color: var(--store-orange);
+  background: linear-gradient(110deg, var(--store-orange), #ff922f);
+  box-shadow: 0 6px 16px rgba(255, 121, 0, .22);
+  transform: none;
+}
+
+.storefront-theme .quick-action-card:hover .quick-action-icon,
+.storefront-theme .quick-action-card:active .quick-action-icon,
+.storefront-theme .quick-action-card:focus-visible .quick-action-icon {
+  color: var(--store-orange);
+  background: #fff;
+}
+
+.storefront-theme .quick-action-card:hover .quick-action-copy small,
+.storefront-theme .quick-action-card:active .quick-action-copy small,
+.storefront-theme .quick-action-card:focus-visible .quick-action-copy small,
+.storefront-theme .quick-action-card:hover .quick-action-arrow,
+.storefront-theme .quick-action-card:active .quick-action-arrow,
+.storefront-theme .quick-action-card:focus-visible .quick-action-arrow { color: #fff; }
+
+@media (max-width: 650px) {
+  body { overflow-x: clip; }
+
+  .storefront-theme .home-quick-actions { gap: .5rem; padding: 0 .7rem; }
+  .storefront-theme .quick-action-card {
+    height: 72px;
+    min-height: 72px;
+    padding: .48rem .55rem;
+    grid-template-columns: 32px minmax(0, 1fr) 13px;
+    gap: .42rem;
+    border-radius: 13px;
+  }
+
+  .storefront-theme .quick-action-card .quick-action-icon { width: 32px; height: 32px; border-radius: 8px; }
+  .storefront-theme .quick-action-icon svg { width: 16px; height: 16px; }
+  .storefront-theme .quick-action-card .quick-action-copy strong { font-size: .66rem; }
+  .storefront-theme .quick-action-card .quick-action-copy small { font-size: .53rem; }
+  .storefront-theme .quick-action-card .quick-action-arrow { width: 13px; height: 13px; }
+
+  /* The mobile navigation remains available while the page scrolls. */
+  .storefront-header-wrapper.categories-hidden .mobile-category-strip {
+    max-height: 36px;
+    height: 36px;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+  }
+
+  .storefront-theme .home-shelf-heading {
+    min-height: 48px;
+    padding: .58rem .72rem;
+    border: 1px solid #e2e6e3;
+    border-radius: 15px 15px 0 0;
+    background: linear-gradient(100deg, #fff 0%, #fff 66%, #fff5ec 100%);
+    transition: color .22s ease, background .22s ease, border-color .22s ease, box-shadow .22s ease;
+  }
+
+  .storefront-theme .home-shelf-heading h2 { color: #202521; }
+  .storefront-theme .home-shelf-heading a { color: #747d77; }
+  .storefront-theme .mobile-shelf-icon {
+    width: 27px !important;
+    height: 27px !important;
+    padding: 6px;
+    border-radius: 8px;
+    color: var(--store-orange);
+    background: #fff1e5;
+  }
+
+  .storefront-theme .home-section:has(.mobile-auto-track.is-interacting) .home-shelf-heading {
+    border-color: var(--store-orange);
+    background: linear-gradient(100deg, var(--store-orange) 0%, #ff8e2b 56%, #fff8f2 100%);
+    box-shadow: 0 5px 14px rgba(255, 121, 0, .14);
+  }
+
+  .storefront-theme .home-section:has(.mobile-auto-track.is-interacting) .home-shelf-heading h2 { color: #fff; }
+  .storefront-theme .home-section:has(.mobile-auto-track.is-interacting) .home-shelf-heading a { color: #914600; }
+  .storefront-theme .home-section:has(.mobile-auto-track.is-interacting) .mobile-shelf-icon { color: var(--store-orange); background: #fff; }
+
+  /* One-row quick buy bar shown only after the original purchase control leaves view. */
+  .product-quick-buy-bar { min-height: 54px; height: 54px; padding: 5px 8px; gap: .38rem; }
+  .product-quick-buy-product { flex: 1 1 auto; gap: .38rem; }
+  .product-quick-buy-thumb { width: 36px; height: 40px; flex-basis: 36px; border-radius: 6px; }
+  .product-quick-buy-copy strong {
+    max-width: 27vw;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    font-size: .62rem;
+    line-height: 1.15;
+  }
+  .product-quick-buy-action { flex: 0 0 auto; gap: .32rem; }
+  .product-quick-buy-price { min-width: 66px; }
+  .product-quick-buy-price small { font-size: .43rem; padding: 1px 3px; }
+  .product-quick-buy-price strong { font-size: .73rem; }
+  .product-quick-buy-bar button { width: 40px; min-width: 40px; min-height: 40px; height: 40px; border-radius: 8px; }
+}
+
 
 
