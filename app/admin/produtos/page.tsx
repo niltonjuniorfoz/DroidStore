@@ -100,6 +100,7 @@ type GroupedModel = {
   colors: string[];
   storages: string[];
   conditions: string[];
+  featured: boolean;
 };
 
 const emptyImages = () => ["", "", "", ""];
@@ -371,21 +372,30 @@ export default function AdminProdutos() {
 
   async function removeProduct(item: AdminProduct) {
     if (!confirm(`Tem certeza que deseja excluir "${item.name}"? Esta ação não pode ser desfeita.`)) return;
+    setBusy(true);
+    setMessage("");
     const response = await fetch(`/api/admin/products/${item.id}`, { method: "DELETE" });
+    const result = await response.json().catch(() => ({}));
     if (response.ok) {
-      setMessage("Produto excluído com sucesso.");
+      setMessage(result.message ?? "Produto excluído com sucesso.");
       await load();
     } else {
-      setMessage("Não foi possível excluir o produto.");
+      setMessage(result.error ?? "Não foi possível excluir o produto.");
     }
+    setBusy(false);
   }
 
   async function toggle(item: AdminProduct, key: "active" | "featured") {
-    await fetch(`/api/admin/products/${item.id}`, {
+    const response = await fetch(`/api/admin/products/${item.id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ [key]: !item[key] }),
     });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setMessage(result.error ?? "Não foi possível atualizar o produto.");
+      return;
+    }
     await load();
   }
 
@@ -430,7 +440,7 @@ export default function AdminProdutos() {
   async function bulkToggleFeatured(featured: boolean) {
     if (selectedIds.size === 0) return;
     setBusy(true);
-    await Promise.all(
+    const responses = await Promise.all(
       Array.from(selectedIds).map((id) =>
         fetch(`/api/admin/products/${id}`, {
           method: "PATCH",
@@ -439,8 +449,11 @@ export default function AdminProdutos() {
         })
       )
     );
+    const failed = responses.filter((response) => !response.ok).length;
     setSelectedIds(new Set());
-    setMessage(`${selectedIds.size} produto(s) ${featured ? "adicionado(s) à capa" : "removido(s) da capa"}.`);
+    setMessage(failed
+      ? `${responses.length - failed} produto(s) atualizado(s). ${failed} excederam o limite de 10 destaques.`
+      : `${selectedIds.size} produto(s) ${featured ? "adicionado(s) à capa" : "removido(s) da capa"}.`);
     await load();
     setBusy(false);
   }
@@ -449,11 +462,22 @@ export default function AdminProdutos() {
     if (selectedIds.size === 0) return;
     if (!confirm(`Tem certeza que deseja excluir os ${selectedIds.size} produto(s) selecionados? Esta ação não pode ser desfeita.`)) return;
     setBusy(true);
-    await Promise.all(
+    const responses = await Promise.all(
       Array.from(selectedIds).map((id) => fetch(`/api/admin/products/${id}`, { method: "DELETE" }))
     );
+    const results = await Promise.all(responses.map(async (response) => ({
+      ok: response.ok,
+      body: await response.json().catch(() => ({})),
+    })));
+    const deleted = results.filter((result) => result.ok && result.body.deleted).length;
+    const archived = results.filter((result) => result.ok && result.body.archived).length;
+    const failed = results.length - deleted - archived;
     setSelectedIds(new Set());
-    setMessage(`${selectedIds.size} produto(s) excluído(s).`);
+    setMessage([
+      deleted ? `${deleted} produto(s) excluído(s)` : "",
+      archived ? `${archived} arquivado(s) por possuir vendas` : "",
+      failed ? `${failed} não puderam ser removidos` : "",
+    ].filter(Boolean).join(" · "));
     await load();
     setBusy(false);
   }
@@ -549,6 +573,7 @@ export default function AdminProdutos() {
     const matchesCondition = conditionFilter === "all" || condition === conditionFilter;
     return matchesSearch && matchesStatus && matchesBrand && matchesStock && matchesCondition;
   }).sort((a, b) => {
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
     const varA = a.variants[0];
     const varB = b.variants[0];
     const priceA = Number(varA?.price ?? 0);
@@ -593,10 +618,12 @@ export default function AdminProdutos() {
         colors: [],
         storages: [],
         conditions: [],
+        featured: false,
       });
     }
 
     const group = groupedModelsMap.get(modelKey)!;
+    group.featured ||= item.featured;
     group.items.push(item);
     group.totalStock += stock;
     if (price < group.minPrice) group.minPrice = price;
@@ -607,6 +634,7 @@ export default function AdminProdutos() {
   });
 
   const groupedModelsList = Array.from(groupedModelsMap.values()).sort((a, b) => {
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
     if (sortField === "price") {
       return sortDirection === "asc" ? a.minPrice - b.minPrice : b.minPrice - a.minPrice;
     }
@@ -1504,7 +1532,10 @@ export default function AdminProdutos() {
               </section>
 
               <div className="admin-form-options wide">
-                <label className="checkbox-field"><input type="checkbox" name="featured" defaultChecked={editing?.featured} /> Destacar este produto na capa do site</label>
+                <label className="featured-checkbox-field">
+                  <input type="checkbox" name="featured" defaultChecked={editing?.featured} />
+                  <span><Star size={16} /><b>Destacar na capa</b><small>Até 10 produtos aparecem no topo da loja.</small></span>
+                </label>
               </div>
               </div>
 

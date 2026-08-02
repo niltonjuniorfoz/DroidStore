@@ -5,6 +5,7 @@ import { Instagram, Mail, MessageCircle } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import Header from "./Header";
 import CookieBanner from "./CookieBanner";
+import CartDrawer from "./CartDrawer";
 import { createMailtoUrl, createWhatsAppUrl, normalizeInstagramUrl } from "../lib/contact";
 import { useSiteContent } from "./SiteContentProvider";
 
@@ -136,6 +137,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
 
   return <div className="storefront-theme">
     <Header />
+    <CartDrawer />
     {children}
     <footer className="site-footer">
       <div>

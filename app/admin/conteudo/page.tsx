@@ -19,6 +19,13 @@ import {
   Tv,
 } from "lucide-react";
 import type { HeroSlide } from "../../../src/components/HeroCarousel";
+import {
+  DEFAULT_HOME_FEATURED_TITLE,
+  DEFAULT_HOME_PRODUCT_SECTIONS,
+  DEFAULT_HOME_PROMO_BANNERS,
+  type HomeProductSection,
+  type HomePromoBanner,
+} from "../../../src/lib/homeContent";
 
 type MenuItem = { id?: string; label: string; href: string; active: boolean };
 type CatalogBanner = { eyebrow: string; title: string; description: string; imageUrl: string };
@@ -27,6 +34,9 @@ type Content = {
   heroSlides: HeroSlide[];
   catalogBanner: CatalogBanner;
   catalogSlides: CatalogBanner[];
+  homeFeaturedTitle: string;
+  homePromoBanners: HomePromoBanner[];
+  homeProductSections: HomeProductSection[];
   navigation: MenuItem[];
 };
 
@@ -58,6 +68,9 @@ const initial: Content = {
   heroSlides: [blankSlide()],
   catalogBanner: defaultCatalogBanner(),
   catalogSlides: [blankCatalogSlide()],
+  homeFeaturedTitle: DEFAULT_HOME_FEATURED_TITLE,
+  homePromoBanners: DEFAULT_HOME_PROMO_BANNERS.map((banner) => ({ ...banner })),
+  homeProductSections: DEFAULT_HOME_PRODUCT_SECTIONS.map((section) => ({ ...section })),
   navigation: [],
 };
 
@@ -112,6 +125,13 @@ export default function AdminConteudo() {
         heroSlides: savedSlides,
         catalogBanner,
         catalogSlides: savedCatalogSlides,
+        homeFeaturedTitle: data.homeFeaturedTitle ?? DEFAULT_HOME_FEATURED_TITLE,
+        homePromoBanners: Array.isArray(data.homePromoBanners) && data.homePromoBanners.length === 2
+          ? data.homePromoBanners
+          : DEFAULT_HOME_PROMO_BANNERS.map((banner) => ({ ...banner })),
+        homeProductSections: Array.isArray(data.homeProductSections) && data.homeProductSections.length === 2
+          ? data.homeProductSections
+          : DEFAULT_HOME_PRODUCT_SECTIONS.map((section) => ({ ...section })),
         navigation: data.navigation ?? [],
       });
     });
@@ -154,6 +174,24 @@ export default function AdminConteudo() {
     setContent({ ...content, catalogSlides: next });
   }
 
+  function updateHomePromo(index: number, patch: Partial<HomePromoBanner>) {
+    setContent((current) => ({
+      ...current,
+      homePromoBanners: current.homePromoBanners.map((banner, position) =>
+        position === index ? { ...banner, ...patch } : banner
+      ),
+    }));
+  }
+
+  function updateHomeSection(index: number, patch: Partial<HomeProductSection>) {
+    setContent((current) => ({
+      ...current,
+      homeProductSections: current.homeProductSections.map((section, position) =>
+        position === index ? { ...section, ...patch } : section
+      ),
+    }));
+  }
+
   async function upload(index: number, file?: File) {
     if (!file) return;
     setBusy(true);
@@ -176,6 +214,19 @@ export default function AdminConteudo() {
     const response = await fetch("/api/admin/upload", { method: "POST", body: form });
     const data = await response.json();
     if (response.ok) updateCatalogSlide(index, { imageUrl: data.url });
+    else setMessage(data.error);
+    setBusy(false);
+  }
+
+  async function uploadHomePromo(index: number, file?: File) {
+    if (!file) return;
+    setBusy(true);
+    setMessage("");
+    const form = new FormData();
+    form.set("file", file);
+    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
+    const data = await response.json();
+    if (response.ok) updateHomePromo(index, { imageUrl: data.url });
     else setMessage(data.error);
     setBusy(false);
   }
@@ -298,7 +349,12 @@ export default function AdminConteudo() {
 
         <div className="hero-slides-editor">
           {content.heroSlides.map((slide, index) => (
-            <article className="hero-slide-editor" key={index}>
+            <details className="hero-slide-editor compact-editor-card" key={index}>
+              <summary>
+                <span className="editor-card-thumb" style={slide.imageUrl ? { backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` } : undefined}><ImagePlus size={15} /></span>
+                <span><strong>Capa {index + 1}</strong><small>{slide.title || "Sem título"}</small></span>
+              </summary>
+              <div className="compact-editor-body">
               <div className="hero-slide-editor-head">
                 <strong>Capa {index + 1}</strong>
 
@@ -354,7 +410,56 @@ export default function AdminConteudo() {
                   )}
                 </div>
               )}
-            </article>
+              </div>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section className="admin-panel home-layout-editor">
+        <div className="panel-heading">
+          <div>
+            <h2>Banners e prateleiras da página inicial</h2>
+            <p>Edite os dois banners exibidos após os destaques e escolha quais produtos aparecem logo abaixo.</p>
+          </div>
+        </div>
+
+        <label className="compact-setting-field">
+          Título dos produtos destacados
+          <input value={content.homeFeaturedTitle} onChange={(event) => setContent({ ...content, homeFeaturedTitle: event.target.value })} />
+        </label>
+
+        <div className="promo-config-list">
+          {content.homePromoBanners.map((banner, index) => (
+            <div className="promo-config-row" key={index}>
+              <div className="promo-config-preview">
+                <img src={banner.imageUrl} alt="" />
+                <div><small>{banner.eyebrow}</small><strong>{banner.title}</strong><span>{banner.buttonLabel}</span></div>
+              </div>
+              <div className="promo-config-fields">
+                <label>Chamada pequena<input value={banner.eyebrow} onChange={(event) => updateHomePromo(index, { eyebrow: event.target.value })} /></label>
+                <label>Título<input value={banner.title} onChange={(event) => updateHomePromo(index, { title: event.target.value })} /></label>
+                <label className="wide">Descrição<input value={banner.description} onChange={(event) => updateHomePromo(index, { description: event.target.value })} /></label>
+                <label>Texto do botão<input value={banner.buttonLabel} onChange={(event) => updateHomePromo(index, { buttonLabel: event.target.value })} /></label>
+                <label>Link do botão<input value={banner.buttonHref} onChange={(event) => updateHomePromo(index, { buttonHref: event.target.value })} /></label>
+                <label className="compact-upload-button">
+                  <ImagePlus size={15} /> Trocar imagem
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void uploadHomePromo(index, event.target.files?.[0])} />
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="home-sections-config">
+          {content.homeProductSections.map((section, index) => (
+            <div className="home-section-config-row" key={index}>
+              <strong>Prateleira {index + 1}</strong>
+              <label>Título<input value={section.title} onChange={(event) => updateHomeSection(index, { title: event.target.value })} /></label>
+              <label>Produtos exibidos<input value={section.query} onChange={(event) => updateHomeSection(index, { query: event.target.value })} placeholder="Ex: xiaomi ou notebook, computador" /></label>
+              <label>Texto do botão<input value={section.buttonLabel} onChange={(event) => updateHomeSection(index, { buttonLabel: event.target.value })} /></label>
+              <label>Link<input value={section.buttonHref} onChange={(event) => updateHomeSection(index, { buttonHref: event.target.value })} /></label>
+            </div>
           ))}
         </div>
       </section>
@@ -378,7 +483,12 @@ export default function AdminConteudo() {
 
         <div className="hero-slides-editor">
           {content.catalogSlides.map((slide, index) => (
-            <article className="hero-slide-editor" key={index}>
+            <details className="hero-slide-editor compact-editor-card" key={index}>
+              <summary>
+                <span className="editor-card-thumb" style={slide.imageUrl ? { backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` } : undefined}><ImagePlus size={15} /></span>
+                <span><strong>Catálogo {index + 1}</strong><small>{slide.title || "Sem título"}</small></span>
+              </summary>
+              <div className="compact-editor-body">
               <div className="hero-slide-editor-head">
                 <strong>Capa {index + 1} do Catálogo</strong>
 
@@ -432,7 +542,8 @@ export default function AdminConteudo() {
                   )}
                 </div>
               )}
-            </article>
+              </div>
+            </details>
           ))}
         </div>
       </section>

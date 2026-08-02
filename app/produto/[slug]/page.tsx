@@ -85,7 +85,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       window.dispatchEvent(new CustomEvent("product-quick-buy-state", { detail: {
         active: nextActive,
         title: getBaseModelName(product.name),
-        price: money(product.price * (1 - pixDiscount / 100)),
+        imageUrl: product.images?.[0] || product.imageUrl,
+        details: [product.storage, product.color, product.condition].filter(Boolean).join(" • "),
+        pixDiscount,
+        pixPrice: money(product.price * (1 - pixDiscount / 100)),
+        installments: `ou ${maxInstallments}x de ${money(product.price / maxInstallments)} sem juros`,
         disabled: !product.stock,
       } }));
     };
@@ -110,9 +114,17 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       window.removeEventListener("scroll", measure);
       window.removeEventListener("resize", measure);
       window.removeEventListener("product-quick-buy-request", quickAdd);
-      window.dispatchEvent(new CustomEvent("product-quick-buy-state", { detail: { active: false, title: "", price: "", disabled: true } }));
+      window.dispatchEvent(new CustomEvent("product-quick-buy-state", { detail: {
+        active: false,
+        title: "",
+        details: "",
+        pixDiscount: 0,
+        pixPrice: "",
+        installments: "",
+        disabled: true,
+      } }));
     };
-  }, [add, pixDiscount, product, requireAuth]);
+  }, [add, maxInstallments, pixDiscount, product, requireAuth]);
 
   useEffect(() => {
     fetch(`/api/products/${encodeURIComponent(slug)}`)

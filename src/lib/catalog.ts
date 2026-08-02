@@ -23,6 +23,7 @@ export type CatalogProduct = {
     optionSlug: string;
   }>;
   description: string;
+  featured?: boolean;
   variantCount?: number;
   availableColors?: string[];
   availableStorages?: string[];

@@ -1,10 +1,36 @@
-import Link from "next/link";
 import HeroCarousel, { type HeroSlide } from "../src/components/HeroCarousel";
 import FeaturedCarousel from "../src/components/FeaturedCarousel";
+import HomeProductSection from "../src/components/HomeProductSection";
+import HomePromoBanners from "../src/components/HomePromoBanners";
 import QuickActions from "../src/components/QuickActions";
 import { getProducts, getSiteContent } from "../src/lib/storefront";
+import type { CatalogProduct } from "../src/lib/catalog";
+import {
+  DEFAULT_HOME_FEATURED_TITLE,
+  DEFAULT_HOME_PRODUCT_SECTIONS,
+  DEFAULT_HOME_PROMO_BANNERS,
+} from "../src/lib/homeContent";
 
 export const dynamic = "force-dynamic";
+
+function normalized(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function productsForSection(products: CatalogProduct[], query: string) {
+  const terms = query.split(/[,;]/).map((term) => normalized(term.trim())).filter(Boolean);
+  if (!terms.length) return [];
+  return products.filter((product) => {
+    const filterText = product.filters?.flatMap((filter) => [
+      filter.groupName,
+      filter.groupSlug,
+      filter.optionLabel,
+      filter.optionSlug,
+    ]).join(" ") ?? "";
+    const haystack = normalized(`${product.name} ${product.brand} ${filterText}`);
+    return terms.some((term) => haystack.includes(term));
+  }).slice(0, 5);
+}
 
 function readSlides(content: Awaited<ReturnType<typeof getSiteContent>>["content"]): HeroSlide[] {
   const defaults: HeroSlide = {
@@ -32,16 +58,30 @@ function readSlides(content: Awaited<ReturnType<typeof getSiteContent>>["content
 }
 
 export default async function Home() {
-  const [{ content }, featuredProducts] = await Promise.all([getSiteContent(), getProducts(true)]);
-  const selected = featuredProducts.slice(0, 60);
+  const [{ content }, products] = await Promise.all([getSiteContent(), getProducts(false, { take: 120 })]);
+  const featured = products.filter((product) => product.featured).slice(0, 10);
+  const selected = featured.length ? featured : products.slice(0, 10);
+  const featuredTitle = content?.homeFeaturedTitle ?? DEFAULT_HOME_FEATURED_TITLE;
+  const promoBanners = content?.homePromoBanners ?? DEFAULT_HOME_PROMO_BANNERS;
+  const productSections = content?.homeProductSections ?? DEFAULT_HOME_PRODUCT_SECTIONS;
 
   return <main className="storefront-home">
     <HeroCarousel slides={readSlides(content)} />
 
-    {/* 4 Quick Action Cards (Mais Vendidos & Ofertas com efeito de fogo vivo) */}
     <QuickActions />
 
-    {/* Carrossel de 60 Telefones em 6 Passadas de Ofertas */}
-    <FeaturedCarousel products={selected} />
+    <FeaturedCarousel title={featuredTitle} products={selected} />
+
+    <HomePromoBanners banners={promoBanners} />
+
+    {productSections.map((section, index) => (
+      <HomeProductSection
+        key={`${section.title}-${index}`}
+        title={section.title}
+        buttonLabel={section.buttonLabel}
+        buttonHref={section.buttonHref}
+        products={productsForSection(products, section.query)}
+      />
+    ))}
   </main>;
 }

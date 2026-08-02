@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "../../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
+import { hasFeaturedCapacity, MAX_FEATURED_PRODUCTS } from "../../../../../src/lib/featuredProducts";
 
 const imageUrlSchema = z.string().trim().max(1000).refine((value) => {
   if (value.startsWith("/uploads/")) return true;
@@ -78,6 +79,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     storage, color, condition, price, costPrice, stock, lowStockThreshold,
     imageUrls, specifications, filterOptionIds, ...productData
   } = parsed.data;
+  const currentProduct = await prisma.product.findUnique({ where: { id }, select: { featured: true } });
+  if (!currentProduct) return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+  if (productData.featured && !currentProduct.featured && !await hasFeaturedCapacity(id)) {
+    return NextResponse.json({ error: `A capa aceita no máximo ${MAX_FEATURED_PRODUCTS} produtos destacados.` }, { status: 409 });
+  }
   const uniqueOptionIds = filterOptionIds === undefined ? undefined : [...new Set(filterOptionIds)];
   const selectedOptions = uniqueOptionIds === undefined ? undefined : await prisma.catalogFilterOption.findMany({
     where: { id: { in: uniqueOptionIds } },
@@ -171,6 +177,28 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!await requireAdmin()) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   const { id } = await params;
-  await prisma.product.update({ where: { id }, data: { active: false } });
-  return new NextResponse(null, { status: 204 });
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      variants: { select: { id: true, _count: { select: { orderItems: true } } } },
+    },
+  });
+  if (!product) return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+
+  const hasOrderHistory = product.variants.some((variant) => variant._count.orderItems > 0);
+  if (hasOrderHistory) {
+    await prisma.product.update({ where: { id }, data: { active: false, featured: false } });
+    return NextResponse.json({
+      deleted: false,
+      archived: true,
+      message: "O produto possui vendas vinculadas e foi arquivado para preservar o histórico dos pedidos.",
+    });
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.variant.deleteMany({ where: { productId: id } });
+    await tx.product.delete({ where: { id } });
+  });
+  return NextResponse.json({ deleted: true, archived: false, message: "Produto excluído com sucesso." });
 }

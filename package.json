@@ -10,7 +10,7 @@
     "lint": "tsc --noEmit",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "test": "tsx --test tests/catalog.test.ts tests/product-ai.test.ts"
+    "test": "tsx --test tests/catalog.test.ts tests/home-content.test.ts tests/product-ai.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

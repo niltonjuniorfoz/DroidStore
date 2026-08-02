@@ -6,6 +6,11 @@ import {
   type CatalogProduct,
 } from "./catalog";
 import { readInstagramFromCatalogBanner } from "./contact";
+import {
+  readHomeFeaturedTitle,
+  readHomeProductSections,
+  readHomePromoBanners,
+} from "./homeContent";
 
 const conditionLabels: Record<string, CatalogProduct["condition"]> = {
   NOVO: "Novo", NOVO_REEMBALADO: "Novo Reembalado", EXCELENTE: "Excelente",
@@ -13,7 +18,7 @@ const conditionLabels: Record<string, CatalogProduct["condition"]> = {
 };
 
 export function mapProduct(product: {
-  id: string; slug: string; name: string; brand: string; description: string | null;
+  id: string; slug: string; name: string; brand: string; description: string | null; featured: boolean;
   imageUrl: string | null; model3dUrl?: string | null; variants: Array<{ id: string; storage: string | null; color: string | null; condition: string; price: unknown; stock: number }>;
   images?: Array<{ url: string }>;
   specifications?: Array<{ label: string; value: string }>;
@@ -52,20 +57,34 @@ export function mapProduct(product: {
         optionSlug: selection.option.slug,
       })),
     description: product.description ?? "Celular Android com garantia e procedência verificada.",
+    featured: product.featured,
   };
 }
 
 export async function getProducts(
   featuredOnly = false,
-  options: { take?: number; excludeSlug?: string } = {},
+  options: { take?: number; excludeSlug?: string; query?: string } = {},
 ) {
-  const take = Math.min(Math.max(options.take ?? (featuredOnly ? 60 : 120), 1), 120);
+  const take = Math.min(Math.max(options.take ?? (featuredOnly ? 10 : 120), 1), 120);
+  const query = options.query?.trim();
+  const fallbackProducts = products
+    .filter((product) => product.slug !== options.excludeSlug)
+    .filter((product) => !featuredOnly || product.featured)
+    .filter((product) => !query || `${product.name} ${product.brand} ${product.storage} ${product.color}`.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")))
+    .slice(0, take);
   try {
     const rows = await prisma.product.findMany({
       where: {
         active: true,
         ...(featuredOnly ? { featured: true } : {}),
         ...(options.excludeSlug ? { slug: { not: options.excludeSlug } } : {}),
+        ...(query ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { brand: { contains: query, mode: "insensitive" } },
+            { slug: { contains: query, mode: "insensitive" } },
+          ],
+        } : {}),
       },
       include: {
         variants: { orderBy: { price: "asc" }, take: 1 },
@@ -77,9 +96,9 @@ export async function getProducts(
     });
     return rows.length
       ? rows.map(mapProduct)
-      : products.filter((product) => product.slug !== options.excludeSlug).slice(0, take);
+      : fallbackProducts;
   } catch {
-    return products.filter((product) => product.slug !== options.excludeSlug).slice(0, take);
+    return fallbackProducts;
   }
 }
 
@@ -178,7 +197,13 @@ export async function getSiteContent() {
       prisma.navigationItem.findMany({ where: { active: true }, orderBy: { position: "asc" } }),
     ]);
     const normalizedContent = content
-      ? { ...content, instagramUrl: readInstagramFromCatalogBanner(content.catalogBanner) }
+      ? {
+          ...content,
+          instagramUrl: readInstagramFromCatalogBanner(content.catalogBanner),
+          homeFeaturedTitle: readHomeFeaturedTitle(content.catalogBanner),
+          homePromoBanners: readHomePromoBanners(content.catalogBanner),
+          homeProductSections: readHomeProductSections(content.catalogBanner),
+        }
       : null;
     return { content: normalizedContent, navigation };
   } catch {

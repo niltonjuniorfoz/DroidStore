@@ -20,7 +20,28 @@ import MegaMenu from "./MegaMenu";
 import { useSiteContent } from "./SiteContentProvider";
 
 type MenuItem = { label: string; href: string };
-type QuickBuyState = { active: boolean; title: string; price: string; disabled: boolean };
+type SearchProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  brand: string;
+  condition: string;
+  storage: string;
+  color: string;
+  price: number;
+  stock: number;
+  imageUrl?: string;
+};
+type QuickBuyState = {
+  active: boolean;
+  title: string;
+  imageUrl?: string;
+  details: string;
+  pixDiscount: number;
+  pixPrice: string;
+  installments: string;
+  disabled: boolean;
+};
 
 const defaultNavigation: MenuItem[] = [
   { label: "Todos os celulares", href: "/celulares" },
@@ -44,6 +65,9 @@ const mobileCategories: MenuItem[] = [
   { label: "Seminovos", href: "/celulares?condition=Excelente" },
 ];
 
+const popularSearches = ["iPhone", "Samsung", "Xiaomi", "Notebook gamer", "Seminovos"];
+const searchMoney = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
 export default function Header() {
   const { count } = useCart();
   const { content, navigation: siteNavigation } = useSiteContent();
@@ -53,7 +77,48 @@ export default function Header() {
   const [authenticated, setAuthenticated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesHidden, setCategoriesHidden] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
   const categoriesHiddenRef = useRef(false);
+  const searchShellRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setSearchLoading(true);
+      const params = new URLSearchParams({ limit: "6" });
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      else params.set("featured", "1");
+
+      try {
+        const response = await fetch(`/api/products?${params}`, { signal: controller.signal });
+        if (!response.ok) throw new Error("search-failed");
+        setSearchResults(await response.json());
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") setSearchResults([]);
+      } finally {
+        if (!controller.signal.aborted) setSearchLoading(false);
+      }
+    }, searchQuery.trim() ? 180 : 0);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchOpen, searchQuery]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const closeSearch = (event: PointerEvent) => {
+      if (!searchShellRef.current?.contains(event.target as Node)) setSearchOpen(false);
+    };
+    window.addEventListener("pointerdown", closeSearch);
+    return () => window.removeEventListener("pointerdown", closeSearch);
+  }, [searchOpen]);
 
   useEffect(() => {
     const updateQuickBuy = (event: Event) => {
@@ -205,6 +270,24 @@ export default function Header() {
   }, [navigation]);
 
   const closeMenu = () => setMenuOpen(false);
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setActiveSearchIndex(-1);
+  };
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      closeSearch();
+      event.currentTarget.blur();
+      return;
+    }
+    if (!searchResults.length || !["ArrowDown", "ArrowUp", "Enter"].includes(event.key)) return;
+    if (event.key === "Enter" && activeSearchIndex < 0) return;
+    event.preventDefault();
+    if (event.key === "ArrowDown") setActiveSearchIndex((current) => (current + 1) % searchResults.length);
+    if (event.key === "ArrowUp") setActiveSearchIndex((current) => (current <= 0 ? searchResults.length - 1 : current - 1));
+    if (event.key === "Enter") window.location.href = `/produto/${searchResults[activeSearchIndex].slug}`;
+  };
 
   return (
     <>
@@ -224,16 +307,92 @@ export default function Header() {
               />
             </Link>
 
-            <form action="/celulares" className="trocafone-search-bar">
-              <input
-                name="q"
-                aria-label="Buscar celulares e tecnologia"
-                placeholder="O que você procura?"
-              />
-              <button type="submit" aria-label="Buscar">
-                <Search size={18} />
-              </button>
-            </form>
+            <div className="header-search-shell" ref={searchShellRef}>
+              <form action="/celulares" className="trocafone-search-bar" onSubmit={closeSearch}>
+                <Search className="header-search-leading-icon" size={17} aria-hidden="true" />
+                <input
+                  name="q"
+                  value={searchQuery}
+                  role="combobox"
+                  aria-label="Buscar celulares e tecnologia"
+                  aria-expanded={searchOpen}
+                  aria-controls="header-search-suggestions"
+                  aria-autocomplete="list"
+                  placeholder="O que você procura?"
+                  autoComplete="off"
+                  onFocus={() => setSearchOpen(true)}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setSearchOpen(true);
+                    setActiveSearchIndex(-1);
+                  }}
+                  onKeyDown={handleSearchKeyDown}
+                />
+                {searchQuery && (
+                  <button className="header-search-clear" type="button" aria-label="Limpar busca" onClick={() => setSearchQuery("")}>
+                    <X size={16} />
+                  </button>
+                )}
+                <button className="header-search-submit" type="submit" aria-label="Buscar">
+                  <Search size={18} />
+                </button>
+              </form>
+
+              {searchOpen && (
+                <div id="header-search-suggestions" className="header-search-suggestions" role="listbox">
+                  {!searchQuery.trim() && (
+                    <div className="header-search-trending">
+                      <span>Em alta</span>
+                      <div>
+                        {popularSearches.map((term) => (
+                          <Link key={term} href={`/celulares?q=${encodeURIComponent(term)}`} onClick={closeSearch}>{term}</Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="header-search-results-head">
+                    <strong>{searchQuery.trim() ? "Produtos encontrados" : "Produtos em destaque"}</strong>
+                    {searchLoading && <span>Buscando...</span>}
+                  </div>
+
+                  <div className="header-search-results">
+                    {!searchLoading && searchResults.length === 0 && (
+                      <div className="header-search-empty">Nenhum produto encontrado.</div>
+                    )}
+                    {searchResults.map((product, index) => (
+                      <Link
+                        key={product.id}
+                        href={`/produto/${product.slug}`}
+                        role="option"
+                        aria-selected={activeSearchIndex === index}
+                        className={activeSearchIndex === index ? "is-active" : ""}
+                        onMouseEnter={() => setActiveSearchIndex(index)}
+                        onClick={closeSearch}
+                      >
+                        <div className="header-search-product-image">
+                          {product.imageUrl ? <img src={product.imageUrl} alt="" /> : <PackageCheck size={20} />}
+                        </div>
+                        <div className="header-search-product-copy">
+                          <strong>{product.name}</strong>
+                          <span>{[product.brand, product.storage, product.condition].filter(Boolean).join(" • ")}</span>
+                        </div>
+                        <div className="header-search-product-price">
+                          <strong>{searchMoney.format(product.price * (1 - (content?.pixDiscount ?? 10) / 100))}</strong>
+                          <span>{product.stock > 0 ? "no PIX" : "Esgotado"}</span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+
+                  {searchQuery.trim() && (
+                    <Link className="header-search-all" href={`/celulares?q=${encodeURIComponent(searchQuery.trim())}`} onClick={closeSearch}>
+                      Ver todos os resultados <ChevronRight size={15} />
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
 
             <nav className="header-user-actions" aria-label="Ações da conta">
               <Link
@@ -272,11 +431,31 @@ export default function Header() {
           </div>
 
           {quickBuy?.active ? (
-            <div className="product-quick-buy-bar">
-              <div><strong>{quickBuy.title}</strong><span>{quickBuy.price}</span></div>
-              <button type="button" disabled={quickBuy.disabled} onClick={() => window.dispatchEvent(new Event("product-quick-buy-request"))}>
-                <ShoppingBag size={17} /> Adicionar à sacola
-              </button>
+            <div className="product-quick-buy-bar" aria-label="Compra rápida do produto">
+              <div className="product-quick-buy-product">
+                <div className="product-quick-buy-thumb" aria-hidden="true">
+                  {quickBuy.imageUrl
+                    ? <img src={quickBuy.imageUrl} alt="" />
+                    : <ShoppingBag size={20} />}
+                </div>
+                <div className="product-quick-buy-copy">
+                  <small>Você está vendo</small>
+                  <strong>{quickBuy.title}</strong>
+                  <span>{quickBuy.details}</span>
+                </div>
+              </div>
+
+              <div className="product-quick-buy-action">
+                <div className="product-quick-buy-price">
+                  <small>{quickBuy.pixDiscount}% OFF NO PIX</small>
+                  <strong>{quickBuy.pixPrice}</strong>
+                  <span>{quickBuy.installments}</span>
+                </div>
+                <button type="button" disabled={quickBuy.disabled} onClick={() => window.dispatchEvent(new Event("product-quick-buy-request"))}>
+                  <ShoppingBag size={18} />
+                  <span>{quickBuy.disabled ? "Produto esgotado" : "Adicionar à sacola"}</span>
+                </button>
+              </div>
             </div>
           ) : <>
             <MegaMenu customNavigation={navigation} />

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../src/lib/admin";
+import { hasFeaturedCapacity, MAX_FEATURED_PRODUCTS } from "../../../../src/lib/featuredProducts";
 
 const imageUrlSchema = z.string().trim().max(1000).refine((value) => {
   if (value.startsWith("/uploads/")) return true;
@@ -112,6 +113,9 @@ export async function POST(req: Request) {
   const parsed = productSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Revise os dados do produto." }, { status: 400 });
   const data = parsed.data;
+  if (data.featured && !await hasFeaturedCapacity()) {
+    return NextResponse.json({ error: `A capa aceita no máximo ${MAX_FEATURED_PRODUCTS} produtos destacados.` }, { status: 409 });
+  }
   const filterOptionIds = [...new Set(data.filterOptionIds)];
   const selectedOptions = await prisma.catalogFilterOption.findMany({
     where: { id: { in: filterOptionIds } },
