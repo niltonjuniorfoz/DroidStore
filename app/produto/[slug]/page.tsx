@@ -8,6 +8,7 @@ import ModelViewer3D from "../../../src/components/ModelViewer3D";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "../../../src/components/CartProvider";
 import { useAuthGate } from "../../../src/components/AuthGateProvider";
+import { useSiteContent } from "../../../src/components/SiteContentProvider";
 import RecommendationCarousel from "../../../src/components/RecommendationCarousel";
 import {
   findProduct,
@@ -67,11 +68,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [selectedImage, setSelectedImage] = useState(0);
   const [viewing3D, setViewing3D] = useState(Boolean(findProduct(slug)?.model3dUrl));
   const [favorite, setFavorite] = useState(false);
-  const [pixDiscount, setPixDiscount] = useState(10);
-  const [maxInstallments, setMaxInstallments] = useState(12);
   const [recommendations, setRecommendations] = useState<CatalogProduct[]>([]);
   const { add } = useCart();
   const { requireAuth } = useAuthGate();
+  const { content } = useSiteContent();
+  const pixDiscount = content?.pixDiscount ?? 10;
+  const maxInstallments = content?.maxInstallments ?? 12;
   const buyButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -131,12 +133,6 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   }, [slug]);
 
   useEffect(() => {
-    void fetch("/api/site-content").then((response) => response.json()).then((data) => {
-      if (data.content) {
-        setPixDiscount(data.content.pixDiscount ?? 10);
-        setMaxInstallments(data.content.maxInstallments ?? 12);
-      }
-    });
     void fetch("/api/account/favorites", { cache: "no-store" }).then(async (response) => {
       if (response.ok) {
         const favorites: Array<{ product: { slug: string } }> = await response.json();

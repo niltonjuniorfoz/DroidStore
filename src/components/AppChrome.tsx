@@ -2,26 +2,22 @@
 
 import { usePathname } from "next/navigation";
 import { Instagram, Mail, MessageCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import Header from "./Header";
 import CookieBanner from "./CookieBanner";
 import { createMailtoUrl, createWhatsAppUrl, normalizeInstagramUrl } from "../lib/contact";
+import { useSiteContent } from "./SiteContentProvider";
 
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const admin = pathname.startsWith("/admin");
-  const [store, setStore] = useState({ name: "Brasil Store", email: "", whatsapp: "", instagramUrl: "" });
-
-  useEffect(() => {
-    void fetch("/api/site-content").then((response) => response.json()).then((data) => {
-      if (data.content) setStore({
-        name: data.content.storeName ?? "Brasil Store",
-        email: data.content.contactEmail ?? "",
-        whatsapp: data.content.whatsapp ?? "",
-        instagramUrl: data.content.instagramUrl ?? "",
-      });
-    }).catch(() => undefined);
-  }, []);
+  const { content } = useSiteContent();
+  const store = {
+    name: content?.storeName ?? "Brasil Store",
+    email: content?.contactEmail ?? "",
+    whatsapp: content?.whatsapp ?? "",
+    instagramUrl: content?.instagramUrl ?? "",
+  };
 
   useEffect(() => {
     if (admin || !window.matchMedia("(pointer: coarse)").matches) return;

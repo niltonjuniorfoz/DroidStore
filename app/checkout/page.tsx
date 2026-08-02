@@ -1,20 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import { useCart } from "../../src/components/CartProvider";
+import { useSiteContent } from "../../src/components/SiteContentProvider";
 import { money } from "../../src/lib/catalog";
 import { BRAZIL_STATES } from "../../src/lib/brazil";
 
 export default function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
+  const { content } = useSiteContent();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [pixDiscount, setPixDiscount] = useState(10);
-  useEffect(() => {
-    void fetch("/api/site-content").then((response) => response.json()).then((data) => setPixDiscount(data.content?.pixDiscount ?? 10));
-  }, []);
+  const pixDiscount = content?.pixDiscount ?? 10;
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true); setMessage("");

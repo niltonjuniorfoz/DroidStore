@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SlidersHorizontal, X } from "lucide-react";
 import ProductCard from "../../src/components/ProductCard";
+import { useSiteContent } from "../../src/components/SiteContentProvider";
 import {
   getBaseModelName,
   getCatalogSection,
@@ -31,10 +32,9 @@ const defaultBanner: CatalogBanner = {
 function CatalogContent() {
   const searchParams = useSearchParams();
   const paramsKey = searchParams.toString();
+  const { content } = useSiteContent();
   const [catalog, setCatalog] = useState<CatalogProduct[]>(products);
   const [filters, setFilters] = useState<PublicFilter[]>([]);
-  const [banner, setBanner] = useState<CatalogBanner>(defaultBanner);
-  const [catalogSlides, setCatalogSlides] = useState<CatalogSlide[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string>>({});
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [query, setQuery] = useState("");
@@ -49,8 +49,7 @@ function CatalogContent() {
     void Promise.all([
       fetch("/api/products").then((response) => response.json()),
       fetch("/api/catalog-filters").then((response) => response.json()),
-      fetch("/api/site-content").then((response) => response.json()),
-    ]).then(([catalogData, filterData, siteData]: [CatalogProduct[], PublicFilter[], { content?: { catalogBanner?: Partial<CatalogBanner>; catalogSlides?: CatalogSlide[] } }]) => {
+    ]).then(([catalogData, filterData]: [CatalogProduct[], PublicFilter[]]) => {
       setCatalog(catalogData);
       const defaultFilters: PublicFilter[] = [
         { id: "filter-marca", name: "Marca", slug: "marca", options: [] },
@@ -67,14 +66,18 @@ function CatalogContent() {
       const prices = catalogData.map((product) => product.price).filter(Number.isFinite);
       setMinPrice(prices.length ? Math.floor(Math.min(...prices)) : 0);
       setMaxPrice(prices.length ? Math.ceil(Math.max(...prices)) : 0);
-      if (Array.isArray(siteData.content?.catalogSlides) && siteData.content.catalogSlides.length) {
-        setCatalogSlides(siteData.content.catalogSlides);
-      } else if (siteData.content?.catalogBanner) {
-        setBanner({ ...defaultBanner, ...siteData.content.catalogBanner });
-        setCatalogSlides([{ ...defaultBanner, ...siteData.content.catalogBanner }]);
-      }
     }).catch(() => undefined);
   }, []);
+
+  const catalogSlides = useMemo(() => {
+    if (Array.isArray(content?.catalogSlides) && content.catalogSlides.length) {
+      return content.catalogSlides as CatalogSlide[];
+    }
+    const banner = content?.catalogBanner && typeof content.catalogBanner === "object"
+      ? { ...defaultBanner, ...(content.catalogBanner as Partial<CatalogBanner>) }
+      : defaultBanner;
+    return [banner];
+  }, [content]);
 
 
   useEffect(() => {
@@ -398,7 +401,7 @@ function CatalogContent() {
   }
 
   return <main className="catalog-page">
-    <CatalogCarousel slides={catalogSlides.length ? catalogSlides : [banner]} />
+    <CatalogCarousel slides={catalogSlides} />
     <div className="catalog-layout">
       <aside className="filters desktop-catalog-filters">
         <h2><SlidersHorizontal size={19} /> Filtrar</h2>

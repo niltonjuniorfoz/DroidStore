@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { UserRound, X } from "lucide-react";
+import { useSiteContent } from "./SiteContentProvider";
 
 type Props = {
   onClose?: () => void;
@@ -14,20 +15,17 @@ export default function AuthPanel({ onClose, onAuthenticated }: Props) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
-  const [loginContent, setLoginContent] = useState({ enabled: true, title: "Faça seu login", subtitle: "Entre para acompanhar seus pedidos e finalizar suas compras." });
+  const { content } = useSiteContent();
+  const loginContent = {
+    enabled: content?.customerLoginEnabled !== false,
+    title: content?.loginTitle || "Faça seu login",
+    subtitle: content?.loginSubtitle || "Entre para acompanhar seus pedidos e finalizar suas compras.",
+  };
   const adminAccess = typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("callbackUrl") ?? "").startsWith("/admin");
   useEffect(() => {
     void fetch("/api/auth/providers")
       .then((response) => response.json())
       .then((providers) => setGoogleEnabled(Boolean(providers.google)))
-      .catch(() => undefined);
-    void fetch("/api/site-content")
-      .then((response) => response.json())
-      .then((data) => setLoginContent({
-        enabled: data.content?.customerLoginEnabled !== false,
-        title: data.content?.loginTitle || "Faça seu login",
-        subtitle: data.content?.loginSubtitle || "Entre para acompanhar seus pedidos e finalizar suas compras.",
-      }))
       .catch(() => undefined);
   }, []);
 

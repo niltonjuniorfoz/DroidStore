@@ -1,16 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Instagram, Mail, MessageCircle } from "lucide-react";
+import { useSiteContent } from "../../src/components/SiteContentProvider";
 import { createMailtoUrl, createWhatsAppUrl, normalizeInstagramUrl } from "../../src/lib/contact";
-
-type SiteContent = {
-  storeName?: string | null;
-  contactEmail?: string | null;
-  whatsapp?: string | null;
-  instagramUrl?: string | null;
-};
 
 type SupportForm = {
   name: string;
@@ -22,21 +16,9 @@ type SupportForm = {
 const emptyForm: SupportForm = { name: "", email: "", subject: "", message: "" };
 
 export default function AtendimentoPage() {
-  const [content, setContent] = useState<SiteContent | null>(null);
+  const { content, loading, error: contentError } = useSiteContent();
   const [form, setForm] = useState<SupportForm>(emptyForm);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    void fetch(`/api/site-content?t=${Date.now()}`, { cache: "no-store" })
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? "Não foi possível carregar os canais de atendimento.");
-        setContent(data.content ?? {});
-      })
-      .catch((reason) => setError(reason instanceof Error ? reason.message : "Não foi possível carregar os canais de atendimento."))
-      .finally(() => setLoading(false));
-  }, []);
 
   const storeName = content?.storeName?.trim() || "Brasil Store";
   const whatsapp = content?.whatsapp?.trim() || "";
@@ -123,7 +105,7 @@ export default function AtendimentoPage() {
           </label>
         </div>
 
-        {error && <div className="support-form-error" role="alert">{error}</div>}
+        {(error || contentError) && <div className="support-form-error" role="alert">{error || contentError}</div>}
 
         <div className="support-form-actions">
           <button type="button" className="support-send-email" onClick={sendEmail} disabled={!email}>

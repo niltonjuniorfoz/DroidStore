@@ -4,6 +4,7 @@ import './product-details.css';
 import './storefront-theme.css';
 import { CartProvider } from '../src/components/CartProvider';
 import { AuthGateProvider } from '../src/components/AuthGateProvider';
+import { SiteContentProvider } from '../src/components/SiteContentProvider';
 import AppChrome from '../src/components/AppChrome';
 
 export const metadata: Metadata = {
@@ -27,7 +28,9 @@ export default function RootLayout({
       <body>
         <CartProvider>
           <AuthGateProvider>
-            <AppChrome>{children}</AppChrome>
+            <SiteContentProvider>
+              <AppChrome>{children}</AppChrome>
+            </SiteContentProvider>
           </AuthGateProvider>
         </CartProvider>
       </body>

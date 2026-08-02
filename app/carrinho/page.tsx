@@ -1,17 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Minus, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useCart } from "../../src/components/CartProvider";
+import { useSiteContent } from "../../src/components/SiteContentProvider";
 import { money } from "../../src/lib/catalog";
 
 export default function CartPage() {
   const { items, subtotal, remove, setQuantity } = useCart();
-  const [pixDiscount, setPixDiscount] = useState(10);
-  useEffect(() => {
-    void fetch("/api/site-content").then((response) => response.json()).then((data) => setPixDiscount(data.content?.pixDiscount ?? 10));
-  }, []);
+  const { content } = useSiteContent();
+  const pixDiscount = content?.pixDiscount ?? 10;
   const pixTotal = subtotal * (1 - pixDiscount / 100);
   if (!items.length) return <main className="empty-state page-empty"><h1>Seu carrinho está vazio</h1><p>Encontre um Android que combina com você.</p><Link className="button primary" href="/celulares">Ver celulares</Link></main>;
   return (

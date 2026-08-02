@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "./CartProvider";
 import MegaMenu from "./MegaMenu";
+import { useSiteContent } from "./SiteContentProvider";
 
 type MenuItem = { label: string; href: string };
 type QuickBuyState = { active: boolean; title: string; price: string; disabled: boolean };
@@ -45,23 +46,14 @@ const mobileCategories: MenuItem[] = [
 
 export default function Header() {
   const { count } = useCart();
-  const [navigation, setNavigation] = useState<MenuItem[]>(defaultNavigation);
-  const [customerLoginEnabled, setCustomerLoginEnabled] = useState(true);
+  const { content, navigation: siteNavigation } = useSiteContent();
+  const navigation = siteNavigation.length ? siteNavigation.slice(0, 8) : defaultNavigation;
+  const customerLoginEnabled = content?.customerLoginEnabled !== false;
   const [quickBuy, setQuickBuy] = useState<QuickBuyState | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesHidden, setCategoriesHidden] = useState(false);
   const categoriesHiddenRef = useRef(false);
-
-  useEffect(() => {
-    fetch("/api/site-content")
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.navigation?.length) setNavigation(data.navigation.slice(0, 8));
-        setCustomerLoginEnabled(data.content?.customerLoginEnabled !== false);
-      })
-      .catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     const updateQuickBuy = (event: Event) => {
