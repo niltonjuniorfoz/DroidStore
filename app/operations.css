@@ -1741,8 +1741,7 @@
 }
 
 .pro-table-row .pill-stock,
-.pro-table-row .btn-pill-toggle,
-.pro-table-row .btn-imei-badge {
+.pro-table-row .btn-pill-toggle {
   min-height: 25px;
   padding: .2rem .4rem;
   font-size: .54rem;
@@ -2135,4 +2134,17 @@
 
 @media (max-width: 1000px) {
   .settings-grid > .integration-panel { grid-column: auto; grid-row: auto; }
+}
+
+.order-products > article > span {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.order-products > article > span img {
+  width: 100%;
+  height: 100%;
+  padding: .2rem;
+  object-fit: contain;
 }

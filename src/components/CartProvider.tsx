@@ -25,12 +25,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     try {
       const saved = window.localStorage.getItem("droidstore-cart");
-      if (saved) setItems(JSON.parse(saved));
+      if (saved) {
+        const parsed = JSON.parse(saved) as CartLine[];
+        const savedItems = Array.isArray(parsed) ? parsed : [];
+        setItems(savedItems);
+
+        const missingSlugs = Array.from(new Set(savedItems.filter((item) => !item.imageUrl).map((item) => item.slug)));
+        if (missingSlugs.length) {
+          void Promise.all(missingSlugs.map(async (slug) => {
+            const response = await fetch(`/api/products/${encodeURIComponent(slug)}`);
+            if (!response.ok) return [slug, undefined] as const;
+            const product = await response.json() as CatalogProduct;
+            return [slug, product.images?.[0] ?? product.imageUrl] as const;
+          })).then((entries) => {
+            if (cancelled) return;
+            const images = new Map(entries.filter((entry): entry is readonly [string, string] => Boolean(entry[1])));
+            if (images.size) setItems((current) => current.map((item) => ({ ...item, imageUrl: item.imageUrl ?? images.get(item.slug) })));
+          }).catch(() => undefined);
+        }
+      }
     } finally {
       setReady(true);
     }
+    return () => { cancelled = true; };
   }, []);
   useEffect(() => {
     if (ready) window.localStorage.setItem("droidstore-cart", JSON.stringify(items));

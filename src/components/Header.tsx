@@ -18,6 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "./CartProvider";
 import MegaMenu from "./MegaMenu";
 import { useSiteContent } from "./SiteContentProvider";
+import ProductImage from "./ProductImage";
 
 type MenuItem = { label: string; href: string };
 type SearchProduct = {
@@ -58,10 +59,10 @@ const mobileCategories: MenuItem[] = [
   { label: "Samsung", href: "/celulares?brand=Samsung" },
   { label: "Motorola", href: "/celulares?brand=Motorola" },
   { label: "Xiaomi", href: "/celulares?brand=Xiaomi" },
-  { label: "Notebook", href: "/celulares?tipo-de-produto=notebook" },
-  { label: "Smartwatches", href: "/celulares?tipo-de-produto=smartwatch" },
-  { label: "Tablets", href: "/celulares?tipo-de-produto=tablet" },
-  { label: "Acessórios", href: "/celulares?tipo-de-produto=acessorio" },
+  { label: "Notebook", href: "/celulares?categoria=notebook" },
+  { label: "Smartwatches", href: "/celulares?categoria=smartwatch" },
+  { label: "Tablets", href: "/celulares?categoria=tablets" },
+  { label: "Acessórios", href: "/celulares?categoria=acessorios" },
   { label: "Seminovos", href: "/celulares?condition=Excelente" },
 ];
 
@@ -371,7 +372,7 @@ export default function Header() {
                         onClick={closeSearch}
                       >
                         <div className="header-search-product-image">
-                          {product.imageUrl ? <img src={product.imageUrl} alt="" /> : <PackageCheck size={20} />}
+                          <ProductImage src={product.imageUrl} alt={product.name} />
                         </div>
                         <div className="header-search-product-copy">
                           <strong>{product.name}</strong>
@@ -434,9 +435,7 @@ export default function Header() {
             <div className="product-quick-buy-bar" aria-label="Compra rápida do produto">
               <div className="product-quick-buy-product">
                 <div className="product-quick-buy-thumb" aria-hidden="true">
-                  {quickBuy.imageUrl
-                    ? <img src={quickBuy.imageUrl} alt="" />
-                    : <ShoppingBag size={20} />}
+                  <ProductImage src={quickBuy.imageUrl} alt="" />
                 </div>
                 <div className="product-quick-buy-copy">
                   <small>Você está vendo</small>

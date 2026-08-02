@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Minus, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useCart } from "../../src/components/CartProvider";
 import { useSiteContent } from "../../src/components/SiteContentProvider";
+import ProductImage from "../../src/components/ProductImage";
 import { money } from "../../src/lib/catalog";
 
 export default function CartPage() {
@@ -19,7 +20,9 @@ export default function CartPage() {
         <section className="cart-lines">
           {items.map((item) => (
             <article key={item.id} className="cart-line">
-              <div className="mini-phone" style={{ background: item.accent }} />
+              <Link className="cart-line-image" href={`/produto/${item.slug}`}>
+                <ProductImage src={item.imageUrl} alt={item.name} />
+              </Link>
               <div className="cart-description"><span>{item.brand} • {item.condition}</span><Link href={`/produto/${item.slug}`}>{item.name}</Link><small>{item.storage} • {item.color}</small></div>
               <div className="quantity"><button onClick={() => setQuantity(item.id, item.quantity - 1)} aria-label="Diminuir quantidade"><Minus /></button><span>{item.quantity}</span><button onClick={() => setQuantity(item.id, item.quantity + 1)} aria-label="Aumentar quantidade"><Plus /></button></div>
               <strong>{money(item.price * item.quantity)}</strong>

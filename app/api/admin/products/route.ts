@@ -84,8 +84,6 @@ export async function GET(request: Request) {
             color: true,
             condition: true,
             sku: true,
-            barcode: true,
-            deviceUnits: { select: { id: true } },
           },
         },
       },
@@ -99,7 +97,7 @@ export async function GET(request: Request) {
   }
   const rows = await prisma.product.findMany({
     include: {
-      variants: { include: { deviceUnits: true } },
+      variants: true,
       images: { orderBy: { position: "asc" } },
       specifications: { orderBy: { position: "asc" } },
       filterSelections: { include: { option: { include: { filter: true } } } },
@@ -181,7 +179,7 @@ export async function POST(req: Request) {
       filterSelections: { create: filterOptionIds.map((optionId) => ({ optionId })) },
     },
     include: {
-      variants: { include: { deviceUnits: true } },
+      variants: true,
       images: { orderBy: { position: "asc" } },
       specifications: { orderBy: { position: "asc" } },
       filterSelections: { include: { option: { include: { filter: true } } } },

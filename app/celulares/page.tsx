@@ -14,6 +14,12 @@ import {
   type CatalogSection,
 } from "../../src/lib/catalog";
 import CatalogCarousel, { type CatalogSlide } from "../../src/components/CatalogCarousel";
+import {
+  isCategoryFilterSlug,
+  matchesCategory,
+  readFilterRequest,
+  resolveFilterOptionSlug,
+} from "../../src/lib/catalogRouting";
 
 type PublicFilter = {
   id: string;
@@ -39,6 +45,7 @@ function CatalogContent() {
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [query, setQuery] = useState("");
   const [condition, setCondition] = useState<CatalogSection>("Novos");
+  const [exactCondition, setExactCondition] = useState<CatalogProduct["condition"] | "">("");
   const [sort, setSort] = useState("relevance");
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(0);
@@ -92,19 +99,28 @@ function CatalogContent() {
         ? "Seminovos"
         : "Novos";
     setCondition(requestedSection);
+    setExactCondition(
+      requestedCondition === "Novo" || requestedCondition === "Excelente" || requestedCondition === "Muito Bom" || requestedCondition === "Bom" || requestedCondition === "Outlet"
+        ? requestedCondition
+        : "",
+    );
     setSelectedModel(searchParams.get("model") ?? "");
+    const catalogPrices = catalog.map((product) => product.price).filter(Number.isFinite);
+    const catalogMin = catalogPrices.length ? Math.floor(Math.min(...catalogPrices)) : 0;
+    const catalogMax = catalogPrices.length ? Math.ceil(Math.max(...catalogPrices)) : 0;
+    const requestedMin = Number(searchParams.get("minPrice"));
+    const requestedMax = Number(searchParams.get("maxPrice"));
+    setMinPrice(Number.isFinite(requestedMin) && requestedMin >= 0 ? requestedMin : catalogMin);
+    setMaxPrice(Number.isFinite(requestedMax) && requestedMax > 0 ? Math.min(requestedMax, catalogMax || requestedMax) : catalogMax);
     const initialSelections: Record<string, string> = {};
     for (const filter of filters) {
-      const requested = searchParams.get(filter.slug) ?? (filter.slug === "marca" ? searchParams.get("brand") : null);
+      const requested = readFilterRequest(searchParams, filter.slug);
       if (!requested) continue;
-      const option = filter.options.find((item) =>
-        item.slug.toLowerCase() === requested.toLowerCase() ||
-        item.label.toLowerCase() === requested.toLowerCase(),
-      );
-      if (option) initialSelections[filter.slug] = option.slug;
+      const optionSlug = resolveFilterOptionSlug(requested, filter.options);
+      if (optionSlug) initialSelections[filter.slug] = optionSlug;
     }
     setSelectedFilters(initialSelections);
-  }, [filters, paramsKey, searchParams]);
+  }, [catalog, filters, paramsKey, searchParams]);
 
   useEffect(() => {
     const footer = document.querySelector<HTMLElement>(".site-footer");
@@ -186,18 +202,17 @@ function CatalogContent() {
 
 
     if (filterGroupSlug === "tipo-de-produto" || filterGroupSlug === "categoria") {
-      const allCats = Array.from(new Set(relevantProducts.map((p) => {
-        const isNotebook = p.brand.toLowerCase() === "acer" || p.name.toLowerCase().includes("notebook") || p.name.toLowerCase().includes("macbook") || p.name.toLowerCase().includes("aspire") || p.name.toLowerCase().includes("nitro");
-        return isNotebook ? "Notebooks" : "Smartphones";
-      })));
       const filterObj = filters.find((f) => f.slug === "tipo-de-produto" || f.slug === "categoria");
-      const dbCats = filterObj?.options.map((o) => o.label) ?? [];
-      const combined = Array.from(new Set([...allCats, ...dbCats])).sort((a, b) => a.localeCompare(b, "pt-BR"));
-      return combined.map((c) => ({
-        id: `type-${c.toLowerCase()}`,
-        label: c,
-        slug: c.toLowerCase() === "notebooks" ? "notebooks" : "smartphones",
-      }));
+      const productOptions = relevantProducts.flatMap((product) => (product.filters ?? [])
+        .filter((item) => isCategoryFilterSlug(item.groupSlug))
+        .map((item) => ({ id: item.optionId, label: item.optionLabel, slug: item.optionSlug })));
+      const combined = [...(filterObj?.options ?? []), ...productOptions];
+      const unique = new Map(combined.map((option) => [option.slug.toLowerCase(), option]));
+      unique.set("informatica", { id: "virtual-informatica", label: "Informática", slug: "informatica" });
+      unique.set("acessorios", { id: "virtual-acessorios", label: "Acessórios", slug: "acessorios" });
+      unique.set("games", { id: "virtual-games", label: "Games", slug: "games" });
+      unique.set("tv-audio", { id: "virtual-tv-audio", label: "TV e Áudio", slug: "tv-audio" });
+      return [...unique.values()].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
     }
 
     const filterObj = filters.find((f) => f.slug === filterGroupSlug);
@@ -218,11 +233,11 @@ function CatalogContent() {
         product.brand.toLowerCase() === selectedBrandSlug.toLowerCase() ||
         product.filters?.some((f) => f.groupSlug === "marca" && f.optionSlug.toLowerCase() === selectedBrandSlug.toLowerCase());
 
-      const selectedCategorySlug = selectedFilters["tipo-de-produto"];
-      const matchesCategory = !selectedCategorySlug ||
-        product.filters?.some((f) => f.groupSlug === "tipo-de-produto" && f.optionSlug.toLowerCase() === selectedCategorySlug.toLowerCase());
+      const selectedCategorySlug = selectedFilters["categoria"] ?? selectedFilters["tipo-de-produto"];
+      const categoryMatches = !selectedCategorySlug ||
+        matchesCategory((product.filters ?? []).filter((f) => isCategoryFilterSlug(f.groupSlug)).map((f) => f.optionSlug), selectedCategorySlug);
 
-      return matchesBrand && matchesCategory;
+      return matchesBrand && categoryMatches;
     });
 
     const models = Array.from(new Set(relevantProducts.map((p) => getBaseModelName(p.name)).filter(Boolean)));
@@ -237,6 +252,9 @@ function CatalogContent() {
           return product.brand.toLowerCase() === optionSlug.toLowerCase() ||
                  product.filters?.some((f) => f.groupSlug === "marca" && f.optionSlug.toLowerCase() === optionSlug.toLowerCase());
         }
+        if (isCategoryFilterSlug(groupSlug)) {
+          return matchesCategory((product.filters ?? []).filter((filter) => isCategoryFilterSlug(filter.groupSlug)).map((filter) => filter.optionSlug), optionSlug);
+        }
         return product.filters?.some((filter) => filter.groupSlug === groupSlug && filter.optionSlug.toLowerCase() === optionSlug.toLowerCase());
       });
 
@@ -247,6 +265,7 @@ function CatalogContent() {
       return matchesCustomFilters &&
         matchesModel &&
         getCatalogSection(product.condition) === condition &&
+        (!exactCondition || product.condition === exactCondition) &&
         product.price >= minPrice &&
         product.price <= effectiveMaxPrice &&
         `${product.brand} ${product.name} ${product.filters?.map((filter) => filter.optionLabel).join(" ") ?? ""}`
@@ -254,11 +273,12 @@ function CatalogContent() {
     });
     const grouped = groupCatalogProducts(list);
     return grouped.sort((a, b) => sort === "low" ? a.price - b.price : sort === "high" ? b.price - a.price : b.stock - a.stock);
-  }, [catalog, condition, effectiveMaxPrice, minPrice, query, selectedFilters, selectedModel, sort]);
+  }, [catalog, condition, effectiveMaxPrice, exactCondition, minPrice, query, selectedFilters, selectedModel, sort]);
 
   function clearFilters() {
     setQuery("");
     setCondition("Novos");
+    setExactCondition("");
     setSelectedFilters({});
     setSelectedModel("");
     setMinPrice(priceLimits.min);
@@ -301,11 +321,13 @@ function CatalogContent() {
                   const next = { ...current, [filter.slug]: val };
                   if (filter.slug === "marca" && val) {
                     // Validar se a categoria atualmente selecionada é compatível com a nova marca
-                    const catSlug = next["tipo-de-produto"];
+                    const categoryFilter = filters.find((item) => isCategoryFilterSlug(item.slug));
+                    const categoryKey = categoryFilter?.slug;
+                    const catSlug = categoryKey ? next[categoryKey] : undefined;
                     if (catSlug) {
-                      const validOptions = getAvailableOptionsForFilter("tipo-de-produto");
+                      const validOptions = getAvailableOptionsForFilter(categoryKey!);
                       if (!validOptions.some((opt) => opt.slug.toLowerCase() === catSlug.toLowerCase())) {
-                        delete next["tipo-de-produto"];
+                        delete next[categoryKey!];
                       }
                     }
                   }
@@ -328,7 +350,7 @@ function CatalogContent() {
       {/* 3º BOX DEDICADO: MODELO (GENÉRICO PARA QUALQUER CATEGORIA/MARCA) */}
       <label className="catalog-filter-field">
         <span>Modelo</span>
-        {(!selectedFilters["marca"] && !selectedFilters["tipo-de-produto"]) ? (
+        {(!selectedFilters["marca"] && !selectedFilters["tipo-de-produto"] && !selectedFilters["categoria"]) ? (
           <div style={{ minHeight: '42px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: 'transparent' }} />
         ) : (
           <div style={{
@@ -393,7 +415,7 @@ function CatalogContent() {
 
       <label className="catalog-filter-field">
         <span>Condição</span>
-        <select value={condition} onChange={(event) => setCondition(event.target.value as CatalogSection)}>
+        <select value={condition} onChange={(event) => { setCondition(event.target.value as CatalogSection); setExactCondition(""); }}>
           {conditions.map((item) => <option key={item}>{item}</option>)}
         </select>
       </label>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Box, CreditCard, Flame, ShoppingBag } from "lucide-react";
 import { useCart } from "./CartProvider";
 import { useAuthGate } from "./AuthGateProvider";
+import ProductImage from "./ProductImage";
 import { money, type CatalogProduct } from "../lib/catalog";
 
 export default function ProductCard({ product }: { product: CatalogProduct }) {
@@ -55,11 +56,11 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
           )}
           {primaryImage ? (
             <>
-              <img className="catalog-photo product-photo-primary" src={primaryImage} alt={product.name} />
-              {secondaryImage && <img className="catalog-photo product-photo-secondary" src={secondaryImage} alt="" />}
+              <ProductImage className="catalog-photo product-photo-primary" src={primaryImage} alt={product.name} />
+              {secondaryImage && <ProductImage className="catalog-photo product-photo-secondary" src={secondaryImage} alt="" />}
             </>
           ) : (
-            <span className="phone-shape"><i /></span>
+            <ProductImage alt="" />
           )}
         </Link>
       </div>

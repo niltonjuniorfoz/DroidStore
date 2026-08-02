@@ -10,6 +10,7 @@ import { useCart } from "../../../src/components/CartProvider";
 import { useAuthGate } from "../../../src/components/AuthGateProvider";
 import { useSiteContent } from "../../../src/components/SiteContentProvider";
 import RecommendationCarousel from "../../../src/components/RecommendationCarousel";
+import ProductImage from "../../../src/components/ProductImage";
 import {
   findProduct,
   getBaseModelName,
@@ -17,6 +18,7 @@ import {
   money,
   type CatalogProduct,
 } from "../../../src/lib/catalog";
+import { getProductColorHex } from "../../../src/lib/productStandards";
 
 type ProductVariantOption = {
   id: string;
@@ -31,22 +33,6 @@ type ProductVariantOption = {
   model3dUrl?: string | null;
 };
 
-
-function getColorHex(colorName?: string) {
-  if (!colorName) return "#9ca3af";
-  const c = colorName.toLowerCase();
-  if (c.includes("preto") || c.includes("black") || c.includes("noite") || c.includes("meia-noite")) return "#1f2937";
-  if (c.includes("estelar") || c.includes("branco") || c.includes("white")) return "#f9fafb";
-  if (c.includes("amarelo") || c.includes("yellow")) return "#facc15";
-  if (c.includes("roxo") || c.includes("purple") || c.includes("lilás")) return "#c084fc";
-  if (c.includes("verde") || c.includes("green")) return "#4ade80";
-  if (c.includes("vermelho") || c.includes("red")) return "#ef4444";
-  if (c.includes("azul") || c.includes("blue")) return "#60a5fa";
-  if (c.includes("rosa") || c.includes("pink")) return "#f472b6";
-  if (c.includes("cinza") || c.includes("gray") || c.includes("titanium") || c.includes("titânio") || c.includes("grafite")) return "#6b7280";
-  if (c.includes("dourado") || c.includes("gold") || c.includes("creme")) return "#fbbf24";
-  return "#9ca3af";
-}
 
 function parseStorageInMb(storageStr: string): number {
   const match = storageStr.match(/(\d+)\s*(GB|TB|MB)/i);
@@ -314,9 +300,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             {viewing3D && product.model3dUrl ? (
               <ModelViewer3D src={product.model3dUrl} alt={`Modelo 3D de ${product.name}`} />
             ) : images[selectedImage] ? (
-              <img src={images[selectedImage]} alt={`${product.name} - foto ${selectedImage + 1}`} />
+              <ProductImage src={images[selectedImage]} alt={`${product.name} - foto ${selectedImage + 1}`} />
             ) : (
-              <span className="phone-shape large"><i /></span>
+              <ProductImage alt="" />
             )}
           </div>
           {(images.length > 0 || Boolean(product.model3dUrl)) && (
@@ -393,7 +379,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         onClick={() => void selectVariantOption(colorName, selectedStorage || product.storage, selectedCondition)}
                         title={`Cor: ${colorName}`}
                       >
-                        <span className="color-circle" style={{ backgroundColor: getColorHex(colorName) }} />
+                        <span className="color-circle" style={{ backgroundColor: getProductColorHex(colorName) }} />
                       </button>
                     );
                   })}

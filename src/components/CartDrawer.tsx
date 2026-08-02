@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Minus, PackageCheck, Plus, ShieldCheck, ShoppingBag, Trash2, Truck, X } from "lucide-react";
+import { Minus, Plus, ShieldCheck, ShoppingBag, Trash2, Truck, X } from "lucide-react";
 import { useEffect } from "react";
 import { useCart } from "./CartProvider";
 import { useSiteContent } from "./SiteContentProvider";
+import ProductImage from "./ProductImage";
 
 const drawerMoney = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -58,7 +59,7 @@ export default function CartDrawer() {
           ) : items.map((item) => (
             <article className="cart-drawer-item" key={item.id}>
               <Link className="cart-drawer-item-image" href={`/produto/${item.slug}`} onClick={closeDrawer}>
-                {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <PackageCheck size={24} />}
+                <ProductImage src={item.imageUrl} alt={item.name} />
               </Link>
               <div className="cart-drawer-item-main">
                 <span>{item.brand} • {item.condition}</span>

@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS "DeviceUnit";
+ALTER TABLE "Variant" DROP COLUMN IF EXISTS "barcode";
+DROP TYPE IF EXISTS "DeviceStatus";

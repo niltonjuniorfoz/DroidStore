@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { CatalogProduct } from "../lib/catalog";
+import MobileAutoCarousel from "./MobileAutoCarousel";
 import ProductCard from "./ProductCard";
 
 type Props = {
@@ -18,9 +19,9 @@ export default function HomeProductSection({ title, buttonLabel, buttonHref, pro
         <Link href={buttonHref}>{buttonLabel} <ArrowRight size={14} /></Link>
       </header>
       {products.length ? (
-        <div className="product-grid">
+        <MobileAutoCarousel label={`Produtos de ${title}`}>
           {products.slice(0, 5).map((product) => <ProductCard key={product.id} product={product} />)}
-        </div>
+        </MobileAutoCarousel>
       ) : (
         <div className="home-shelf-empty"><strong>Novidades em breve</strong><span>Estamos preparando novos produtos para esta seleção.</span></div>
       )}

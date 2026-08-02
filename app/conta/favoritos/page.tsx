@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { Heart, ShoppingBag, Trash2 } from "lucide-react";
+import { Heart, Trash2 } from "lucide-react";
+import ProductImage from "../../../src/components/ProductImage";
 
 type Favorite = {
   id: string; product: { id: string; slug: string; name: string; brand: string; imageUrl: string | null; images: Array<{ url: string }>; variants: Array<{ price: string; storage: string | null }> };
@@ -28,7 +28,7 @@ export default function FavoritosPage() {
     {loading ? <div className="admin-loading">Carregando favoritos...</div> : <div className="favorite-grid">{items.map(({ product }) => {
       const image = product.images[0]?.url ?? product.imageUrl;
       const variant = product.variants[0];
-      return <article key={product.id}><Link href={`/produto/${product.slug}`} className="favorite-image">{image ? <Image src={image} alt="" width={160} height={160} unoptimized /> : <ShoppingBag />}</Link><div><small>{product.brand}</small><Link href={`/produto/${product.slug}`}><strong>{product.name}</strong></Link>{variant ? <span>A partir de {money(Number(variant.price))}</span> : <span>Indisponível</span>}</div><button onClick={() => void remove(product.id)} aria-label="Remover favorito"><Trash2 /></button></article>;
+      return <article key={product.id}><Link href={`/produto/${product.slug}`} className="favorite-image"><ProductImage src={image} alt={product.name} /></Link><div><small>{product.brand}</small><Link href={`/produto/${product.slug}`}><strong>{product.name}</strong></Link>{variant ? <span>A partir de {money(Number(variant.price))}</span> : <span>Indisponível</span>}</div><button onClick={() => void remove(product.id)} aria-label="Remover favorito"><Trash2 /></button></article>;
     })}{!items.length && <div className="empty-inline"><Heart /><p>Nenhum favorito salvo ainda.</p><Link className="button primary" href="/celulares">Explorar celulares</Link></div>}</div>}
   </section>;
 }

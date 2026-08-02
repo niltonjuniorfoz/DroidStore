@@ -23,7 +23,7 @@ export const DEFAULT_HOME_PROMO_BANNERS: HomePromoBanner[] = [
     description: "iPhones revisados, com procedência e garantia para você comprar com confiança.",
     imageUrl: "/home-banners/seminovos-premium.png",
     buttonLabel: "Ver seminovos",
-    buttonHref: "/celulares?condition=Seminovos",
+    buttonHref: "/celulares?condition=Excelente",
   },
   {
     eyebrow: "NOTEBOOKS GAMER",
@@ -31,7 +31,7 @@ export const DEFAULT_HOME_PROMO_BANNERS: HomePromoBanner[] = [
     description: "Notebooks gamer no estilo ASUS ROG Strix, com desempenho e refrigeração de alto nível.",
     imageUrl: "/home-banners/informatica-notebooks.png",
     buttonLabel: "Ver informática",
-    buttonHref: "/celulares?q=notebook",
+    buttonHref: "/celulares?categoria=notebook",
   },
 ];
 
@@ -44,9 +44,9 @@ export const DEFAULT_HOME_PRODUCT_SECTIONS: HomeProductSection[] = [
   },
   {
     title: "Informática",
-    query: "informática, notebook, computador, gamer, rog, strix",
+    query: "informática, notebook, macbook, computador, gamer, rog, strix",
     buttonLabel: "Ver todos",
-    buttonHref: "/celulares?q=notebook",
+    buttonHref: "/celulares?categoria=notebook",
   },
 ];
 

@@ -4,8 +4,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowUpDown,
-  Barcode,
-  Battery,
   Box,
   CheckSquare,
   ChevronDown,
@@ -22,12 +20,9 @@ import {
   LayoutList,
   Link2,
   LoaderCircle,
-  MapPin,
   Package,
   Pencil,
   Plus,
-  Printer,
-  QrCode,
   Search,
   ShieldAlert,
   SlidersHorizontal,
@@ -40,27 +35,14 @@ import {
 } from "lucide-react";
 import ModelViewer3D from "../../../src/components/ModelViewer3D";
 import {
+  getProductColorHex,
+  IPHONE_COLOR_OPTIONS,
   NOTEBOOK_STORAGE_OPTIONS,
   normalizeProductColor,
   normalizeProductStorage,
   PHONE_STORAGE_OPTIONS,
 } from "../../../src/lib/productStandards";
 import { calculateGrossProfit } from "../../../src/lib/profit";
-
-type DeviceUnit = {
-  id: string;
-  variantId: string;
-  imei1?: string;
-  imei2?: string;
-  serialNumber?: string;
-  batteryHealth?: number;
-  repairedParts?: string;
-  warehouseLocation?: string;
-  costPrice?: string;
-  notes?: string;
-  status: "IN_STOCK" | "RESERVED" | "SOLD" | "IN_MAINTENANCE" | "RETURNED";
-  createdAt: string;
-};
 
 type AdminVariant = {
   id: string;
@@ -72,8 +54,6 @@ type AdminVariant = {
   color?: string;
   condition: string;
   sku?: string;
-  barcode?: string;
-  deviceUnits?: DeviceUnit[];
 };
 
 type Specification = { id?: string; label: string; value: string };
@@ -116,22 +96,6 @@ function getBaseModelName(name: string) {
   return name.replace(/\s*-\s*\d+\s*(GB|TB).*/i, "").replace(/\s*-\s*(Seminovo|Novo|Excelente|Muito Bom|Outlet|Reembalado).*/i, "").trim();
 }
 
-function getColorHex(colorName?: string) {
-  if (!colorName) return "#9ca3af";
-  const c = colorName.toLowerCase();
-  if (c.includes("preto") || c.includes("black") || c.includes("noite")) return "#1f2937";
-  if (c.includes("branco") || c.includes("white") || c.includes("estelar")) return "#f9fafb";
-  if (c.includes("amarelo") || c.includes("yellow")) return "#eab308";
-  if (c.includes("roxo") || c.includes("purple")) return "#a855f7";
-  if (c.includes("verde") || c.includes("green")) return "#22c55e";
-  if (c.includes("vermelho") || c.includes("red")) return "#ef4444";
-  if (c.includes("azul") || c.includes("blue")) return "#3b82f6";
-  if (c.includes("rosa") || c.includes("pink")) return "#ec4899";
-  if (c.includes("cinza") || c.includes("gray") || c.includes("titanium") || c.includes("titânio")) return "#6b7280";
-  if (c.includes("dourado") || c.includes("gold")) return "#d97706";
-  return "#9ca3af";
-}
-
 export default function AdminProdutos() {
   const searchParams = useSearchParams();
   const [items, setItems] = useState<AdminProduct[]>([]);
@@ -143,6 +107,7 @@ export default function AdminProdutos() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [storage, setStorage] = useState("128 GB");
+  const [color, setColor] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>(emptyImages);
   const [model3dUrl, setModel3dUrl] = useState<string>("");
   const [specifications, setSpecifications] = useState<Specification[]>([]);
@@ -167,19 +132,6 @@ export default function AdminProdutos() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  // --- ETIQUETAS ZEBRA E GESTÃO DE IMEIS ---
-  const [zebraProduct, setZebraProduct] = useState<{ product: AdminProduct; unit?: DeviceUnit } | null>(null);
-  const [imeiProduct, setImeiProduct] = useState<AdminProduct | null>(null);
-  const [unitFormOpen, setUnitFormOpen] = useState(false);
-  const [unitBusy, setUnitBusy] = useState(false);
-  const [newImei1, setNewImei1] = useState("");
-  const [newImei2, setNewImei2] = useState("");
-  const [newSerial, setNewSerial] = useState("");
-  const [newBatteryHealth, setNewBatteryHealth] = useState<number | "">(100);
-  const [newRepairedParts, setNewRepairedParts] = useState("");
-  const [newWarehouseLocation, setNewWarehouseLocation] = useState("");
-  const [newUnitNotes, setNewUnitNotes] = useState("");
-  const [newUnitCost, setNewUnitCost] = useState<number | "">("");
 
   async function load() {
     const [response, filtersResponse] = await Promise.all([
@@ -206,11 +158,15 @@ export default function AdminProdutos() {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
   const isNotebook = /notebook|informatica|computador|laptop|macbook/.test(selectedOptionText);
+  const isIPhone = /iphone/.test(`${title} ${editing?.brand ?? ""} ${selectedOptionText}`.toLowerCase());
   const baseStorageOptions = isNotebook ? NOTEBOOK_STORAGE_OPTIONS : PHONE_STORAGE_OPTIONS;
   const normalizedStorage = normalizeProductStorage(storage);
   const storageOptions = baseStorageOptions.includes(normalizedStorage as never)
     ? [...baseStorageOptions]
     : [normalizedStorage, ...baseStorageOptions];
+  const iphoneColorOptions = color && !IPHONE_COLOR_OPTIONS.includes(color as (typeof IPHONE_COLOR_OPTIONS)[number])
+    ? [color, ...IPHONE_COLOR_OPTIONS]
+    : [...IPHONE_COLOR_OPTIONS];
   useEffect(() => {
     if (!open) return;
     function closeOnEscape(event: KeyboardEvent) {
@@ -237,6 +193,7 @@ export default function AdminProdutos() {
     setTitle("");
     setDescription("");
     setStorage("128 GB");
+    setColor("");
     setImageUrls(emptyImages());
     setModel3dUrl("");
     setSpecifications([]);
@@ -253,6 +210,7 @@ export default function AdminProdutos() {
     setTitle(item.name);
     setDescription(item.description ?? "");
     setStorage(normalizeProductStorage(item.variants[0]?.storage ?? "128 GB"));
+    setColor(normalizeProductColor(item.variants[0]?.color ?? ""));
     setImageUrls([...initialImages, "", "", "", ""].slice(0, 4));
     setModel3dUrl(item.model3dUrl ?? "");
     setSpecifications(item.specifications?.map(({ label, value }) => ({ label, value })) ?? []);
@@ -277,12 +235,6 @@ export default function AdminProdutos() {
     }
     populateEditor(await response.json());
     setEditorLoading(false);
-  }
-
-  async function openImeiManager(item: AdminProduct) {
-    setImeiProduct(item);
-    const response = await fetch(`/api/admin/products/${item.id}`, { cache: "no-store" });
-    if (response.ok) setImeiProduct(await response.json());
   }
 
   function updateImage(index: number, value: string) {
@@ -533,62 +485,13 @@ export default function AdminProdutos() {
     }
   }
 
-  // --- GESTÃO DE UNIDADES DE IMEI ---
-  async function addDeviceUnit(productId: string, variantId: string) {
-    setUnitBusy(true);
-    const response = await fetch(`/api/admin/products/${productId}/units`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        variantId,
-        imei1: newImei1.trim() || undefined,
-        imei2: newImei2.trim() || undefined,
-        serialNumber: newSerial.trim() || undefined,
-        batteryHealth: newBatteryHealth === "" ? undefined : Number(newBatteryHealth),
-        repairedParts: newRepairedParts.trim() || undefined,
-        warehouseLocation: newWarehouseLocation.trim() || undefined,
-        costPrice: newUnitCost === "" ? undefined : Number(newUnitCost),
-        notes: newUnitNotes.trim() || undefined,
-      }),
-    });
-    const result = await response.json();
-    if (response.ok) {
-      setMessage("Unidade / IMEI cadastrado com sucesso no estoque.");
-      setNewImei1("");
-      setNewImei2("");
-      setNewSerial("");
-      setNewRepairedParts("");
-      setNewUnitNotes("");
-      setUnitFormOpen(false);
-      await load();
-      const updated = items.find((i) => i.id === productId);
-      if (updated) setImeiProduct(updated);
-    } else {
-      alert(result.error || "Erro ao cadastrar IMEI.");
-    }
-    setUnitBusy(false);
-  }
-
-  async function removeDeviceUnit(productId: string, unitId: string) {
-    if (!confirm("Tem certeza que deseja excluir esta unidade física / IMEI do estoque?")) return;
-    const response = await fetch(`/api/admin/products/${productId}/units?unitId=${unitId}`, { method: "DELETE" });
-    if (response.ok) {
-      setMessage("Unidade excluída do estoque.");
-      await load();
-    } else {
-      alert("Erro ao excluir unidade.");
-    }
-  }
-
   // --- CÁLCULOS DE MARGEM E LUCRO LÍQUIDO ---
   // --- FILTRAGEM ---
   const brands = Array.from(new Set(items.map((i) => i.brand).filter(Boolean))).sort();
 
   const filteredItems = items.filter((item) => {
     const variant = item.variants[0];
-    const units = variant?.deviceUnits ?? [];
-    const imeisStr = units.map((u) => `${u.imei1} ${u.imei2} ${u.serialNumber}`).join(" ");
-    const query = `${item.name} ${item.brand} ${variant?.storage ?? ""} ${imeisStr}`.toLowerCase();
+    const query = `${item.name} ${item.brand} ${variant?.storage ?? ""} ${variant?.color ?? ""}`.toLowerCase();
     const matchesSearch = !search.trim() || query.includes(search.toLowerCase().trim());
     const matchesStatus =
       statusFilter === "all" ? true :
@@ -696,8 +599,6 @@ export default function AdminProdutos() {
     return acc + ((p - c) * s);
   }, 0);
 
-  const totalImeisRegistered = items.reduce((acc, i) => acc + (i.variants[0]?.deviceUnits?.length ?? 0), 0);
-
   return (
     <div className="admin-easy">
       <header className="admin-title">
@@ -705,7 +606,7 @@ export default function AdminProdutos() {
           <h1>
             Gerenciador de Produtos
             <span style={{ fontSize: "0.74rem", background: "#dcfce7", color: "#15803d", padding: "3px 10px", borderRadius: "99px", fontWeight: "800" }}>
-              {items.length} PRODUTOS • {groupedModelsList.length} FAMÍLIAS • {totalImeisRegistered} IMEIS
+              {items.length} PRODUTOS • {groupedModelsList.length} FAMÍLIAS
             </span>
           </h1>
         </div>
@@ -784,7 +685,7 @@ export default function AdminProdutos() {
 
           <label className="pro-search">
             <Search size={15} />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar modelo, cor, IMEI, Serial..." />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar modelo, marca, cor ou capacidade..." />
           </label>
 
           <div className="view-mode-toggle">
@@ -880,7 +781,7 @@ export default function AdminProdutos() {
                                 width: "14px",
                                 height: "14px",
                                 borderRadius: "50%",
-                                backgroundColor: getColorHex(colorName),
+                                backgroundColor: getProductColorHex(colorName),
                                 border: "1.5px solid #d1d5db",
                                 display: "inline-block",
                                 boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
@@ -939,7 +840,6 @@ export default function AdminProdutos() {
                         const profitData = costPrice !== undefined ? calculateGrossProfit(price, costPrice) : null;
                         const stock = variant?.stock ?? 0;
                         const isSelected = selectedIds.has(item.id);
-                        const unitsCount = variant?.deviceUnits?.length ?? 0;
 
                         return (
                           <div key={item.id} className={`pro-table-row sub-row ${!item.active ? "inactive-row" : ""}`} style={{ background: "#ffffff", borderBottom: "1px solid #f3f4f6" }}>
@@ -971,8 +871,8 @@ export default function AdminProdutos() {
                             {ownerView && (
                               <div className="col-profit">
                                 {costPrice !== undefined && profitData ? (
-                                  <span className={`profit-badge ${profitData.grossMargin >= 20 ? "high" : profitData.grossMargin >= 10 ? "mid" : "low"}`}>
-                                    Lucro bruto: R$ {profitData.grossProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  <span className={`profit-badge ${profitData.grossMargin >= 20 ? "high" : profitData.grossMargin >= 10 ? "mid" : "low"}`} title="Lucro bruto">
+                                    + R$ {profitData.grossProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                   </span>
                                 ) : (
                                   <small>-</small>
@@ -984,10 +884,6 @@ export default function AdminProdutos() {
                               <span className={`pill-stock ${stock === 0 ? "zero" : stock <= (variant?.lowStockThreshold ?? 5) ? "low" : "ok"}`}>
                                 {stock === 0 ? "Esgotado" : `${stock} un.`}
                               </span>
-                              <button className="btn-imei-badge" onClick={(e) => { e.stopPropagation(); void openImeiManager(item); }}>
-                                <Barcode size={11} />
-                                <span>{unitsCount} IMEI(s)</span>
-                              </button>
                             </div>
 
                             <div className="col-status">
@@ -998,9 +894,6 @@ export default function AdminProdutos() {
                             </div>
 
                             <div className="col-actions">
-                              <button className="row-action-btn print" onClick={(e) => { e.stopPropagation(); setZebraProduct({ product: item, unit: variant?.deviceUnits?.[0] }); }}>
-                                <Printer size={13} />
-                              </button>
                               <button className="row-action-btn edit" onClick={(e) => { e.stopPropagation(); editProduct(item); }}>
                                 <Pencil size={13} />
                               </button>
@@ -1058,7 +951,7 @@ export default function AdminProdutos() {
               </div>
             )}
             <div className="col-stock sortable" onClick={() => handleSort("stock")}>
-              <span>Estoque & IMEIs</span>
+              <span>Estoque</span>
               <ArrowUpDown size={12} />
             </div>
             <div className="col-status">Status</div>
@@ -1074,7 +967,6 @@ export default function AdminProdutos() {
               const profitData = costPrice !== undefined ? calculateGrossProfit(price, costPrice) : null;
               const stock = variant?.stock ?? 0;
               const isSelected = selectedIds.has(item.id);
-              const unitsCount = variant?.deviceUnits?.length ?? 0;
 
               return (
                 <div key={item.id} className={`pro-table-row ${!item.active ? "inactive-row" : ""} ${isSelected ? "row-selected" : ""}`}>
@@ -1128,14 +1020,6 @@ export default function AdminProdutos() {
                     <span className={`pill-stock ${stock === 0 ? "zero" : stock <= (variant?.lowStockThreshold ?? 5) ? "low" : "ok"}`}>
                       {stock === 0 ? "Esgotado" : `${stock} un.`}
                     </span>
-                    <button
-                      className="btn-imei-badge"
-                      onClick={() => void openImeiManager(item)}
-                      title="Gerenciar IMEIs e unidades físicas"
-                    >
-                      <Barcode size={12} />
-                      <span>{unitsCount} IMEI(s)</span>
-                    </button>
                   </div>
 
                   <div className="col-status">
@@ -1158,13 +1042,6 @@ export default function AdminProdutos() {
                   </div>
 
                   <div className="col-actions">
-                    <button
-                      className="row-action-btn print"
-                      onClick={() => setZebraProduct({ product: item, unit: variant?.deviceUnits?.[0] })}
-                      title="Imprimir Etiqueta Zebra / Térmica"
-                    >
-                      <Printer size={14} />
-                    </button>
                     <button className="row-action-btn edit" onClick={() => editProduct(item)} title="Editar produto">
                       <Pencil size={14} />
                     </button>
@@ -1269,182 +1146,6 @@ export default function AdminProdutos() {
         </div>
       </div>
 
-      {/* --- MODAL DE GERENCIAMENTO DE IMEIS & UNIDADES FÍSICAS --- */}
-      {imeiProduct && (
-        <div className="admin-modal" role="dialog" aria-modal="true" aria-label="Gerenciar IMEIs">
-          <div style={{ background: "#ffffff", padding: "1.5rem", borderRadius: "16px", maxWidth: "800px", width: "100%" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <div>
-                <span className="eyebrow">Rastreabilidade FÍSICA ERP</span>
-                <h2 style={{ fontSize: "1.3rem", margin: 0 }}>{imeiProduct.name}</h2>
-                <small style={{ color: "#6b7280" }}>{imeiProduct.variants[0]?.storage} • {imeiProduct.variants[0]?.color} • {imeiProduct.variants[0]?.condition}</small>
-              </div>
-              <button className="modal-close" onClick={() => { setImeiProduct(null); setUnitFormOpen(false); }}><X /></button>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", borderBottom: "1px solid #e5e7eb", paddingBottom: "0.75rem" }}>
-              <strong>Unidades Físicas / IMEIs em Estoque ({imeiProduct.variants[0]?.deviceUnits?.length ?? 0})</strong>
-              <button className="button primary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => setUnitFormOpen(!unitFormOpen)}>
-                <Plus size={14} /> {unitFormOpen ? "Cancelar" : "Cadastrar Novo IMEI"}
-              </button>
-            </div>
-
-            {/* FORMULÁRIO DE NOVO IMEI */}
-            {unitFormOpen && (
-              <form onSubmit={(e) => { e.preventDefault(); void addDeviceUnit(imeiProduct.id, imeiProduct.variants[0].id); }} style={{ background: "#f9fafb", padding: "1rem", borderRadius: "10px", marginBottom: "1rem", border: "1px solid #e5e7eb" }}>
-                <h4 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>Cadastrar Novo Aparelho / IMEI</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.75rem" }}>
-                  <label style={{ fontSize: "0.8rem", display: "block" }}>
-                    IMEI 1 (Obrigatório)
-                    <input required value={newImei1} onChange={(e) => setNewImei1(e.target.value)} placeholder="Ex: 354892109845123" style={{ width: "100%", padding: "0.4rem", fontSize: "0.85rem", marginTop: "2px" }} />
-                  </label>
-                  <label style={{ fontSize: "0.8rem", display: "block" }}>
-                    IMEI 2 / eSIM (Opcional)
-                    <input value={newImei2} onChange={(e) => setNewImei2(e.target.value)} placeholder="Ex: 354892109845124" style={{ width: "100%", padding: "0.4rem", fontSize: "0.85rem", marginTop: "2px" }} />
-                  </label>
-                  <label style={{ fontSize: "0.8rem", display: "block" }}>
-                    Número de Série (Serial)
-                    <input value={newSerial} onChange={(e) => setNewSerial(e.target.value)} placeholder="Ex: G6VZX091LMPQ" style={{ width: "100%", padding: "0.4rem", fontSize: "0.85rem", marginTop: "2px" }} />
-                  </label>
-                  <label style={{ fontSize: "0.8rem", display: "block" }}>
-                    Saúde da Bateria (%)
-                    <input type="number" min={1} max={100} value={newBatteryHealth} onChange={(e) => setNewBatteryHealth(e.target.value === "" ? "" : Number(e.target.value))} placeholder="Ex: 94" style={{ width: "100%", padding: "0.4rem", fontSize: "0.85rem", marginTop: "2px" }} />
-                  </label>
-                  <label style={{ fontSize: "0.8rem", display: "block" }}>
-                    Laudo de Peças Trocadas
-                    <input value={newRepairedParts} onChange={(e) => setNewRepairedParts(e.target.value)} placeholder="Ex: 100% Original / Bateria trocada" style={{ width: "100%", padding: "0.4rem", fontSize: "0.85rem", marginTop: "2px" }} />
-                  </label>
-                  <label style={{ fontSize: "0.8rem", display: "block" }}>
-                    Localização no Estoque (WMS)
-                    <input value={newWarehouseLocation} onChange={(e) => setNewWarehouseLocation(e.target.value)} placeholder="Ex: GAVETA-03 / PRATELEIRA A" style={{ width: "100%", padding: "0.4rem", fontSize: "0.85rem", marginTop: "2px" }} />
-                  </label>
-                </div>
-                <div style={{ marginTop: "0.75rem", textAlign: "right" }}>
-                  <button type="submit" disabled={unitBusy} className="button primary" style={{ padding: "0.4rem 1rem", fontSize: "0.85rem" }}>
-                    {unitBusy ? "Salvando..." : "Salvar IMEI no Estoque"}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* TABELA DE IMEIS EXISTENTES */}
-            <div style={{ maxHeight: "350px", overflowY: "auto" }}>
-              {imeiProduct.variants[0]?.deviceUnits && imeiProduct.variants[0].deviceUnits.length > 0 ? (
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
-                  <thead>
-                    <tr style={{ background: "#f3f4f6", textAlign: "left" }}>
-                      <th style={{ padding: "8px" }}>IMEI 1 / Serial</th>
-                      <th style={{ padding: "8px" }}>Bateria</th>
-                      <th style={{ padding: "8px" }}>Peças / Obs</th>
-                      <th style={{ padding: "8px" }}>Localização</th>
-                      <th style={{ padding: "8px" }}>Status</th>
-                      <th style={{ padding: "8px", textAlign: "right" }}>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {imeiProduct.variants[0].deviceUnits.map((u) => (
-                      <tr key={u.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <td style={{ padding: "8px" }}>
-                          <strong>{u.imei1 || "Sem IMEI"}</strong>
-                          {u.serialNumber && <div style={{ color: "#6b7280", fontSize: "0.75rem" }}>SN: {u.serialNumber}</div>}
-                        </td>
-                        <td style={{ padding: "8px" }}>
-                          {u.batteryHealth ? <span style={{ color: "#16a34a", fontWeight: "700" }}>🔋 {u.batteryHealth}%</span> : "-"}
-                        </td>
-                        <td style={{ padding: "8px" }}>{u.repairedParts || "100% Original"}</td>
-                        <td style={{ padding: "8px" }}>{u.warehouseLocation || "Depósito Central"}</td>
-                        <td style={{ padding: "8px" }}>
-                          <span style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "0.72rem", background: "#dcfce7", color: "#15803d", fontWeight: "700" }}>
-                            {u.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: "8px", textAlign: "right" }}>
-                          <button
-                            onClick={() => setZebraProduct({ product: imeiProduct, unit: u })}
-                            style={{ background: "#f3f4f6", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", marginRight: "4px" }}
-                            title="Imprimir etiqueta Zebra desta unidade"
-                          >
-                            <Printer size={13} />
-                          </button>
-                          <button
-                            onClick={() => void removeDeviceUnit(imeiProduct.id, u.id)}
-                            style={{ background: "#fee2e2", color: "#dc2626", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer" }}
-                            title="Excluir IMEI"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>Nenhum IMEI individual cadastrado ainda para este produto.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL DE IMPRESSÃO DE ETIQUETA TÉRMICA ZEBRA --- */}
-      {zebraProduct && (
-        <div className="admin-modal" role="dialog" aria-modal="true" aria-label="Etiqueta Zebra">
-          <div style={{ background: "#ffffff", padding: "1.5rem", borderRadius: "16px", maxWidth: "450px", width: "100%", textAlign: "center" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <strong style={{ fontSize: "1rem" }}>Etiqueta Térmica Zebra (50x30mm)</strong>
-              <button className="modal-close" onClick={() => setZebraProduct(null)}><X /></button>
-            </div>
-
-            {/* DESIGN DA ETIQUETA ZEBRA */}
-            <div
-              id="zebra-print-area"
-              style={{
-                border: "2px dashed #111827",
-                padding: "12px",
-                borderRadius: "8px",
-                textAlign: "left",
-                background: "#ffffff",
-                fontFamily: "monospace",
-                color: "#000000",
-                margin: "0 auto 1.5rem",
-              }}
-            >
-              <div style={{ fontSize: "0.75rem", fontWeight: "bold", textTransform: "uppercase", borderBottom: "1px solid #000", paddingBottom: "4px" }}>
-                {zebraProduct.product.brand} - {zebraProduct.product.name}
-              </div>
-              <div style={{ fontSize: "0.7rem", marginTop: "4px", display: "flex", justifyContent: "space-between" }}>
-                <span>{zebraProduct.product.variants[0]?.storage} • {zebraProduct.product.variants[0]?.color}</span>
-                <strong>{zebraProduct.product.variants[0]?.condition}</strong>
-              </div>
-              {zebraProduct.unit?.batteryHealth && (
-                <div style={{ fontSize: "0.7rem", fontWeight: "bold", color: "#000", marginTop: "2px" }}>
-                  Bateria: {zebraProduct.unit.batteryHealth}% {zebraProduct.unit.repairedParts ? `(${zebraProduct.unit.repairedParts})` : ""}
-                </div>
-              )}
-              <div style={{ fontSize: "0.85rem", fontWeight: "900", marginTop: "6px", borderTop: "1px solid #000", paddingTop: "4px" }}>
-                PIX: R$ {(Number(zebraProduct.product.variants[0]?.price ?? 0) * 0.9).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </div>
-              <div style={{ fontSize: "0.68rem" }}>
-                ou 12x de R$ {(Number(zebraProduct.product.variants[0]?.price ?? 0) / 12).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </div>
-              {zebraProduct.unit?.imei1 && (
-                <div style={{ fontSize: "0.65rem", marginTop: "6px", background: "#f3f4f6", padding: "3px", borderRadius: "3px" }}>
-                  IMEI: {zebraProduct.unit.imei1}
-                </div>
-              )}
-            </div>
-
-            <button
-              className="button primary"
-              style={{ width: "100%", justifyContent: "center" }}
-              onClick={() => window.print()}
-            >
-              <Printer size={16} /> Imprimir Etiqueta na Impressora Térmica
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* --- MODAL DE CADASTRO / EDIÇÃO DE PRODUTO --- */}
       {open && (
         <div className="admin-modal product-editor-modal" role="dialog" aria-modal="true" aria-label={editing ? "Editar produto" : "Novo produto"} onMouseDown={(event) => {
@@ -1479,7 +1180,48 @@ export default function AdminProdutos() {
                 </select></label>)}</div>
               </section>
               <label>Armazenamento<select required name="storage" value={storage} onChange={(event) => setStorage(event.target.value)}>{storageOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-              <label>Cor<input required name="color" defaultValue={normalizeProductColor(editing?.variants[0]?.color ?? "")} onInput={(event) => { event.currentTarget.value = normalizeProductColor(event.currentTarget.value); }} style={{ textTransform: "uppercase" }} /></label>
+              {isIPhone ? (
+                <fieldset className="iphone-color-picker">
+                  <legend>Cor do iPhone</legend>
+                  <input
+                    required
+                    name="color"
+                    value={color}
+                    readOnly
+                    placeholder="Selecione uma cor abaixo"
+                    aria-label="Cor selecionada do iPhone"
+                  />
+                  <div className="iphone-color-options" role="group" aria-label="Cores disponiveis do iPhone">
+                    {iphoneColorOptions.map((colorName) => {
+                      const selected = color === colorName;
+                      return (
+                        <button
+                          key={colorName}
+                          type="button"
+                          className={selected ? "is-selected" : ""}
+                          onClick={() => setColor(colorName)}
+                          aria-pressed={selected}
+                          title={colorName}
+                        >
+                          <span style={{ backgroundColor: getProductColorHex(colorName) }} />
+                          <small>{colorName}</small>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              ) : (
+                <label>
+                  Cor
+                  <input
+                    required
+                    name="color"
+                    value={color}
+                    onChange={(event) => setColor(normalizeProductColor(event.target.value))}
+                    style={{ textTransform: "uppercase" }}
+                  />
+                </label>
+              )}
               <label>
                 Condição
                 <select name="condition" defaultValue={editing?.variants[0]?.condition ?? "NOVO"}>

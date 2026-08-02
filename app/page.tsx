@@ -19,6 +19,9 @@ function normalized(value: string) {
 
 function productsForSection(products: CatalogProduct[], query: string) {
   const terms = query.split(/[,;]/).map((term) => normalized(term.trim())).filter(Boolean);
+  if (terms.some((term) => term === "informatica" || term === "notebook")) {
+    terms.push("macbook");
+  }
   if (!terms.length) return [];
   return products.filter((product) => {
     const filterText = product.filters?.flatMap((filter) => [

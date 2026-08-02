@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { CheckCircle2, Clock, CreditCard, MapPin, Package, Truck, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, CreditCard, MapPin, Truck, XCircle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { auth } from "../../../../auth";
 import prisma from "../../../../src/lib/prisma";
+import ProductImage from "../../../../src/components/ProductImage";
 
 const labels: Record<string, string> = { PENDING: "Aguardando pagamento", PAID: "Pagamento aprovado", SHIPPED: "Pedido enviado", DELIVERED: "Pedido entregue", CANCELLED: "Pedido cancelado" };
 const icons = { PENDING: Clock, PAID: CheckCircle2, SHIPPED: Truck, DELIVERED: CheckCircle2, CANCELLED: XCircle };
@@ -15,7 +16,7 @@ export default async function ContaPedidoDetalhe({ params }: { params: Promise<{
   const order = await prisma.order.findFirst({
     where: { id, userId },
     include: {
-      items: { include: { variant: { include: { product: true } } } },
+      items: { include: { variant: { include: { product: { include: { images: { orderBy: { position: "asc" }, take: 1 } } } } } } },
       statusHistory: { orderBy: { createdAt: "desc" } },
     },
   });
@@ -29,6 +30,6 @@ export default async function ContaPedidoDetalhe({ params }: { params: Promise<{
       <section className="profile-card mini-card"><h3><MapPin /> Entrega</h3><p>{order.shippingStreet}, {order.shippingNumber}{order.shippingComplement ? `, ${order.shippingComplement}` : ""}<br />{order.shippingNeighborhood}<br />{order.shippingCity}/{order.shippingState} • CEP {order.shippingZipCode}</p></section>
       <section className="profile-card mini-card"><h3><CreditCard /> Pagamento</h3><p>{order.paymentMethod}<br /><strong>Total: {Number(order.totalAmount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></p></section>
     </div>
-    <section className="profile-card order-products"><header><div><h2>Produtos</h2><p>{order.items.length} item(ns) neste pedido.</p></div></header>{order.items.map((item) => <article key={item.id}><span><Package /></span><div><strong>{item.variant.product.name}</strong><small>{item.variant.storage} • {item.variant.color} • {item.variant.condition.replaceAll("_", " ")}</small></div><p>{item.quantity} × {Number(item.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p></article>)}</section>
+    <section className="profile-card order-products"><header><div><h2>Produtos</h2><p>{order.items.length} item(ns) neste pedido.</p></div></header>{order.items.map((item) => <article key={item.id}><span><ProductImage src={item.variant.product.images[0]?.url ?? item.variant.product.imageUrl} alt={item.variant.product.name} /></span><div><strong>{item.variant.product.name}</strong><small>{item.variant.storage} • {item.variant.color} • {item.variant.condition.replaceAll("_", " ")}</small></div><p>{item.quantity} × {Number(item.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p></article>)}</section>
   </div>;
 }

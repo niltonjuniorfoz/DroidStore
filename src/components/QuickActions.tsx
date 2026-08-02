@@ -12,9 +12,9 @@ export default function QuickActions() {
   return (
     <div className="home-quick-actions">
       <ActionCard href="/celulares" title="Mais Vendidos" />
-      <ActionCard href="/celulares?condition=Novo" title="Ofertas" />
-      <ActionCard href="/celulares?condition=Seminovo" title="Outlet" />
-      <ActionCard href="/celulares?brand=Apple" title="Mais Procurados" />
+      <ActionCard href="/celulares?maxPrice=1500" title="Até R$ 1.500" />
+      <ActionCard href="/celulares?condition=Outlet" title="Ofertas" />
+      <ActionCard href="/celulares?condition=Excelente" title="Seminovos Premium" />
     </div>
   );
 }

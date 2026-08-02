@@ -108,7 +108,7 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
                           </div>
                           <div>
                             <h3 className="banner-title">Celulares</h3>
-                            <Link href="/celulares" className="banner-link">
+                            <Link href={`/celulares?categoria=${activeTab}`} className="banner-link">
                               Ver todos os celulares
                             </Link>
                           </div>
@@ -184,7 +184,7 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
                           </div>
                           <div>
                             <h3 className="banner-title">Notebook</h3>
-                            <Link href="/celulares?cat=notebook" className="banner-link">
+                            <Link href="/celulares?categoria=notebook" className="banner-link">
                               Ver todos os notebooks
                             </Link>
                           </div>
@@ -192,7 +192,7 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
                         <div className="panel-section">
                           <h4 className="section-subtitle">Desktop, Notebooks e Periféricos</h4>
                           <ul className="simple-link-list">
-                            <li><Link href="/celulares?cat=notebook">Notebooks e Computadores</Link></li>
+                            <li><Link href="/celulares?categoria=notebook">Notebooks e Computadores</Link></li>
                             <li><Link href="/celulares?q=MacBook">Apple MacBook Air & Pro</Link></li>
                             <li><Link href="/celulares?q=Dell">Dell Inspiron & Vostro</Link></li>
                             <li><Link href="/celulares?q=Lenovo">Lenovo IdeaPad</Link></li>
@@ -210,7 +210,7 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
                           </div>
                           <div>
                             <h3 className="banner-title">Smartwatches</h3>
-                            <Link href="/celulares?cat=smartwatch" className="banner-link">
+                            <Link href="/celulares?categoria=smartwatch" className="banner-link">
                               Ver todos os smartwatches
                             </Link>
                           </div>
@@ -222,7 +222,7 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
                             <li><Link href="/celulares?q=Galaxy+Watch">Samsung Galaxy Watch</Link></li>
                             <li><Link href="/celulares?q=Xiaomi+Band">Xiaomi Smart Band</Link></li>
                             <li><Link href="/celulares?q=Amazfit">Amazfit</Link></li>
-                            <li><Link href="/celulares?cat=acessorios">Acessórios para Smartwatches</Link></li>
+                            <li><Link href="/celulares?categoria=acessorios">Acessórios para Smartwatches</Link></li>
                           </ul>
                         </div>
                       </div>
@@ -349,7 +349,7 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
             onMouseEnter={() => setOpenBrand("notebook")}
             onMouseLeave={() => setOpenBrand(null)}
           >
-            <Link href="/celulares?cat=notebook" className="quick-brand-btn">
+            <Link href="/celulares?categoria=notebook" className="quick-brand-btn">
               <span>Notebook</span>
               <ChevronDown size={14} />
             </Link>
@@ -369,7 +369,7 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
             onMouseEnter={() => setOpenBrand("smartwatches")}
             onMouseLeave={() => setOpenBrand(null)}
           >
-            <Link href="/celulares?cat=smartwatch" className="quick-brand-btn">
+            <Link href="/celulares?categoria=smartwatch" className="quick-brand-btn">
               <span>Smartwatches</span>
               <ChevronDown size={14} />
             </Link>
@@ -389,7 +389,7 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
             onMouseEnter={() => setOpenBrand("tablets")}
             onMouseLeave={() => setOpenBrand(null)}
           >
-            <Link href="/celulares?cat=tablet" className="quick-brand-btn">
+            <Link href="/celulares?categoria=tablets" className="quick-brand-btn">
               <span>Tablets</span>
               <ChevronDown size={14} />
             </Link>
@@ -408,7 +408,7 @@ export default function MegaMenu({ customNavigation }: MegaMenuProps) {
             onMouseEnter={() => setOpenBrand("acessorios")}
             onMouseLeave={() => setOpenBrand(null)}
           >
-            <Link href="/celulares?cat=acessorios" className="quick-brand-btn">
+            <Link href="/celulares?categoria=acessorios" className="quick-brand-btn">
               <span>Acessórios</span>
               <ChevronDown size={14} />
             </Link>
