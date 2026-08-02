@@ -6,7 +6,7 @@ import { slugify } from "../src/lib/slug";
 const prisma = new PrismaClient();
 const conditionMap: Record<string, Condition> = {
   "Novo": Condition.NOVO,
-  "Novo Reembalado": Condition.NOVO_REEMBALADO,
+  "Novo Reembalado": Condition.NOVO,
   "Excelente": Condition.EXCELENTE,
   "Muito Bom": Condition.MUITO_BOM,
   "Bom": Condition.BOM,
@@ -41,7 +41,7 @@ async function main() {
       },
       create: {
         id: item.id, slug: item.slug, name: item.name, description: item.description, brand: item.brand, featured: index < 8,
-        variants: { create: { color: item.color, storage: item.storage, condition: conditionMap[item.condition], price: item.price, stock: item.stock } },
+        variants: { create: { color: item.color.toLocaleUpperCase("pt-BR"), storage: item.storage, condition: conditionMap[item.condition], price: item.price, stock: item.stock } },
         specifications: { create: (item.specifications ?? []).map((specification, position) => ({ ...specification, position })) },
       },
     });

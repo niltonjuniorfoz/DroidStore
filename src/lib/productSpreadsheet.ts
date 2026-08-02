@@ -9,7 +9,7 @@ export type ProductSpreadsheetState = {
   condition: ProductCondition;
 };
 
-export type ProductCondition = "NOVO" | "NOVO_REEMBALADO" | "EXCELENTE" | "MUITO_BOM" | "BOM" | "OUTLET";
+export type ProductCondition = "NOVO" | "EXCELENTE" | "MUITO_BOM" | "BOM" | "OUTLET";
 
 export type ProductSpreadsheetChange = {
   variantId: string;
@@ -94,8 +94,8 @@ function parseCondition(value: string): ProductCondition | null {
   const condition = normalize(value).replace(/[\s-]+/g, "_");
   const aliases: Record<string, ProductCondition> = {
     NOVO: "NOVO",
-    NOVO_REEMBALADO: "NOVO_REEMBALADO",
-    REEMBALADO: "NOVO_REEMBALADO",
+    NOVO_REEMBALADO: "NOVO",
+    REEMBALADO: "NOVO",
     EXCELENTE: "EXCELENTE",
     MUITO_BOM: "MUITO_BOM",
     BOM: "BOM",
@@ -135,7 +135,7 @@ export async function createProductsWorkbook(includeCost: boolean) {
   guide.addRow(["PLANILHA DE PRODUTOS — DROIDSTORE"]);
   guide.addRow(["Edite somente as colunas verdes: condição, preço de venda, estoque, status e, para o administrador principal, preço de custo."]);
   guide.addRow(["Não altere o ID. Ele identifica exatamente qual item será atualizado."]);
-  guide.addRow(["Condições: NOVO, NOVO REEMBALADO, EXCELENTE, MUITO BOM, BOM ou OUTLET. Status: ATIVO ou INATIVO."]);
+  guide.addRow(["Condições: NOVO, EXCELENTE, MUITO BOM, BOM ou OUTLET. Status: ATIVO ou INATIVO."]);
   guide.addRow(["Depois de editar, salve o arquivo .xlsx e envie na tela Planilha de produtos. Nada será salvo antes da sua confirmação."]);
   guide.getRow(1).height = 30;
   guide.getCell("A1").font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
@@ -217,7 +217,7 @@ export async function createProductsWorkbook(includeCost: boolean) {
             cell.dataValidation = {
               type: "list",
               allowBlank: false,
-              formulae: ['"NOVO,NOVO REEMBALADO,EXCELENTE,MUITO BOM,BOM,OUTLET"'],
+              formulae: ['"NOVO,EXCELENTE,MUITO BOM,BOM,OUTLET"'],
               showErrorMessage: true,
               errorTitle: "Condição inválida",
               error: "Escolha uma das condições da lista.",

@@ -39,6 +39,13 @@ import {
   X,
 } from "lucide-react";
 import ModelViewer3D from "../../../src/components/ModelViewer3D";
+import {
+  NOTEBOOK_STORAGE_OPTIONS,
+  normalizeProductColor,
+  normalizeProductStorage,
+  PHONE_STORAGE_OPTIONS,
+} from "../../../src/lib/productStandards";
+import { calculateGrossProfit } from "../../../src/lib/profit";
 
 type DeviceUnit = {
   id: string;
@@ -135,10 +142,12 @@ export default function AdminProdutos() {
   const [editing, setEditing] = useState<AdminProduct | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [storage, setStorage] = useState("128 GB");
   const [imageUrls, setImageUrls] = useState<string[]>(emptyImages);
   const [model3dUrl, setModel3dUrl] = useState<string>("");
   const [specifications, setSpecifications] = useState<Specification[]>([]);
   const [message, setMessage] = useState("");
+  const [editorError, setEditorError] = useState("");
   const [busy, setBusy] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [editorLoading, setEditorLoading] = useState(false);
@@ -188,6 +197,20 @@ export default function AdminProdutos() {
   useEffect(() => { void load(); }, []);
   useEffect(() => { setSearch(searchParams.get("q") ?? ""); }, [searchParams]);
   useEffect(() => { setPage(1); }, [search, statusFilter, stockFilter, brandFilter, conditionFilter, pageSize]);
+
+  const selectedOptionText = filters.flatMap((filter) => filter.options
+    .filter((option) => selectedFilters[filter.id] === option.id)
+    .map((option) => `${filter.name} ${filter.slug} ${option.label}`))
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const isNotebook = /notebook|informatica|computador|laptop|macbook/.test(selectedOptionText);
+  const baseStorageOptions = isNotebook ? NOTEBOOK_STORAGE_OPTIONS : PHONE_STORAGE_OPTIONS;
+  const normalizedStorage = normalizeProductStorage(storage);
+  const storageOptions = baseStorageOptions.includes(normalizedStorage as never)
+    ? [...baseStorageOptions]
+    : [normalizedStorage, ...baseStorageOptions];
   useEffect(() => {
     if (!open) return;
     function closeOnEscape(event: KeyboardEvent) {
@@ -213,11 +236,13 @@ export default function AdminProdutos() {
     setEditing(null);
     setTitle("");
     setDescription("");
+    setStorage("128 GB");
     setImageUrls(emptyImages());
     setModel3dUrl("");
     setSpecifications([]);
     setSelectedFilters({});
     setMessage("");
+    setEditorError("");
     setOpen(true);
   }
 
@@ -227,6 +252,7 @@ export default function AdminProdutos() {
     setEditing(item);
     setTitle(item.name);
     setDescription(item.description ?? "");
+    setStorage(normalizeProductStorage(item.variants[0]?.storage ?? "128 GB"));
     setImageUrls([...initialImages, "", "", "", ""].slice(0, 4));
     setModel3dUrl(item.model3dUrl ?? "");
     setSpecifications(item.specifications?.map(({ label, value }) => ({ label, value })) ?? []);
@@ -234,6 +260,7 @@ export default function AdminProdutos() {
       (item.filterSelections ?? []).map((selection) => [selection.option.filterId, selection.option.id]),
     ));
     setMessage("");
+    setEditorError("");
   }
 
   async function editProduct(item: AdminProduct) {
@@ -330,44 +357,59 @@ export default function AdminProdutos() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.checkValidity()) {
+      const invalidField = form.querySelector<HTMLElement>(":invalid");
+      setEditorError("Preencha o campo obrigatório destacado antes de cadastrar o produto.");
+      invalidField?.scrollIntoView({ behavior: "smooth", block: "center" });
+      invalidField?.focus();
+      form.reportValidity();
+      return;
+    }
     setBusy(true);
     setMessage("");
-    const data = new FormData(event.currentTarget);
-    const values = Object.fromEntries(data.entries());
-    const selectedBrandGroup = filters.find((filter) => filter.slug === "marca");
-    const selectedBrandOption = selectedBrandGroup?.options.find((option) => option.id === selectedFilters[selectedBrandGroup.id]);
-    const payload = {
-      ...values,
-      brand: selectedBrandOption?.label ?? editing?.brand ?? "Sem marca",
-      description,
-      imageUrls: imageUrls.map((url) => url.trim()).filter(Boolean),
-      model3dUrl: model3dUrl.trim() || null,
-      specifications: specifications
-        .map((item) => ({ label: item.label.trim(), value: item.value.trim() }))
-        .filter((item) => item.label && item.value),
-      price: Number(values.price),
-      ...(ownerView ? { costPrice: Number(values.costPrice) } : {}),
-      stock: Number(values.stock),
-      lowStockThreshold: Number(values.lowStockThreshold),
-      filterOptionIds: Object.values(selectedFilters).filter(Boolean),
-      featured: data.get("featured") === "on",
-      ...(editing ? { active: editing.active } : { active: true }),
-    };
-    const response = await fetch(editing ? `/api/admin/products/${editing.id}` : "/api/admin/products", {
-      method: editing ? "PATCH" : "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const result = await response.json();
-    if (response.ok) {
+    setEditorError("");
+    try {
+      const data = new FormData(form);
+      const values = Object.fromEntries(data.entries());
+      const selectedBrandGroup = filters.find((filter) => filter.slug === "marca");
+      const selectedBrandOption = selectedBrandGroup?.options.find((option) => option.id === selectedFilters[selectedBrandGroup.id]);
+      const payload = {
+        ...values,
+        brand: selectedBrandOption?.label ?? editing?.brand ?? "Sem marca",
+        description,
+        imageUrls: imageUrls.map((url) => url.trim()).filter(Boolean),
+        model3dUrl: model3dUrl.trim() || null,
+        specifications: specifications
+          .map((item) => ({ label: item.label.trim(), value: item.value.trim() }))
+          .filter((item) => item.label && item.value),
+        price: Number(values.price),
+        ...(ownerView ? { costPrice: Number(values.costPrice) } : {}),
+        stock: Number(values.stock),
+        lowStockThreshold: Number(values.lowStockThreshold),
+        filterOptionIds: Object.values(selectedFilters).filter(Boolean),
+        featured: data.get("featured") === "on",
+        ...(editing ? { active: editing.active } : { active: true }),
+      };
+      const response = await fetch(editing ? `/api/admin/products/${editing.id}` : "/api/admin/products", {
+        method: editing ? "PATCH" : "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setEditorError(result.error ?? "Não foi possível salvar o produto. Tente novamente.");
+        return;
+      }
       setOpen(false);
       setEditing(null);
       setMessage(editing ? "Produto atualizado com sucesso." : "Produto cadastrado com sucesso.");
       await load();
-    } else {
-      setMessage(result.error);
+    } catch {
+      setEditorError("Não foi possível comunicar com o servidor. Verifique a conexão e tente novamente.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   async function removeProduct(item: AdminProduct) {
@@ -539,15 +581,6 @@ export default function AdminProdutos() {
   }
 
   // --- CÁLCULOS DE MARGEM E LUCRO LÍQUIDO ---
-  function calculateNetProfit(price: number, costPrice: number) {
-    const pixPrice = price * 0.90;
-    const estimatedFeesPercent = 0.075;
-    const estimatedFeesVal = pixPrice * estimatedFeesPercent;
-    const netProfit = pixPrice - costPrice - estimatedFeesVal;
-    const netMargin = pixPrice > 0 ? (netProfit / pixPrice) * 100 : 0;
-    return { pixPrice, estimatedFeesVal, netProfit, netMargin };
-  }
-
   // --- FILTRAGEM ---
   const brands = Array.from(new Set(items.map((i) => i.brand).filter(Boolean))).sort();
 
@@ -903,7 +936,7 @@ export default function AdminProdutos() {
                         const image = item.images?.[0]?.url ?? item.imageUrl;
                         const price = Number(variant?.price ?? 0);
                         const costPrice = variant?.costPrice !== undefined ? Number(variant.costPrice) : undefined;
-                        const profitData = costPrice !== undefined ? calculateNetProfit(price, costPrice) : null;
+                        const profitData = costPrice !== undefined ? calculateGrossProfit(price, costPrice) : null;
                         const stock = variant?.stock ?? 0;
                         const isSelected = selectedIds.has(item.id);
                         const unitsCount = variant?.deviceUnits?.length ?? 0;
@@ -938,8 +971,8 @@ export default function AdminProdutos() {
                             {ownerView && (
                               <div className="col-profit">
                                 {costPrice !== undefined && profitData ? (
-                                  <span className={`profit-badge ${profitData.netMargin >= 20 ? "high" : profitData.netMargin >= 10 ? "mid" : "low"}`}>
-                                    Lucro: R$ {profitData.netProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  <span className={`profit-badge ${profitData.grossMargin >= 20 ? "high" : profitData.grossMargin >= 10 ? "mid" : "low"}`}>
+                                    Lucro bruto: R$ {profitData.grossProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                   </span>
                                 ) : (
                                   <small>-</small>
@@ -1020,7 +1053,7 @@ export default function AdminProdutos() {
             </div>
             {ownerView && (
               <div className="col-profit sortable" onClick={() => handleSort("profit")}>
-                <span>Custo / Margem Líquida</span>
+                <span>Custo / Margem Bruta</span>
                 <ArrowUpDown size={12} />
               </div>
             )}
@@ -1038,7 +1071,7 @@ export default function AdminProdutos() {
               const image = item.images?.[0]?.url ?? item.imageUrl;
               const price = Number(variant?.price ?? 0);
               const costPrice = variant?.costPrice !== undefined ? Number(variant.costPrice) : undefined;
-              const profitData = costPrice !== undefined ? calculateNetProfit(price, costPrice) : null;
+              const profitData = costPrice !== undefined ? calculateGrossProfit(price, costPrice) : null;
               const stock = variant?.stock ?? 0;
               const isSelected = selectedIds.has(item.id);
               const unitsCount = variant?.deviceUnits?.length ?? 0;
@@ -1081,8 +1114,8 @@ export default function AdminProdutos() {
                       {costPrice !== undefined && profitData ? (
                         <>
                           <small>Custo: R$ {costPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</small>
-                          <span className={`profit-badge ${profitData.netMargin >= 20 ? "high" : profitData.netMargin >= 10 ? "mid" : "low"}`}>
-                            Lucro Líq: R$ {profitData.netProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ({profitData.netMargin.toFixed(1)}%)
+                          <span className={`profit-badge ${profitData.grossMargin >= 20 ? "high" : profitData.grossMargin >= 10 ? "mid" : "low"}`}>
+                            Lucro bruto: R$ {profitData.grossProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ({profitData.grossMargin.toFixed(1)}%)
                           </span>
                         </>
                       ) : (
@@ -1420,7 +1453,7 @@ export default function AdminProdutos() {
             setEditing(null);
           }
         }}>
-          <form className="product-editor-form" key={editing?.id ?? "new"} onSubmit={save}>
+          <form className="product-editor-form" key={editing?.id ?? "new"} onSubmit={save} noValidate>
             <header className="product-editor-heading">
               <div><span className="eyebrow">{editing ? "Editar aparelho" : "Novo aparelho"}</span><h2>{editing ? editing.name : "Cadastrar produto"}</h2></div>
               <button type="button" className="modal-close" onClick={() => { setOpen(false); setEditing(null); }} aria-label="Fechar"><X /></button>
@@ -1445,13 +1478,12 @@ export default function AdminProdutos() {
                   {filter.options.map((option) => <option key={option.id} value={option.id}>{option.label}{!option.active ? " (oculto)" : ""}</option>)}
                 </select></label>)}</div>
               </section>
-              <label>Armazenamento<input required name="storage" defaultValue={editing?.variants[0]?.storage} /></label>
-              <label>Cor<input required name="color" defaultValue={editing?.variants[0]?.color} /></label>
+              <label>Armazenamento<select required name="storage" value={storage} onChange={(event) => setStorage(event.target.value)}>{storageOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+              <label>Cor<input required name="color" defaultValue={normalizeProductColor(editing?.variants[0]?.color ?? "")} onInput={(event) => { event.currentTarget.value = normalizeProductColor(event.currentTarget.value); }} style={{ textTransform: "uppercase" }} /></label>
               <label>
                 Condição
                 <select name="condition" defaultValue={editing?.variants[0]?.condition ?? "NOVO"}>
                   <option value="NOVO">Novo</option>
-                  <option value="NOVO_REEMBALADO">Novo reembalado</option>
                   <option value="EXCELENTE">Excelente</option>
                   <option value="MUITO_BOM">Muito bom</option>
                   <option value="BOM">Bom</option>
@@ -1460,7 +1492,7 @@ export default function AdminProdutos() {
               </label>
               <label>Preço de Venda (Tabela)<input required name="price" type="number" min="1" step=".01" defaultValue={editing ? Number(editing.variants[0]?.price) : undefined} /></label>
               {ownerView && <label className="owner-field">Preço de custo (somente administrador)<input required name="costPrice" type="number" min="0" step=".01" defaultValue={editing ? Number(editing.variants[0]?.costPrice ?? 0) : 0} /></label>}
-              <label>Estoque Total<input required name="stock" type="number" min="0" step="1" defaultValue={editing?.variants[0]?.stock} /></label>
+              <label>Estoque Total<input required name="stock" type="number" min="0" step="1" defaultValue={editing?.variants[0]?.stock ?? 20} /></label>
               <label>Alerta de estoque mínimo<input required name="lowStockThreshold" type="number" min="0" step="1" defaultValue={editing?.variants[0]?.lowStockThreshold ?? 5} /></label>
 
               <label className="wide">
@@ -1539,6 +1571,7 @@ export default function AdminProdutos() {
               </div>
               </div>
 
+              {editorError && <p className="form-error product-editor-error" role="alert">{editorError}</p>}
               <div className="modal-actions">
                 <button type="button" className="button secondary" onClick={() => { setOpen(false); setEditing(null); }}>Cancelar</button>
                 <button type="submit" disabled={busy} className="button primary">{busy ? "Salvando..." : editing ? "Salvar alterações" : "Cadastrar produto"}</button>

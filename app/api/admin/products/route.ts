@@ -3,6 +3,12 @@ import { z } from "zod";
 import prisma from "../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../src/lib/admin";
 import { hasFeaturedCapacity, MAX_FEATURED_PRODUCTS } from "../../../../src/lib/featuredProducts";
+import {
+  isSupportedProductStorage,
+  normalizeProductColor,
+  normalizeProductStorage,
+  PRODUCT_CONDITIONS,
+} from "../../../../src/lib/productStandards";
 
 const imageUrlSchema = z.string().trim().max(1000).refine((value) => {
   if (value.startsWith("/uploads/")) return true;
@@ -34,12 +40,12 @@ const productSchema = z.object({
   name: z.string().trim().min(3).max(120),
   brand: z.string().trim().min(2).max(60),
   description: z.string().trim().min(10).max(5000),
-  storage: z.string().trim().min(2).max(30),
-  color: z.string().trim().min(2).max(40),
-  condition: z.enum(["NOVO", "NOVO_REEMBALADO", "EXCELENTE", "MUITO_BOM", "BOM", "OUTLET"]),
+  storage: z.string().trim().min(2).max(30).transform(normalizeProductStorage).refine(isSupportedProductStorage),
+  color: z.string().trim().min(2).max(40).transform(normalizeProductColor),
+  condition: z.enum(PRODUCT_CONDITIONS),
   price: z.coerce.number().positive().max(100000),
   costPrice: z.coerce.number().min(0).max(100000).default(0),
-  stock: z.coerce.number().int().min(0).max(100000),
+  stock: z.coerce.number().int().min(0).max(100000).default(20),
   lowStockThreshold: z.coerce.number().int().min(0).max(10000).default(5),
   filterOptionIds: z.array(z.string().min(1).max(100)).max(30).default([]),
   imageUrls: z.array(imageUrlSchema).max(4).default([]),
@@ -111,7 +117,25 @@ export async function POST(req: Request) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   const parsed = productSchema.safeParse(await req.json());
-  if (!parsed.success) return NextResponse.json({ error: "Revise os dados do produto." }, { status: 400 });
+  if (!parsed.success) {
+    const field = String(parsed.error.issues[0]?.path[0] ?? "");
+    const fieldLabels: Record<string, string> = {
+      name: "título",
+      brand: "marca",
+      description: "descrição",
+      storage: "armazenamento",
+      color: "cor",
+      condition: "condição",
+      price: "preço de venda",
+      costPrice: "preço de custo",
+      stock: "estoque",
+      lowStockThreshold: "alerta de estoque mínimo",
+      imageUrls: "fotos",
+      model3dUrl: "modelo 3D",
+      specifications: "especificações",
+    };
+    return NextResponse.json({ error: `Revise o campo ${fieldLabels[field] ?? "dados do produto"}.` }, { status: 400 });
+  }
   const data = parsed.data;
   if (data.featured && !await hasFeaturedCapacity()) {
     return NextResponse.json({ error: `A capa aceita no máximo ${MAX_FEATURED_PRODUCTS} produtos destacados.` }, { status: 409 });

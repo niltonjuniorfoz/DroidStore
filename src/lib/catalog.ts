@@ -32,7 +32,7 @@ export type CatalogProduct = {
 
 export type CatalogSection = "Novos" | "Seminovos";
 
-const NEW_CONDITIONS = new Set<CatalogProduct["condition"]>(["Novo", "Novo Reembalado"]);
+const NEW_CONDITIONS = new Set<CatalogProduct["condition"]>(["Novo"]);
 
 export function getCatalogSection(condition: CatalogProduct["condition"]): CatalogSection {
   return NEW_CONDITIONS.has(condition) ? "Novos" : "Seminovos";
@@ -107,9 +107,9 @@ const names = [
 ] as const;
 
 const conditions: CatalogProduct["condition"][] = [
-  "Novo", "Excelente", "Novo Reembalado", "Muito Bom", "Novo",
+  "Novo", "Excelente", "Novo", "Muito Bom", "Novo",
   "Excelente", "Outlet", "Novo", "Bom", "Novo",
-  "Muito Bom", "Excelente", "Novo Reembalado", "Outlet", "Novo", "Excelente",
+  "Muito Bom", "Excelente", "Novo", "Outlet", "Novo", "Excelente",
 ];
 const prices = [6899, 4499, 3499, 2799, 1999, 3899, 1899, 2799, 2299, 1699, 1899, 1299, 3199, 4299, 3599, 2399];
 const accents = ["#0f766e", "#2563eb", "#16a34a", "#7c3aed", "#0369a1", "#334155", "#d97706", "#111827", "#047857", "#eab308", "#7e22ce", "#1d4ed8", "#15803d", "#18181b", "#db2777", "#0284c7"];

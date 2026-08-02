@@ -894,3 +894,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { 
 .product-toolbar-pro {
   margin-bottom: 0.75rem !important;
 }
+
+.product-editor-error {
+  position: sticky;
+  bottom: 3.8rem;
+  z-index: 3;
+  margin: 0 0 .8rem;
+  box-shadow: 0 8px 24px rgba(159, 18, 57, .12);
+}

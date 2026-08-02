@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Box, CreditCard, ShoppingBag } from "lucide-react";
+import { Box, CreditCard, Flame, ShoppingBag } from "lucide-react";
 import { useCart } from "./CartProvider";
 import { useAuthGate } from "./AuthGateProvider";
 import { money, type CatalogProduct } from "../lib/catalog";
@@ -17,6 +17,7 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
   const primaryImage = product.images?.[0] ?? product.imageUrl;
   const secondaryImage = product.images?.[1];
   const isAvailable = product.stock > 0;
+  const isOutlet = product.condition === "Outlet";
   const hasGroupedVariants = (product.variantCount ?? 1) > 1;
   const variantSummary = hasGroupedVariants
     ? `${product.availableColors?.length ?? 0} cores · ${product.availableStorages?.join(", ") ?? ""}`
@@ -26,7 +27,7 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
     <article className={`product-card ${!isAvailable ? "is-out-of-stock" : ""}`}>
       <div className="product-visual" style={{ "--phone": product.accent } as React.CSSProperties}>
         <Link href={`/produto/${product.slug}`} className="product-image-link" aria-label={`Ver ${product.name}`}>
-          <span className="condition">{product.condition}</span>
+          <span className={`condition ${isOutlet ? "is-outlet" : ""}`}>{isOutlet && <Flame aria-hidden="true" />}{product.condition}</span>
           <span className="discount-badge-top-right">{pixDiscountPercent}% OFF NO PIX</span>
           {product.model3dUrl && (
             <span

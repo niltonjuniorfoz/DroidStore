@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../src/lib/admin";
+import { calculateGrossProfit } from "../../../../src/lib/profit";
 
 const SALES_STATUSES = ["PAID", "SHIPPED", "DELIVERED"] as const;
 
@@ -54,7 +55,7 @@ export async function GET() {
   const revenue = revenueOf(currentOrders);
   const previousRevenue = revenueOf(previousOrders);
   const costs = costOf(currentOrders);
-  const grossProfit = revenue - costs;
+  const { grossProfit, grossMargin } = calculateGrossProfit(revenue, costs);
   const averageTicket = currentOrders.length ? revenue / currentOrders.length : 0;
   const inventoryValue = variants.reduce(
     (total, variant) => total + Number(variant.price) * variant.stock,
@@ -113,7 +114,7 @@ export async function GET() {
         ? {
             costs,
             grossProfit,
-            grossMargin: revenue ? (grossProfit / revenue) * 100 : 0,
+            grossMargin,
             inventoryCost: variants.reduce(
               (total, variant) => total + Number(variant.costPrice) * variant.stock,
               0,

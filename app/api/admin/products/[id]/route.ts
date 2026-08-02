@@ -3,6 +3,12 @@ import { z } from "zod";
 import prisma from "../../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
 import { hasFeaturedCapacity, MAX_FEATURED_PRODUCTS } from "../../../../../src/lib/featuredProducts";
+import {
+  isSupportedProductStorage,
+  normalizeProductColor,
+  normalizeProductStorage,
+  PRODUCT_CONDITIONS,
+} from "../../../../../src/lib/productStandards";
 
 const imageUrlSchema = z.string().trim().max(1000).refine((value) => {
   if (value.startsWith("/uploads/")) return true;
@@ -37,9 +43,9 @@ const patchSchema = z.object({
   })).max(60).optional(),
   active: z.boolean().optional(),
   featured: z.boolean().optional(),
-  storage: z.string().trim().min(2).max(30).optional(),
-  color: z.string().trim().min(2).max(40).optional(),
-  condition: z.enum(["NOVO", "NOVO_REEMBALADO", "EXCELENTE", "MUITO_BOM", "BOM", "OUTLET"]).optional(),
+  storage: z.string().trim().min(2).max(30).transform(normalizeProductStorage).refine(isSupportedProductStorage).optional(),
+  color: z.string().trim().min(2).max(40).transform(normalizeProductColor).optional(),
+  condition: z.enum(PRODUCT_CONDITIONS).optional(),
   price: z.coerce.number().positive().max(100000).optional(),
   costPrice: z.coerce.number().min(0).max(100000).optional(),
   stock: z.coerce.number().int().min(0).max(100000).optional(),
@@ -73,7 +79,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   const actorId = (session.user as { id?: string }).id;
   const parsed = patchSchema.safeParse(await req.json());
-  if (!parsed.success) return NextResponse.json({ error: "Revise os dados informados." }, { status: 400 });
+  if (!parsed.success) {
+    const field = String(parsed.error.issues[0]?.path[0] ?? "dados do produto");
+    return NextResponse.json({ error: `Revise o campo ${field}.` }, { status: 400 });
+  }
   const { id } = await params;
   const {
     storage, color, condition, price, costPrice, stock, lowStockThreshold,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../src/lib/admin";
+import { calculateGrossProfit } from "../../../../src/lib/profit";
 
 export async function GET() {
   const session = await requireAdmin();
@@ -23,16 +24,17 @@ export async function GET() {
 
   if (isOwnerAdmin(session)) {
     return NextResponse.json(
-      orders.map((order) => ({
-        ...order,
-        costTotal: order.items.reduce(
+      orders.map((order) => {
+        const costTotal = order.items.reduce(
           (total, item) => total + Number(item.costPrice) * item.quantity,
           0,
-        ),
-        grossProfit:
-          Number(order.totalAmount) -
-          order.items.reduce((total, item) => total + Number(item.costPrice) * item.quantity, 0),
-      })),
+        );
+        return {
+          ...order,
+          costTotal,
+          grossProfit: calculateGrossProfit(Number(order.totalAmount), costTotal).grossProfit,
+        };
+      }),
     );
   }
 

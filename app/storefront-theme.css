@@ -3946,6 +3946,29 @@ body {
   font-size: .56rem;
 }
 
+.storefront-theme .condition.is-outlet {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff8a00, #ed3f00);
+  border-color: #ff7200;
+  box-shadow: 0 4px 12px rgba(237, 63, 0, .28);
+  animation: outlet-badge-pulse 1.8s ease-in-out infinite;
+}
+
+.storefront-theme .condition.is-outlet svg {
+  width: 11px;
+  height: 11px;
+  fill: #ffd24a;
+  color: #fff0a6;
+}
+
+@keyframes outlet-badge-pulse {
+  0%, 100% { box-shadow: 0 4px 12px rgba(237, 63, 0, .25); }
+  50% { box-shadow: 0 5px 16px rgba(237, 63, 0, .48); }
+}
+
 /* Produto aberto: foto centralizada, conteúdo menor e preço legível. */
 .storefront-theme .product-page {
   padding-top: 2.3rem;

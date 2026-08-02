@@ -128,7 +128,7 @@ model Variant {
   barcode           String? // Código EAN / GTIN / Etiqueta Zebra
   price             Decimal   @db.Decimal(12, 2)
   costPrice         Decimal   @default(0) @db.Decimal(12, 2)
-  stock             Int       @default(0)
+  stock             Int       @default(20)
   lowStockThreshold Int       @default(5)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt

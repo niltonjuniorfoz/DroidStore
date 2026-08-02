@@ -13,7 +13,7 @@ import {
 } from "./homeContent";
 
 const conditionLabels: Record<string, CatalogProduct["condition"]> = {
-  NOVO: "Novo", NOVO_REEMBALADO: "Novo Reembalado", EXCELENTE: "Excelente",
+  NOVO: "Novo", NOVO_REEMBALADO: "Novo", EXCELENTE: "Excelente",
   MUITO_BOM: "Muito Bom", BOM: "Bom", OUTLET: "Outlet",
 };
 
