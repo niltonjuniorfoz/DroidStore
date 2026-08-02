@@ -292,7 +292,7 @@ export default function Header() {
 
   return (
     <>
-      <header className={`storefront-header-wrapper ${categoriesHidden && !quickBuy?.active ? "categories-hidden" : ""}`}>
+      <header className={`storefront-header-wrapper ${categoriesHidden || quickBuy?.active ? "categories-hidden" : ""}`}>
         <div className="main-header-bar">
           <div className="main-header-container">
             <Link
@@ -431,8 +431,12 @@ export default function Header() {
             </nav>
           </div>
 
-          {quickBuy?.active ? (
-            <div className="product-quick-buy-bar" aria-label="Compra rápida do produto">
+          {quickBuy && (
+            <div
+              className={`product-quick-buy-bar ${quickBuy.active ? "is-visible" : "is-hidden"}`}
+              aria-label="Compra rápida do produto"
+              aria-hidden={!quickBuy.active}
+            >
               <div className="product-quick-buy-product">
                 <div className="product-quick-buy-thumb" aria-hidden="true">
                   <ProductImage src={quickBuy.imageUrl} alt="" />
@@ -450,20 +454,19 @@ export default function Header() {
                   <strong>{quickBuy.pixPrice}</strong>
                   <span>{quickBuy.installments}</span>
                 </div>
-                <button type="button" disabled={quickBuy.disabled} onClick={() => window.dispatchEvent(new Event("product-quick-buy-request"))}>
+                <button type="button" tabIndex={quickBuy.active ? 0 : -1} disabled={quickBuy.disabled} onClick={() => window.dispatchEvent(new Event("product-quick-buy-request"))}>
                   <ShoppingBag size={18} />
                   <span>{quickBuy.disabled ? "Produto esgotado" : "Adicionar à sacola"}</span>
                 </button>
               </div>
             </div>
-          ) : <>
-            <MegaMenu customNavigation={navigation} />
-            <nav className="mobile-category-strip" aria-label="Categorias da loja">
-              {mobileCategories.map((item) => (
-                <Link key={`${item.label}-${item.href}`} href={item.href}>{item.label}</Link>
-              ))}
-            </nav>
-          </>}
+          )}
+          <MegaMenu customNavigation={navigation} />
+          <nav className="mobile-category-strip" aria-label="Categorias da loja">
+            {mobileCategories.map((item) => (
+              <Link key={`${item.label}-${item.href}`} href={item.href}>{item.label}</Link>
+            ))}
+          </nav>
         </div>
       </header>
 
