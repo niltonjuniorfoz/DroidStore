@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "../../../../src/lib/prisma";
@@ -74,8 +75,14 @@ export async function GET() {
     prisma.siteContent.upsert({ where: { id: "main" }, update: {}, create: { id: "main" } }),
     prisma.navigationItem.findMany({ orderBy: { position: "asc" } }),
   ]);
+  const rawCatalogBanner = content.catalogBanner && typeof content.catalogBanner === "object" && !Array.isArray(content.catalogBanner)
+    ? content.catalogBanner as Record<string, unknown>
+    : {};
+  const { homeFooterBannerAsset: _privateFooterBannerAsset, ...publicCatalogBanner } = rawCatalogBanner;
+
   return NextResponse.json({
     ...content,
+    catalogBanner: publicCatalogBanner,
     storeName: ["DroidStore", "Brasil Store"].includes(content.storeName) ? "Aura Tech" : content.storeName,
     navigation,
     homeFeaturedTitle: readHomeFeaturedTitle(content.catalogBanner),
@@ -103,15 +110,19 @@ export async function PUT(req: Request) {
   } = parsed.data;
   const first = heroSlides[0];
   const currentContent = await prisma.siteContent.findUnique({ where: { id: "main" } });
+  const currentCatalogBanner = currentContent?.catalogBanner && typeof currentContent.catalogBanner === "object" && !Array.isArray(currentContent.catalogBanner)
+    ? currentContent.catalogBanner as Record<string, unknown>
+    : {};
   const instagramUrl = readInstagramFromCatalogBanner(currentContent?.catalogBanner);
   const catalogBannerWithInstagram = {
+    ...currentCatalogBanner,
     ...(catalogBanner ?? {}),
     ...(instagramUrl ? { instagramUrl } : {}),
     homeFeaturedTitle,
     homeFooterBanner,
     homePromoBanners,
     homeProductSections,
-  };
+  } as Prisma.InputJsonObject;
   await prisma.$transaction(async (tx) => {
     await tx.siteContent.upsert({
       where: { id: "main" },

@@ -226,9 +226,14 @@ export async function getSiteContent() {
       prisma.siteContent.findUnique({ where: { id: "main" } }),
       prisma.navigationItem.findMany({ where: { active: true }, orderBy: { position: "asc" } }),
     ]);
+    const rawCatalogBanner = content?.catalogBanner && typeof content.catalogBanner === "object" && !Array.isArray(content.catalogBanner)
+      ? content.catalogBanner as Record<string, unknown>
+      : {};
+    const { homeFooterBannerAsset: _privateFooterBannerAsset, ...publicCatalogBanner } = rawCatalogBanner;
     const normalizedContent = content
       ? {
           ...content,
+          catalogBanner: publicCatalogBanner,
           storeName: ["DroidStore", "Brasil Store"].includes(content.storeName) ? "Aura Tech" : content.storeName,
           instagramUrl: readInstagramFromCatalogBanner(content.catalogBanner),
           homeFeaturedTitle: readHomeFeaturedTitle(content.catalogBanner),

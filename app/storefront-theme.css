@@ -5414,26 +5414,35 @@ body {
 /* O estado ativo agora pertence ao carrossel tocado/arrastado, evitando que o
    efeito dependa apenas de :hover ou de um seletor amplo da página. */
 .storefront-theme .home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading,
-.storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading,
-.storefront-theme .home-product-shelf:hover .home-shelf-heading,
-.storefront-theme .featured-carousel-section:hover .home-shelf-heading {
+.storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading {
   border-bottom-color: var(--store-orange) !important;
 }
 .storefront-theme .home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading::before,
-.storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading::before,
-.storefront-theme .home-product-shelf:hover .home-shelf-heading::before,
-.storefront-theme .featured-carousel-section:hover .home-shelf-heading::before {
+.storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading::before {
   opacity: 1 !important;
 }
 .storefront-theme .home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading h2,
 .storefront-theme .home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading a,
 .storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading h2,
-.storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading a,
-.storefront-theme .home-product-shelf:hover .home-shelf-heading h2,
-.storefront-theme .home-product-shelf:hover .home-shelf-heading a,
-.storefront-theme .featured-carousel-section:hover .home-shelf-heading h2,
-.storefront-theme .featured-carousel-section:hover .home-shelf-heading a {
+.storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading a {
   color: #fff !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .storefront-theme .home-product-shelf:hover .home-shelf-heading,
+  .storefront-theme .featured-carousel-section:hover .home-shelf-heading {
+    border-bottom-color: var(--store-orange) !important;
+  }
+  .storefront-theme .home-product-shelf:hover .home-shelf-heading::before,
+  .storefront-theme .featured-carousel-section:hover .home-shelf-heading::before {
+    opacity: 1 !important;
+  }
+  .storefront-theme .home-product-shelf:hover .home-shelf-heading h2,
+  .storefront-theme .home-product-shelf:hover .home-shelf-heading a,
+  .storefront-theme .featured-carousel-section:hover .home-shelf-heading h2,
+  .storefront-theme .featured-carousel-section:hover .home-shelf-heading a {
+    color: #fff !important;
+  }
 }
 
 @media (max-width: 650px) {
@@ -5486,18 +5495,29 @@ body {
     transition: opacity 1.05s cubic-bezier(.22, 1, .36, 1) !important;
   }
 
-  /* O cabeçalho começa no laranja suave já usado no celular; ao tocar/arrastar,
-     a camada ativa entra devagar e dá o feedback visual solicitado. */
+  /* No celular, o título fica claro e legível em repouso. Ao tocar ou arrastar
+     o carrossel, a camada laranja aparece suavemente como no computador. */
   .storefront-theme .home-section.home-product-shelf .home-shelf-heading,
   .storefront-theme .home-section.featured-carousel-section .home-shelf-heading {
-    background: linear-gradient(90deg, #ff8522, #ff9a43) !important;
+    background: #fff !important;
   }
   .storefront-theme .home-section.home-product-shelf .home-shelf-heading h2,
   .storefront-theme .home-section.home-product-shelf .home-shelf-heading a,
   .storefront-theme .home-section.featured-carousel-section .home-shelf-heading h2,
   .storefront-theme .home-section.featured-carousel-section .home-shelf-heading a {
-    color: #fff !important;
+    color: #1b241f !important;
     transition: color .9s ease !important;
+  }
+
+  .storefront-theme .home-section.home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading::before,
+  .storefront-theme .home-section.featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading::before {
+    opacity: 1 !important;
+  }
+  .storefront-theme .home-section.home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading h2,
+  .storefront-theme .home-section.home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading a,
+  .storefront-theme .home-section.featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading h2,
+  .storefront-theme .home-section.featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading a {
+    color: #fff !important;
   }
 
   .storefront-theme .home-section.featured-carousel-section .featured-carousel-viewport,

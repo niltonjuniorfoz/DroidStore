@@ -147,7 +147,7 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
   };
 
   return (
-    <div className="product-carousel-shell">
+    <div className={`product-carousel-shell ${isInteracting || isDragging ? "is-active" : ""}`.trim()}>
       {items.length > 1 && (
         <div className="product-carousel-controls" aria-label={`Controles do carrossel ${label}`}>
           <button type="button" onClick={() => moveByOneItem(-1)} aria-label={`Voltar produtos de ${label}`}>
@@ -164,9 +164,13 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
         className={`product-grid mobile-auto-track infinite-carousel-track ${isInteracting ? "is-interacting" : ""} ${isDragging ? "is-dragging" : ""} ${className}`.trim()}
         aria-label={label}
         onPointerDown={(event) => {
-          // No celular, deixamos o navegador cuidar do gesto horizontal nativo.
-          // O arraste manual abaixo fica restrito ao mouse no computador.
-          if (event.pointerType !== "mouse" || event.button !== 0) return;
+          // No celular, o gesto continua nativo, mas também ativa o feedback
+          // laranja do título enquanto o usuário toca ou arrasta a prateleira.
+          if (event.pointerType !== "mouse") {
+            markInteracting(7000);
+            return;
+          }
+          if (event.button !== 0) return;
           const track = trackRef.current;
           if (!track) return;
 
@@ -195,6 +199,7 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
         onPointerUp={finishDrag}
         onPointerCancel={finishDrag}
         onTouchStart={() => markInteracting(7000)}
+        onTouchMove={() => markInteracting(7000)}
         onTouchEnd={() => markInteracting(6200)}
         onWheel={() => markInteracting(5000)}
         onFocus={() => markInteracting(5000)}

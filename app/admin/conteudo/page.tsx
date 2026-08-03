@@ -84,6 +84,14 @@ export default function AdminConteudo() {
   const [busy, setBusy] = useState(false);
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
 
+  function changeContent(
+    updater: (current: Content) => Content,
+    notification = "Alteração realizada. Clique em Salvar alterações para publicar.",
+  ) {
+    setContent(updater);
+    setMessage(notification);
+  }
+
   useEffect(() => {
     fetch("/api/admin/content").then((response) => response.json()).then((data) => {
       const savedSlides = Array.isArray(data.heroSlides) && data.heroSlides.length
@@ -145,14 +153,14 @@ export default function AdminConteudo() {
   }, []);
 
   function updateMenu(index: number, patch: Partial<MenuItem>) {
-    setContent((current) => ({
+    changeContent((current) => ({
       ...current,
       navigation: current.navigation.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item),
     }));
   }
 
   function updateSlide(index: number, patch: Partial<HeroSlide>) {
-    setContent((current) => ({
+    changeContent((current) => ({
       ...current,
       heroSlides: current.heroSlides.map((slide, slideIndex) => slideIndex === index ? { ...slide, ...patch } : slide),
     }));
@@ -163,11 +171,11 @@ export default function AdminConteudo() {
     if (target < 0 || target >= content.heroSlides.length) return;
     const next = [...content.heroSlides];
     [next[index], next[target]] = [next[target], next[index]];
-    setContent({ ...content, heroSlides: next });
+    changeContent((current) => ({ ...current, heroSlides: next }));
   }
 
   function updateCatalogSlide(index: number, patch: Partial<CatalogBanner>) {
-    setContent((current) => ({
+    changeContent((current) => ({
       ...current,
       catalogSlides: current.catalogSlides.map((slide, slideIndex) => slideIndex === index ? { ...slide, ...patch } : slide),
     }));
@@ -178,11 +186,11 @@ export default function AdminConteudo() {
     if (target < 0 || target >= content.catalogSlides.length) return;
     const next = [...content.catalogSlides];
     [next[index], next[target]] = [next[target], next[index]];
-    setContent({ ...content, catalogSlides: next });
+    changeContent((current) => ({ ...current, catalogSlides: next }));
   }
 
   function updateHomePromo(index: number, patch: Partial<HomePromoBanner>) {
-    setContent((current) => ({
+    changeContent((current) => ({
       ...current,
       homePromoBanners: current.homePromoBanners.map((banner, position) =>
         position === index ? { ...banner, ...patch } : banner
@@ -191,7 +199,7 @@ export default function AdminConteudo() {
   }
 
   function updateHomeSection(index: number, patch: Partial<HomeProductSection>) {
-    setContent((current) => ({
+    changeContent((current) => ({
       ...current,
       homeProductSections: current.homeProductSections.map((section, position) =>
         position === index ? { ...section, ...patch } : section
@@ -200,7 +208,7 @@ export default function AdminConteudo() {
   }
 
   function updateHomeFooterBanner(patch: Partial<HomeFooterBanner>) {
-    setContent((current) => ({
+    changeContent((current) => ({
       ...current,
       homeFooterBanner: { ...current.homeFooterBanner, ...patch },
     }));
@@ -248,14 +256,32 @@ export default function AdminConteudo() {
   async function uploadHomeFooterBanner(file?: File) {
     if (!file) return;
     setBusy(true);
-    setMessage("");
-    const form = new FormData();
-    form.set("file", file);
-    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
-    const data = await response.json();
-    if (response.ok) updateHomeFooterBanner({ imageUrl: data.url });
-    else setMessage(data.error);
-    setBusy(false);
+    setMessage("Enviando e salvando o novo banner...");
+
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      form.set("purpose", "home-footer-banner");
+      const response = await fetch("/api/admin/upload", { method: "POST", body: form });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.error ?? "Não foi possível trocar o banner.");
+        return;
+      }
+
+      changeContent(
+        (current) => ({
+          ...current,
+          homeFooterBanner: { ...current.homeFooterBanner, imageUrl: data.url },
+        }),
+        data.message ?? "Banner trocado e publicado com sucesso.",
+      );
+    } catch {
+      setMessage("Não foi possível trocar o banner. Verifique sua conexão e tente novamente.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function save(event: FormEvent) {
@@ -368,7 +394,7 @@ export default function AdminConteudo() {
             type="button"
             className="button ghost"
             disabled={content.heroSlides.length >= 5}
-            onClick={() => setContent({ ...content, heroSlides: [...content.heroSlides, blankSlide()] })}
+            onClick={() => changeContent((current) => ({ ...current, heroSlides: [...current.heroSlides, blankSlide()] }))}
           >
             <Plus size={15} /> Adicionar capa
           </button>
@@ -406,7 +432,7 @@ export default function AdminConteudo() {
                     <button
                       type="button"
                       className="danger-text"
-                      onClick={() => setContent({ ...content, heroSlides: content.heroSlides.filter((_, slideIndex) => slideIndex !== index) })}
+                      onClick={() => changeContent((current) => ({ ...current, heroSlides: current.heroSlides.filter((_, slideIndex) => slideIndex !== index) }))}
                       title="Remover capa"
                     >
                       <Trash2 size={14} />
@@ -453,7 +479,7 @@ export default function AdminConteudo() {
 
         <label className="compact-setting-field">
           Título dos produtos destacados
-          <input value={content.homeFeaturedTitle} onChange={(event) => setContent({ ...content, homeFeaturedTitle: event.target.value })} />
+          <input value={content.homeFeaturedTitle} onChange={(event) => changeContent((current) => ({ ...current, homeFeaturedTitle: event.target.value }))} />
         </label>
 
         <div className="promo-config-list">
@@ -506,7 +532,16 @@ export default function AdminConteudo() {
             <div className="footer-banner-config-fields">
               <label className="compact-upload-button">
                 <ImagePlus size={15} /> Trocar banner
-                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void uploadHomeFooterBanner(event.target.files?.[0])} />
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={busy}
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    event.currentTarget.value = "";
+                    void uploadHomeFooterBanner(file);
+                  }}
+                />
               </label>
 
               <label>
@@ -542,7 +577,7 @@ export default function AdminConteudo() {
             type="button"
             className="button ghost"
             disabled={content.catalogSlides.length >= 5}
-            onClick={() => setContent({ ...content, catalogSlides: [...content.catalogSlides, blankCatalogSlide()] })}
+            onClick={() => changeContent((current) => ({ ...current, catalogSlides: [...current.catalogSlides, blankCatalogSlide()] }))}
           >
             <Plus size={15} /> Adicionar capa ao catálogo
           </button>
@@ -580,7 +615,7 @@ export default function AdminConteudo() {
                     <button
                       type="button"
                       className="danger-text"
-                      onClick={() => setContent({ ...content, catalogSlides: content.catalogSlides.filter((_, slideIndex) => slideIndex !== index) })}
+                      onClick={() => changeContent((current) => ({ ...current, catalogSlides: current.catalogSlides.filter((_, slideIndex) => slideIndex !== index) }))}
                       title="Remover capa"
                     >
                       <Trash2 size={14} />
@@ -625,7 +660,7 @@ export default function AdminConteudo() {
           <button
             type="button"
             className="button ghost"
-            onClick={() => setContent({ ...content, navigation: [...content.navigation, { label: "Novo item", href: "/celulares", active: true }] })}
+            onClick={() => changeContent((current) => ({ ...current, navigation: [...current.navigation, { label: "Novo item", href: "/celulares", active: true }] }))}
           >
             <Plus size={15} /> Adicionar item de menu
           </button>
@@ -660,7 +695,7 @@ export default function AdminConteudo() {
                 type="button"
                 title="Remover item"
                 className="danger-text row-action-btn delete"
-                onClick={() => setContent({ ...content, navigation: content.navigation.filter((_, itemIndex) => itemIndex !== index) })}
+                onClick={() => changeContent((current) => ({ ...current, navigation: current.navigation.filter((_, itemIndex) => itemIndex !== index) }))}
               >
                 <Trash2 size={14} />
               </button>
