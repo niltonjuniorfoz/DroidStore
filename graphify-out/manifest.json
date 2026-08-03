@@ -385,8 +385,8 @@
     "semantic_hash": ""
   },
   "src/components/AppChrome.tsx": {
-    "mtime": 1785723677.0,
-    "ast_hash": "56b4a14cd5b2040afc398344287941bb",
+    "mtime": 1785725903.0,
+    "ast_hash": "0fa5a6f3998d059f28d840ae80472db5",
     "semantic_hash": ""
   },
   "src/components/AuthGateProvider.tsx": {
@@ -1097,6 +1097,26 @@
   "public/home-banners/aura-tech-footer-banner.png": {
     "mtime": 1785723677.0,
     "ast_hash": "1f04850f0d8021cf56aa36f517b852a1",
+    "semantic_hash": ""
+  },
+  "admin/conteudo/page.tsx": {
+    "mtime": 1785724739.0,
+    "ast_hash": "ce144ed99f2ea7639a04252cb08a7709",
+    "semantic_hash": ""
+  },
+  "api/admin/content/route.ts": {
+    "mtime": 1785724739.0,
+    "ast_hash": "4a005e4e0aa84eda21bee6d78e300d18",
+    "semantic_hash": ""
+  },
+  "api/admin/upload/route.ts": {
+    "mtime": 1785724739.0,
+    "ast_hash": "027305d8da6fc27e216faed7b7a44290",
+    "semantic_hash": ""
+  },
+  "api/media/[key]/route.ts": {
+    "mtime": 1785724739.0,
+    "ast_hash": "5fcd787b858c661483a02456699f2628",
     "semantic_hash": ""
   }
 }
