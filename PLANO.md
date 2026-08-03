@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 9/24 · **FASE 0 concluída**
+**Última atualização:** 2026-08-03 · **Progresso:** 10/24 · **FASES 0 e 1 concluídas**
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -24,7 +24,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 - [x] 🟠 **1.2 Log de auditoria** — modelo `AdminAuditLog` (quem, ação, entidade, antes/depois, quando) registrando: produtos (criar/editar/desativar), pedidos (status/rastreio), equipe, configurações, vitrine, planilha (apply/rollback) e uploads. Tela `/admin/auditoria` (só ADMIN) com filtro por área. Auditoria nunca derruba a operação (falha só loga no console).
 - [x] 🟡 **1.3 Rate limit** — login por conta (10/15min), cadastro por IP (5/15min), checkout por usuário+IP (10/10min), `ai-product` por usuário (15/h). Upstash Redis se `UPSTASH_REDIS_REST_*` existirem (contador global); sem elas, memória por instância (barra rajadas, teto não exato — suficiente pro tamanho atual). Rotas admin autenticadas comuns ficaram de fora de propósito.
 - [x] 🟡 **1.4 E-mails que faltam** — "pedido recebido" (no checkout, com aviso do prazo de reserva) e "pedido enviado" (com código de rastreio destacado). Renderizador único no `orderEmail.ts`; idempotência por coluna (`createdEmailSentAt`/`shippedEmailSentAt`) com rollback se o envio falhar. Requer e-mail transacional ligado nas Configurações + `RESEND_API_KEY`.
-- [ ] 🟡 **1.5 Middleware real** — criar `middleware.ts` usando o `authorized` que hoje é código morto; manter defesa em profundidade nas rotas.
+- [x] 🟡 **1.5 Middleware real** — `middleware.ts` na raiz protegendo `/admin`, `/conta` e `/login` no edge via callback `authorized` (que era código morto). `requireAdmin` segue como segunda camada com checagem fresca no banco.
 
 ## FASE 2 — Vitrine vendendo (SEO + performance)
 
@@ -65,6 +65,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 1.2 Trilha de auditoria (`/admin/auditoria`) | `cda9ebd` |
 | 2026-08-03 | 1.3 Rate limit (login, cadastro, checkout, IA) | `87c861d` |
 | 2026-08-03 | 1.4 E-mails de pedido recebido e enviado | `37abe89` |
+| 2026-08-03 | 1.5 Middleware de borda (`middleware.ts`) | `734712f` |
 
 ## Descobertos no caminho (triagem pendente)
 
