@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import prisma from "./src/lib/prisma";
+import { rateLimit } from "./src/lib/rateLimit";
 import { authConfig } from "./auth.config";
 
 const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
@@ -18,7 +19,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const user = await prisma.user.findUnique({ where: { email: String(credentials.email).toLowerCase() } });
+        const email = String(credentials.email).toLowerCase();
+        // Freia força bruta de senha por conta.
+        const limited = await rateLimit(`login:${email}`, 10, 15 * 60);
+        if (!limited.ok) return null;
+        const user = await prisma.user.findUnique({ where: { email } });
         if (!user || !user.active || !await bcrypt.compare(String(credentials.password), user.password)) return null;
         return { id: user.id, email: user.email, name: user.name, role: user.role };
       },

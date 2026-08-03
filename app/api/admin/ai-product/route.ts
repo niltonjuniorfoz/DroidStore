@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "../../../../src/lib/admin";
+import { RATE_LIMITED_MESSAGE, rateLimit } from "../../../../src/lib/rateLimit";
 import {
   parseGeneratedProduct,
   PRODUCT_SPECIFICATION_GUIDE,
@@ -88,8 +89,19 @@ async function researchProduct(title: string, apiKey: string, ollamaUrl: URL) {
 }
 
 export async function POST(req: Request) {
-  if (!await requireAdmin()) {
+  const session = await requireAdmin();
+  if (!session) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
+  // API paga (Ollama Cloud): freio por usuário.
+  const userId = (session.user as { id?: string }).id ?? "anon";
+  const limited = await rateLimit(`ai-product:${userId}`, 15, 60 * 60);
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Limite de gerações por hora atingido. Tente novamente mais tarde." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } },
+    );
   }
 
   const parsed = requestSchema.safeParse(await req.json());

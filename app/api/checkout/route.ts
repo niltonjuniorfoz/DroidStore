@@ -5,6 +5,7 @@ import { auth } from "../../../auth";
 import prisma from "../../../src/lib/prisma";
 import { isBrazilState } from "../../../src/lib/brazil";
 import { expireStaleOrders } from "../../../src/lib/expireOrders";
+import { RATE_LIMITED_MESSAGE, clientIp, rateLimit } from "../../../src/lib/rateLimit";
 
 const checkoutSchema = z.object({
   items: z.array(z.object({
@@ -28,6 +29,12 @@ export async function POST(req: Request) {
     const userId = (session?.user as { id?: string } | undefined)?.id;
     if (!userId) {
       return NextResponse.json({ error: "Faça login para continuar." }, { status: 401 });
+    }
+
+    // Flood de pedidos PENDING reserva estoque; freio por usuário e por IP.
+    const limited = await rateLimit(`checkout:${userId}:${clientIp(req)}`, 10, 10 * 60);
+    if (!limited.ok) {
+      return NextResponse.json({ error: RATE_LIMITED_MESSAGE }, { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } });
     }
 
     const parsed = checkoutSchema.safeParse(await req.json());
