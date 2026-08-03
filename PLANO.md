@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 4/24
+**Última atualização:** 2026-08-03 · **Progresso:** 5/24 · **FASE 0 concluída**
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -16,7 +16,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 - [x] 🔴 **0.2 Cancelamento/estorno de pedido pago** — `REFUNDED` no enum; `PAID→CANCELLED/REFUNDED`, `SHIPPED/DELIVERED→REFUNDED`; webhook trata `refunded`/`charged_back` (dedupe por pagamento+status); estoque volta sozinho só se o aparelho não saiu (PENDING/PAID). Obs.: marcar REFUNDED **não** devolve o dinheiro — o estorno financeiro é feito no painel do Mercado Pago.
 - [x] 🔴 **0.3 Matar estoque fantasma** — default(20)→0 em **3 lugares**: schema Prisma (+migration), zod do POST de produtos e valor inicial do formulário. Seed e planilha passam estoque explícito, não afetados.
 - [x] 🟠 **0.4 Expiração de reserva** — PENDING além de 24h (`ORDER_RESERVATION_HOURS`) cancela automático com devolução de estoque e histórico. Varredura lazy (admin de pedidos + checkout) + cron diário 03h (`vercel.json` → `/api/cron/expire-orders`, protegido por `CRON_SECRET`). Índice novo em `Order(status, createdAt)`.
-- [ ] 🟠 **0.5 Decidir destino do rastreio IMEI** — `DeviceUnit` foi removido em `20260802143000`. Confirmar com Wender: era intencional? Se voltar: modelo enxuto (IMEI, serial, bateria, laudo, lote de compra) com `variant.stock` derivado, sem os bugs da v1.
+- [x] 🟠 **0.5 Decidir destino do rastreio IMEI** — **Decidido em 2026-08-03: remoção foi intencional, fica fora.** Se sentir falta (procedência, garantia por aparelho, laudo de bateria), reimplementar enxuto com `variant.stock` derivado — avisar quando quiser.
 
 ## FASE 1 — Operação segura
 
@@ -60,6 +60,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 0.2 Reembolso de pedido pago + chargeback no webhook | `c75f449` |
 | 2026-08-03 | 0.3 Estoque fantasma (default 20→0 em 3 lugares) | `876a6c3` |
 | 2026-08-03 | 0.4 Expiração de reserva PENDING (lazy + cron) | `773e3d7` |
+| 2026-08-03 | 0.5 IMEI: decisão de manter fora (sem código) | — |
 
 ## Descobertos no caminho (triagem pendente)
 
