@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 0/24
+**Última atualização:** 2026-08-03 · **Progresso:** 1/24
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -12,7 +12,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 
 ## FASE 0 — Parar o sangramento
 
-- [ ] 🔴 **0.1 Upload funcionando na Vercel** — trocar `writeFile` por Vercel Blob com upload direto do browser; validar magic bytes; ajustar limite real. (`app/api/admin/upload/route.ts`)
+- [x] 🔴 **0.1 Upload funcionando na Vercel** — Vercel Blob com upload direto do browser (até 100 MB, fora do limite de 4,5 MB); magic bytes validados no caminho multipart; fallback dev local mantido. **Requer criar um Blob Store no painel da Vercel** (Storage → Create → Blob; o token `BLOB_READ_WRITE_TOKEN` é injetado sozinho).
 - [ ] 🔴 **0.2 Cancelamento/estorno de pedido pago** — adicionar `REFUNDED` ao enum `OrderStatus`; transições `PAID→CANCELLED/REFUNDED`; webhook tratar `refunded`/`charged_back`; estorno de estoque. Migration + testes.
 - [ ] 🔴 **0.3 Matar estoque fantasma** — `Variant.stock @default(20)` → `@default(0)` + migration; conferir dependências no seed/planilha.
 - [ ] 🟠 **0.4 Expiração de reserva** — pedido PENDING além de X horas (sugestão: 24h) cancela automático e devolve estoque (cron Vercel ou verificação lazy).
@@ -56,7 +56,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 
 | Data | Item | Commit |
 |------|------|--------|
-| — | — | — |
+| 2026-08-03 | 0.1 Upload na Vercel (Blob + magic bytes) | `14c903b` |
 
 ## Descobertos no caminho (triagem pendente)
 

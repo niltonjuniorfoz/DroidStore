@@ -3,6 +3,7 @@ import { MercadoPagoConfig, Payment } from "mercadopago";
 import { NextResponse } from "next/server";
 import prisma from "../../../../src/lib/prisma";
 import { sendPaidOrderEmail } from "../../../../src/lib/orderEmail";
+import { shouldRestock } from "../../../../src/lib/orderStatus";
 
 function validSignature(req: Request, paymentId: string) {
   const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
@@ -40,7 +41,12 @@ export async function POST(req: Request) {
     const orderId = payment.external_reference;
     if (!orderId) return new NextResponse("Pedido ausente", { status: 400 });
 
-    const alreadyProcessed = await prisma.paymentEvent.findUnique({ where: { providerEventId: id } });
+    // O mesmo pagamento gera notificações em estados diferentes (approved -> refunded),
+    // então a idempotência precisa ser por pagamento+status, não só por pagamento.
+    const eventKey = `${id}:${payment.status ?? "unknown"}`;
+    const alreadyProcessed = await prisma.paymentEvent.findFirst({
+      where: { providerEventId: { in: [id, eventKey] }, status: payment.status ?? "unknown" },
+    });
     if (alreadyProcessed) return new NextResponse("OK", { status: 200 });
 
     const approvedNow = await prisma.$transaction(async (tx) => {
@@ -51,7 +57,7 @@ export async function POST(req: Request) {
       if (!order) throw new Error("ORDER_NOT_FOUND");
 
       await tx.paymentEvent.create({
-        data: { providerEventId: id, orderId, status: payment.status ?? "unknown" },
+        data: { providerEventId: eventKey, orderId, status: payment.status ?? "unknown" },
       });
 
       if (payment.status === "approved" && order.status === "PENDING") {
@@ -65,6 +71,46 @@ export async function POST(req: Request) {
           },
         });
         return true;
+      }
+
+      // Estorno ou chargeback depois do pagamento: pedido vira REFUNDED.
+      // Estoque só volta sozinho se o aparelho ainda não saiu (PENDING/PAID) —
+      // devolução física após envio é lançada manualmente no estoque.
+      if (
+        ["refunded", "charged_back"].includes(payment.status ?? "") &&
+        ["PAID", "SHIPPED", "DELIVERED"].includes(order.status)
+      ) {
+        if (shouldRestock(order.status, "REFUNDED")) {
+          for (const item of order.items) {
+            await tx.variant.update({
+              where: { id: item.variantId },
+              data: { stock: { increment: item.quantity } },
+            });
+            await tx.stockMovement.create({
+              data: {
+                variantId: item.variantId,
+                type: "RETURN",
+                quantity: item.quantity,
+                note: `Reembolso do pedido #${orderId.slice(0, 8).toUpperCase()}`,
+              },
+            });
+          }
+        }
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: "REFUNDED", cancelledAt: new Date() },
+        });
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId,
+            fromStatus: order.status,
+            toStatus: "REFUNDED",
+            note: payment.status === "charged_back"
+              ? "Chargeback registrado pelo Mercado Pago."
+              : "Pagamento estornado pelo Mercado Pago.",
+          },
+        });
+        return false;
       }
 
       if (["cancelled", "rejected"].includes(payment.status ?? "") && order.status === "PENDING") {

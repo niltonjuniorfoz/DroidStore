@@ -66,6 +66,7 @@ const statusLabels: Record<string, string> = {
   SHIPPED: "Enviado",
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",
+  REFUNDED: "Reembolsado",
 };
 
 export default function AdminPedidos() {
@@ -301,6 +302,9 @@ export default function AdminPedidos() {
           </button>
           <button className={`pro-tab ${status === "CANCELLED" ? "active" : ""}`} onClick={() => setStatus("CANCELLED")}>
             🔴 Cancelados ({orders.filter((o) => o.status === "CANCELLED").length})
+          </button>
+          <button className={`pro-tab ${status === "REFUNDED" ? "active" : ""}`} onClick={() => setStatus("REFUNDED")}>
+            ↩️ Reembolsados ({orders.filter((o) => o.status === "REFUNDED").length})
           </button>
         </div>
 
@@ -621,13 +625,33 @@ export default function AdminPedidos() {
               )}
 
               {selected.status === "PAID" && (
-                <button disabled={saving} className="button primary" onClick={() => void updateOrder("SHIPPED")}>
-                  <Truck size={15} /> Marcar como enviado
-                </button>
+                <>
+                  <button
+                    disabled={saving}
+                    className="button danger"
+                    onClick={() => {
+                      if (confirm("Confirmar reembolso? O estoque volta e o pedido sai do faturamento. A devolução do dinheiro deve ser feita no painel do Mercado Pago.")) void updateOrder("REFUNDED");
+                    }}
+                  >
+                    <XCircle size={15} /> Reembolsar
+                  </button>
+                  <button disabled={saving} className="button primary" onClick={() => void updateOrder("SHIPPED")}>
+                    <Truck size={15} /> Marcar como enviado
+                  </button>
+                </>
               )}
 
               {selected.status === "SHIPPED" && (
                 <>
+                  <button
+                    disabled={saving}
+                    className="button danger"
+                    onClick={() => {
+                      if (confirm("Confirmar reembolso? O aparelho já foi enviado: o estoque NÃO volta sozinho — lance a devolução no estoque após conferir o aparelho.")) void updateOrder("REFUNDED");
+                    }}
+                  >
+                    <XCircle size={15} /> Reembolsar
+                  </button>
                   <button disabled={saving} className="button ghost" onClick={() => void updateOrder()}>
                     <Truck size={15} /> Salvar rastreio
                   </button>
@@ -637,7 +661,19 @@ export default function AdminPedidos() {
                 </>
               )}
 
-              {["DELIVERED", "CANCELLED"].includes(selected.status) && (
+              {selected.status === "DELIVERED" && (
+                <button
+                  disabled={saving}
+                  className="button danger"
+                  onClick={() => {
+                    if (confirm("Confirmar reembolso (devolução/arrependimento)? O estoque NÃO volta sozinho — lance a devolução no estoque após conferir o aparelho.")) void updateOrder("REFUNDED");
+                  }}
+                >
+                  <XCircle size={15} /> Reembolsar
+                </button>
+              )}
+
+              {["DELIVERED", "CANCELLED", "REFUNDED"].includes(selected.status) && (
                 <button className="button ghost" onClick={() => setSelected(null)}>
                   Fechar
                 </button>

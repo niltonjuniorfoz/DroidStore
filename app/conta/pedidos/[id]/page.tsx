@@ -5,8 +5,8 @@ import { auth } from "../../../../auth";
 import prisma from "../../../../src/lib/prisma";
 import ProductImage from "../../../../src/components/ProductImage";
 
-const labels: Record<string, string> = { PENDING: "Aguardando pagamento", PAID: "Pagamento aprovado", SHIPPED: "Pedido enviado", DELIVERED: "Pedido entregue", CANCELLED: "Pedido cancelado" };
-const icons = { PENDING: Clock, PAID: CheckCircle2, SHIPPED: Truck, DELIVERED: CheckCircle2, CANCELLED: XCircle };
+const labels: Record<string, string> = { PENDING: "Aguardando pagamento", PAID: "Pagamento aprovado", SHIPPED: "Pedido enviado", DELIVERED: "Pedido entregue", CANCELLED: "Pedido cancelado", REFUNDED: "Pedido reembolsado" };
+const icons = { PENDING: Clock, PAID: CheckCircle2, SHIPPED: Truck, DELIVERED: CheckCircle2, CANCELLED: XCircle, REFUNDED: XCircle };
 
 export default async function ContaPedidoDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();

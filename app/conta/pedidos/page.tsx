@@ -3,8 +3,8 @@ import { ChevronRight, Package, Truck, CheckCircle2, Clock, XCircle } from "luci
 import { auth } from "../../../auth";
 import prisma from "../../../src/lib/prisma";
 
-const labels: Record<string, string> = { PENDING: "Aguardando pagamento", PAID: "Pagamento aprovado", SHIPPED: "Em transporte", DELIVERED: "Entregue", CANCELLED: "Cancelado" };
-const icons = { PENDING: Clock, PAID: CheckCircle2, SHIPPED: Truck, DELIVERED: CheckCircle2, CANCELLED: XCircle };
+const labels: Record<string, string> = { PENDING: "Aguardando pagamento", PAID: "Pagamento aprovado", SHIPPED: "Em transporte", DELIVERED: "Entregue", CANCELLED: "Cancelado", REFUNDED: "Reembolsado" };
+const icons = { PENDING: Clock, PAID: CheckCircle2, SHIPPED: Truck, DELIVERED: CheckCircle2, CANCELLED: XCircle, REFUNDED: XCircle };
 
 export default async function ContaPedidos() {
   const session = await auth();

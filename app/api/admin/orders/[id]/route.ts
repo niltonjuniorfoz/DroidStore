@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "../../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
 import { sendPaidOrderEmail } from "../../../../../src/lib/orderEmail";
+import { canTransition, shouldRestock } from "../../../../../src/lib/orderStatus";
 
 const patchSchema = z.object({
   status: z.nativeEnum(OrderStatus).optional(),
@@ -12,14 +13,6 @@ const patchSchema = z.object({
 }).refine((data) => data.status !== undefined || data.trackingCode !== undefined, {
   message: "Informe uma alteração.",
 });
-
-const transitions: Record<OrderStatus, OrderStatus[]> = {
-  PENDING: ["PAID", "CANCELLED"],
-  PAID: ["SHIPPED"],
-  SHIPPED: ["DELIVERED"],
-  DELIVERED: [],
-  CANCELLED: [],
-};
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireAdmin();
@@ -33,7 +26,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!order) return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 });
 
   const nextStatus = parsed.data.status ?? order.status;
-  if (nextStatus !== order.status && !transitions[order.status].includes(nextStatus)) {
+  if (!canTransition(order.status, nextStatus)) {
     return NextResponse.json(
       { error: `Não é possível alterar um pedido ${order.status} para ${nextStatus}.` },
       { status: 409 },
@@ -45,7 +38,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const actorId = (session.user as { id?: string }).id;
   const updated = await prisma.$transaction(async (tx) => {
-    if (nextStatus === "CANCELLED" && order.status !== "CANCELLED") {
+    if (shouldRestock(order.status, nextStatus)) {
       for (const item of order.items) {
         await tx.variant.update({ where: { id: item.variantId }, data: { stock: { increment: item.quantity } } });
         await tx.stockMovement.create({
@@ -53,7 +46,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             variantId: item.variantId,
             type: "RETURN",
             quantity: item.quantity,
-            note: `Estorno do pedido #${order.id.slice(0, 8).toUpperCase()}`,
+            note: `${nextStatus === "REFUNDED" ? "Reembolso" : "Estorno"} do pedido #${order.id.slice(0, 8).toUpperCase()}`,
             createdById: actorId,
           },
         });
@@ -69,6 +62,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ...(nextStatus === "SHIPPED" && statusChanged ? { shippedAt: new Date() } : {}),
         ...(nextStatus === "DELIVERED" && statusChanged ? { deliveredAt: new Date() } : {}),
         ...(nextStatus === "CANCELLED" && statusChanged ? { cancelledAt: new Date() } : {}),
+        ...(nextStatus === "REFUNDED" && statusChanged ? { cancelledAt: new Date() } : {}),
       },
       include: {
         user: { select: { id: true, name: true, email: true, phone: true } },

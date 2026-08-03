@@ -69,6 +69,7 @@ const statusLabel: Record<string, string> = {
   SHIPPED: "Enviado",
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",
+  REFUNDED: "Reembolsado",
 };
 
 export default function AdminDashboard() {
