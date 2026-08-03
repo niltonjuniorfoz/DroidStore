@@ -2,10 +2,14 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Prisma } from "@prisma/client";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "../../../../src/lib/admin";
+import { matchesSignature } from "../../../../src/lib/fileSignature";
 import { readHomeFooterBanner } from "../../../../src/lib/homeContent";
 import prisma from "../../../../src/lib/prisma";
+
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
 const allowed = new Map([
   ["image/jpeg", "jpg"],
@@ -18,6 +22,19 @@ const allowed = new Map([
   ["model/gltf+json", "gltf"],
   ["application/octet-stream", "glb"],
 ]);
+
+// Tipos de conteúdo aceitos por extensão no upload direto para o Vercel Blob.
+const blobContentTypes: Record<string, string[]> = {
+  jpg: ["image/jpeg"],
+  jpeg: ["image/jpeg"],
+  png: ["image/png"],
+  webp: ["image/webp"],
+  mp4: ["video/mp4"],
+  webm: ["video/webm"],
+  mov: ["video/quicktime"],
+  glb: ["model/gltf-binary", "application/octet-stream"],
+  gltf: ["model/gltf+json", "application/json", "application/octet-stream"],
+};
 
 const footerBannerMimeTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const FOOTER_BANNER_MAX_BYTES = 4 * 1024 * 1024;
@@ -37,6 +54,10 @@ async function saveFooterBanner(file: File) {
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
+  const bannerExtension = allowed.get(file.type);
+  if (!bannerExtension || !matchesSignature(bannerExtension, bytes)) {
+    return NextResponse.json({ error: "O conteúdo do arquivo não corresponde ao formato informado." }, { status: 400 });
+  }
   const version = Date.now().toString();
   const publicUrl = `/api/media/home-footer-banner?v=${version}`;
   const current = await prisma.siteContent.findUnique({ where: { id: "main" } });
@@ -73,8 +94,49 @@ async function saveFooterBanner(file: File) {
   );
 }
 
+// Informa ao painel se o upload direto (Vercel Blob) está disponível.
+export async function GET() {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  return NextResponse.json({ blob: Boolean(process.env.BLOB_READ_WRITE_TOKEN) });
+}
+
+// Fluxo de upload direto navegador -> Vercel Blob (gera o token com validação).
+async function handleBlobUpload(req: Request) {
+  const body = (await req.json()) as HandleUploadBody;
+  try {
+    const result = await handleUpload({
+      body,
+      request: req,
+      onBeforeGenerateToken: async (pathname) => {
+        const extension = pathname.slice(pathname.lastIndexOf(".") + 1).toLowerCase();
+        const contentTypes = blobContentTypes[extension];
+        if (!pathname.startsWith("uploads/") || !contentTypes) {
+          throw new Error("Use JPG, PNG, WebP, MP4, WebM ou modelos 3D (.glb / .gltf).");
+        }
+        return {
+          allowedContentTypes: contentTypes,
+          maximumSizeInBytes: MAX_UPLOAD_BYTES,
+          addRandomSuffix: true,
+        };
+      },
+      onUploadCompleted: async () => {
+        // URL volta direto para o navegador; nada a registrar no servidor.
+      },
+    });
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Falha no upload direto:", error);
+    const message = error instanceof Error ? error.message : "Não foi possível enviar o arquivo.";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+}
+
 export async function POST(req: Request) {
   if (!await requireAdmin()) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+  if ((req.headers.get("content-type") ?? "").includes("application/json")) {
+    return handleBlobUpload(req);
+  }
 
   try {
     const form = await req.formData();
@@ -94,14 +156,19 @@ export async function POST(req: Request) {
       else if (lowerName.endsWith(".gltf")) extension = "gltf";
     }
 
-    if (!extension || file.size > 100 * 1024 * 1024) {
+    if (!extension || file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json({ error: "Use JPG, PNG, WebP, MP4, WebM ou modelos 3D (.glb / .gltf) de até 100 MB." }, { status: 400 });
+    }
+
+    const bytes = Buffer.from(await file.arrayBuffer());
+    if (!matchesSignature(extension, bytes)) {
+      return NextResponse.json({ error: "O conteúdo do arquivo não corresponde ao formato informado." }, { status: 400 });
     }
 
     const directory = path.join(process.cwd(), "public", "uploads");
     await mkdir(directory, { recursive: true });
     const filename = `${randomUUID()}.${extension}`;
-    await writeFile(path.join(directory, filename), Buffer.from(await file.arrayBuffer()), { flag: "wx" });
+    await writeFile(path.join(directory, filename), bytes, { flag: "wx" });
     return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
   } catch (error) {
     console.error("Falha ao enviar arquivo:", error);

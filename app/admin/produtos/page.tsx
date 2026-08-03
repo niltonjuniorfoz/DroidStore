@@ -43,6 +43,7 @@ import {
   PHONE_STORAGE_OPTIONS,
 } from "../../../src/lib/productStandards";
 import { calculateGrossProfit } from "../../../src/lib/profit";
+import { uploadAdminFile } from "../../../src/lib/uploadClient";
 
 type AdminVariant = {
   id: string;
@@ -244,19 +245,17 @@ export default function AdminProdutos() {
   async function upload(file?: File) {
     if (!file) return;
     setBusy(true);
-    const form = new FormData();
-    form.set("file", file);
-    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
-    const result = await response.json();
-    if (response.ok) {
+    const result = await uploadAdminFile(file);
+    if (result.url) {
+      const uploadedUrl = result.url;
       setImageUrls((current) => {
         const next = [...current];
         const position = next.findIndex((url) => !url);
-        next[position < 0 ? 0 : position] = result.url;
+        next[position < 0 ? 0 : position] = uploadedUrl;
         return next;
       });
     } else {
-      setMessage(result.error);
+      setMessage(result.error ?? "Não foi possível enviar o arquivo.");
     }
     setBusy(false);
   }
@@ -264,14 +263,11 @@ export default function AdminProdutos() {
   async function upload3DModel(file?: File) {
     if (!file) return;
     setBusy(true);
-    const form = new FormData();
-    form.set("file", file);
-    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
-    const result = await response.json();
-    if (response.ok) {
+    const result = await uploadAdminFile(file);
+    if (result.url) {
       setModel3dUrl(result.url);
     } else {
-      setMessage(result.error);
+      setMessage(result.error ?? "Não foi possível enviar o arquivo.");
     }
     setBusy(false);
   }

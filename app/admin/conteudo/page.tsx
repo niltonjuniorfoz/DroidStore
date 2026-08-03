@@ -28,6 +28,7 @@ import {
   type HomeProductSection,
   type HomePromoBanner,
 } from "../../../src/lib/homeContent";
+import { uploadAdminFile } from "../../../src/lib/uploadClient";
 
 type MenuItem = { id?: string; label: string; href: string; active: boolean };
 type CatalogBanner = { eyebrow: string; title: string; description: string; imageUrl: string };
@@ -225,12 +226,9 @@ export default function AdminConteudo() {
     setBusy(true);
     setMessage("Enviando nova imagem...");
     scrollToAdminMessage();
-    const form = new FormData();
-    form.set("file", file);
-    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
-    const data = await response.json();
-    if (response.ok) updateSlide(index, { imageUrl: data.url });
-    else setMessage(data.error ?? "Não foi possível trocar a imagem.");
+    const result = await uploadAdminFile(file);
+    if (result.url) updateSlide(index, { imageUrl: result.url });
+    else setMessage(result.error ?? "Não foi possível trocar a imagem.");
     scrollToAdminMessage();
     setBusy(false);
   }
@@ -240,12 +238,9 @@ export default function AdminConteudo() {
     setBusy(true);
     setMessage("Enviando nova imagem...");
     scrollToAdminMessage();
-    const form = new FormData();
-    form.set("file", file);
-    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
-    const data = await response.json();
-    if (response.ok) updateCatalogSlide(index, { imageUrl: data.url });
-    else setMessage(data.error ?? "Não foi possível trocar a imagem.");
+    const result = await uploadAdminFile(file);
+    if (result.url) updateCatalogSlide(index, { imageUrl: result.url });
+    else setMessage(result.error ?? "Não foi possível trocar a imagem.");
     scrollToAdminMessage();
     setBusy(false);
   }
@@ -255,12 +250,9 @@ export default function AdminConteudo() {
     setBusy(true);
     setMessage("Enviando nova imagem...");
     scrollToAdminMessage();
-    const form = new FormData();
-    form.set("file", file);
-    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
-    const data = await response.json();
-    if (response.ok) updateHomePromo(index, { imageUrl: data.url });
-    else setMessage(data.error ?? "Não foi possível trocar a imagem.");
+    const result = await uploadAdminFile(file);
+    if (result.url) updateHomePromo(index, { imageUrl: result.url });
+    else setMessage(result.error ?? "Não foi possível trocar a imagem.");
     scrollToAdminMessage();
     setBusy(false);
   }
