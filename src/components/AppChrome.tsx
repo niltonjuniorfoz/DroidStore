@@ -188,7 +188,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         <div><Headphones /><span><b>Atendimento especializado</b><small>Antes e depois da compra</small></span></div>
       </div>
 
-      <div className="aura-footer-bottom">© {new Date().getFullYear()} {store.name}. Todos os direitos reservados.</div>
+      <div className="aura-footer-bottom">© {new Date().getFullYear()} Aura Tech. Todos os direitos reservados.</div>
     </footer>
     <CookieBanner />
   </div>;
