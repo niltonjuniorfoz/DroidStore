@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Children, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
   children: ReactNode;
@@ -12,63 +12,77 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
   const trackRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
   const lastManualInteractionRef = useRef(0);
+  const interactionTimerRef = useRef<number | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
+  const items = useMemo(() => Children.toArray(children), [children]);
 
   const markInteracting = () => {
     lastManualInteractionRef.current = Date.now();
-    const heading = trackRef.current?.closest(".home-section")?.querySelector(".home-shelf-heading");
-    const bounds = heading?.getBoundingClientRect();
-    if (bounds && bounds.bottom > 0 && bounds.top < window.innerHeight) setIsInteracting(true);
+    setIsInteracting(true);
+    if (interactionTimerRef.current) window.clearTimeout(interactionTimerRef.current);
+    interactionTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1800);
   };
+
+  useEffect(() => () => {
+    if (interactionTimerRef.current) window.clearTimeout(interactionTimerRef.current);
+  }, []);
 
   useEffect(() => {
     const track = trackRef.current;
-    const mobile = window.matchMedia("(max-width: 650px)");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (!track || !mobile.matches || reduceMotion.matches || track.children.length < 2) return;
+    if (!track || reduceMotion.matches || items.length < 2) return;
+
+    const normalizeLoop = () => {
+      const half = track.scrollWidth / 2;
+      if (!half) return;
+      if (track.scrollLeft >= half - 2) {
+        const previousBehavior = track.style.scrollBehavior;
+        track.style.scrollBehavior = "auto";
+        track.scrollLeft -= half;
+        track.style.scrollBehavior = previousBehavior;
+      }
+    };
 
     const advance = () => {
-      if (pausedRef.current || document.hidden || Date.now() - lastManualInteractionRef.current < 8000) return;
+      if (pausedRef.current || document.hidden || Date.now() - lastManualInteractionRef.current < 4500) return;
+      normalizeLoop();
       const firstCard = track.firstElementChild as HTMLElement | null;
       if (!firstCard) return;
       const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
       const step = firstCard.getBoundingClientRect().width + gap;
-      const end = track.scrollWidth - track.clientWidth;
-      track.scrollTo({ left: track.scrollLeft + step >= end - 4 ? 0 : track.scrollLeft + step, behavior: "smooth" });
+      track.scrollTo({ left: track.scrollLeft + step, behavior: "smooth" });
+      window.setTimeout(normalizeLoop, 650);
     };
 
-    const timer = window.setInterval(advance, 3800);
-    return () => window.clearInterval(timer);
-  }, []);
+    const onScroll = () => {
+      if (!pausedRef.current) window.requestAnimationFrame(normalizeLoop);
+    };
 
-  useEffect(() => {
-    const heading = trackRef.current?.closest(".home-section")?.querySelector(".home-shelf-heading");
-    if (!heading) return;
-
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) setIsInteracting(false);
-    });
-
-    observer.observe(heading);
-    return () => observer.disconnect();
-  }, []);
+    const timer = window.setInterval(advance, 3600);
+    track.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.clearInterval(timer);
+      track.removeEventListener("scroll", onScroll);
+    };
+  }, [items.length]);
 
   return (
     <div
       ref={trackRef}
-      className={`product-grid mobile-auto-track ${isInteracting ? "is-interacting" : ""} ${className}`.trim()}
+      className={`product-grid mobile-auto-track infinite-carousel-track ${isInteracting ? "is-interacting" : ""} ${className}`.trim()}
       aria-label={label}
       onPointerDown={() => { pausedRef.current = true; markInteracting(); }}
       onPointerMove={() => { if (pausedRef.current) markInteracting(); }}
       onPointerUp={() => { pausedRef.current = false; markInteracting(); }}
       onPointerCancel={() => { pausedRef.current = false; markInteracting(); }}
       onWheel={markInteracting}
-      onMouseEnter={() => { pausedRef.current = true; markInteracting(); }}
-      onMouseLeave={() => { pausedRef.current = false; markInteracting(); }}
+      onMouseEnter={() => { pausedRef.current = true; }}
+      onMouseLeave={() => { pausedRef.current = false; }}
       onFocus={() => { pausedRef.current = true; markInteracting(); }}
-      onBlur={() => { pausedRef.current = false; markInteracting(); }}
+      onBlur={() => { pausedRef.current = false; }}
     >
-      {children}
+      {items}
+      {items.map((item, index) => <div className="carousel-clone" aria-hidden="true" key={`carousel-clone-${index}`}>{item}</div>)}
     </div>
   );
 }

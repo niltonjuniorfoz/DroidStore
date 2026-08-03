@@ -461,6 +461,7 @@ export default function Header() {
               </div>
             </div>
           )}
+          <div className="header-accent-line" aria-hidden="true" />
           <MegaMenu customNavigation={navigation} />
           <nav className="mobile-category-strip" aria-label="Categorias da loja">
             {mobileCategories.map((item) => (

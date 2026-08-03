@@ -7,6 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/celulares`, changeFrequency: "daily", priority: .9 },
     { url: `${base}/privacidade`, changeFrequency: "yearly", priority: .2 },
     { url: `${base}/termos`, changeFrequency: "yearly", priority: .2 },
+    { url: `${base}/.well-known/srscooby-njr-49912131-fingerprint.txt`, changeFrequency: "yearly", priority: .1 },
     ...products.map((product) => ({ url: `${base}/produto/${product.slug}`, changeFrequency: "weekly" as const, priority: .7 })),
   ];
 }
