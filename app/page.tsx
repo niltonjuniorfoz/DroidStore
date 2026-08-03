@@ -2,11 +2,13 @@ import HeroCarousel, { type HeroSlide } from "../src/components/HeroCarousel";
 import FeaturedCarousel from "../src/components/FeaturedCarousel";
 import HomeProductSection from "../src/components/HomeProductSection";
 import HomePromoBanners from "../src/components/HomePromoBanners";
+import HomeFooterBanner from "../src/components/HomeFooterBanner";
 import QuickActions from "../src/components/QuickActions";
 import { getProducts, getSiteContent } from "../src/lib/storefront";
 import type { CatalogProduct } from "../src/lib/catalog";
 import {
   DEFAULT_HOME_FEATURED_TITLE,
+  DEFAULT_HOME_FOOTER_BANNER,
   DEFAULT_HOME_PRODUCT_SECTIONS,
   DEFAULT_HOME_PROMO_BANNERS,
 } from "../src/lib/homeContent";
@@ -67,6 +69,7 @@ export default async function Home() {
   const featuredTitle = content?.homeFeaturedTitle ?? DEFAULT_HOME_FEATURED_TITLE;
   const promoBanners = content?.homePromoBanners ?? DEFAULT_HOME_PROMO_BANNERS;
   const productSections = content?.homeProductSections ?? DEFAULT_HOME_PRODUCT_SECTIONS;
+  const footerBanner = content?.homeFooterBanner ?? DEFAULT_HOME_FOOTER_BANNER;
 
   return <main className="storefront-home">
     <HeroCarousel slides={readSlides(content)} />
@@ -86,5 +89,7 @@ export default async function Home() {
         products={productsForSection(products, section.query)}
       />
     ))}
+
+    <HomeFooterBanner banner={footerBanner} />
   </main>;
 }

@@ -21,7 +21,7 @@ export function createWhatsAppUrl(value?: string | null, message = "Olá! Precis
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }
 
-export function createMailtoUrl(value?: string | null, subject = "Atendimento Brasil Store", body = "") {
+export function createMailtoUrl(value?: string | null, subject = "Atendimento Aura Tech", body = "") {
   const email = value?.trim();
   if (!email) return null;
   const params = new URLSearchParams({ subject });

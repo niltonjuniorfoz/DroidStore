@@ -20,7 +20,7 @@ export default function AtendimentoPage() {
   const [form, setForm] = useState<SupportForm>(emptyForm);
   const [error, setError] = useState("");
 
-  const storeName = content?.storeName?.trim() || "Brasil Store";
+  const storeName = content?.storeName?.trim() || "Aura Tech";
   const whatsapp = content?.whatsapp?.trim() || "";
   const email = content?.contactEmail?.trim() || "";
   const instagramUrl = normalizeInstagramUrl(content?.instagramUrl);

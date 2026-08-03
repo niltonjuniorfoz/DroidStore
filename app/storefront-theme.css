@@ -5227,3 +5227,182 @@ body {
   }
   .storefront-theme .best-sellers-section .home-shelf-heading { border-radius: 15px 15px 0 0; }
 }
+
+/* ========================================================================== 
+   Aura Tech — correção dos cards e do gesto dos carrosséis no celular
+   ========================================================================== */
+@media (max-width: 650px) {
+  /* No celular os controles ficam ocultos: o usuário navega deslizando o dedo. */
+  .storefront-theme .product-carousel-controls {
+    display: none;
+  }
+
+  .storefront-theme .home-product-shelf .home-shelf-heading a {
+    margin-right: 0;
+  }
+
+  /* Rolagem horizontal nativa, mais leve e responsiva em Android e iPhone. */
+  .storefront-theme .infinite-carousel-track,
+  .storefront-theme .mobile-auto-track {
+    overflow-x: auto;
+    overflow-y: hidden;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: .15rem;
+    overscroll-behavior-inline: contain;
+    cursor: auto;
+  }
+
+  .storefront-theme .infinite-carousel-track > .carousel-slide {
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+  }
+
+  /* Mais vendidos: devolve preço PIX, texto à vista e parcelamento. */
+  .storefront-theme .best-sellers-grid .product-price,
+  .storefront-theme .best-sellers-grid .pix-amount-wrapper,
+  .storefront-theme .best-sellers-grid .card-installments-block,
+  .storefront-theme .best-sellers-grid .installments-lines {
+    display: flex;
+  }
+
+  .storefront-theme .best-sellers-grid .product-price {
+    flex-direction: column;
+    min-height: 91px;
+  }
+
+  .storefront-theme .best-sellers-grid .pix-amount-wrapper,
+  .storefront-theme .best-sellers-grid .installments-lines {
+    flex-direction: column;
+  }
+
+  .storefront-theme .best-sellers-grid .product-price .pix-from-label,
+  .storefront-theme .best-sellers-grid .product-price .pix-sub-label,
+  .storefront-theme .best-sellers-grid .product-price .installment-line-item {
+    display: block !important;
+  }
+
+  .storefront-theme .best-sellers-grid .pix-from-label {
+    font-size: .54rem;
+    line-height: 1.2;
+  }
+
+  .storefront-theme .best-sellers-grid .pix-amount-val {
+    margin: 3px 0 2px;
+    font-size: 1rem;
+    line-height: 1.05;
+    white-space: nowrap;
+  }
+
+  .storefront-theme .best-sellers-grid .pix-sub-label {
+    font-size: .5rem;
+    line-height: 1.2;
+  }
+
+  .storefront-theme .best-sellers-grid .card-installments-block {
+    align-items: flex-start;
+    gap: .3rem;
+    margin-top: .42rem;
+    padding-top: .42rem;
+  }
+
+  .storefront-theme .best-sellers-grid .card-payment-icon {
+    width: 13px;
+    height: 13px;
+    margin-top: 1px;
+    flex: 0 0 auto;
+  }
+
+  .storefront-theme .best-sellers-grid .installment-line-item {
+    overflow: hidden;
+    font-size: .48rem;
+    line-height: 1.28;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .storefront-theme .best-sellers-grid .product-card-clean-title {
+    min-height: 3.7em;
+    font-size: .62rem;
+    line-height: 1.24;
+    -webkit-line-clamp: 3;
+  }
+
+  /* Evita sobreposição entre “Muito bom/Novo” e “10% OFF NO PIX”. */
+  .storefront-theme .best-sellers-grid .condition {
+    top: 7px;
+    left: 7px;
+    max-width: calc(100% - 14px);
+    padding: 3px 5px;
+    font-size: .46rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .storefront-theme .best-sellers-grid .discount-badge-top-right {
+    top: 31px;
+    right: 7px;
+    max-width: calc(100% - 14px);
+    padding: 3px 5px;
+    font-size: .46rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .storefront-theme .best-sellers-grid .product-visual {
+    height: 176px;
+  }
+
+  .storefront-theme .best-sellers-grid .catalog-photo {
+    padding: 2.15rem .45rem .45rem;
+  }
+
+  .storefront-theme .best-sellers-grid .product-body {
+    padding: .62rem .62rem .72rem;
+  }
+
+  .storefront-theme .best-sellers-grid .card-buy-button {
+    min-height: 38px;
+    margin-top: .58rem;
+    font-size: .64rem;
+  }
+}
+
+/* Banner institucional exibido após a prateleira Informática. */
+.storefront-theme .home-footer-banner {
+  width: min(1460px, calc(100% - 2rem));
+  margin: 1.2rem auto 2rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 121, 0, .22);
+  border-radius: 20px;
+  background: #08090a;
+  box-shadow: 0 18px 42px rgba(15, 18, 16, .12);
+}
+.storefront-theme .home-footer-banner > a {
+  display: block;
+}
+.storefront-theme .home-footer-banner img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1983 / 793;
+  object-fit: cover;
+  transition: transform .45s ease, filter .45s ease;
+}
+.storefront-theme .home-footer-banner > a:hover img {
+  transform: scale(1.006);
+  filter: brightness(1.035);
+}
+
+@media (max-width: 650px) {
+  .storefront-theme .home-footer-banner {
+    width: calc(100% - 1.2rem);
+    margin: .9rem auto 1.5rem;
+    border-radius: 14px;
+  }
+  .storefront-theme .home-footer-banner img {
+    object-position: center;
+  }
+}

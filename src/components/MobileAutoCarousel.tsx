@@ -164,7 +164,9 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
         className={`product-grid mobile-auto-track infinite-carousel-track ${isInteracting ? "is-interacting" : ""} ${isDragging ? "is-dragging" : ""} ${className}`.trim()}
         aria-label={label}
         onPointerDown={(event) => {
-          if (event.pointerType === "mouse" && event.button !== 0) return;
+          // No celular, deixamos o navegador cuidar do gesto horizontal nativo.
+          // O arraste manual abaixo fica restrito ao mouse no computador.
+          if (event.pointerType !== "mouse" || event.button !== 0) return;
           const track = trackRef.current;
           if (!track) return;
 
@@ -192,6 +194,8 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
         }}
         onPointerUp={finishDrag}
         onPointerCancel={finishDrag}
+        onTouchStart={() => markInteracting(7000)}
+        onTouchEnd={() => markInteracting(6200)}
         onWheel={() => markInteracting(5000)}
         onFocus={() => markInteracting(5000)}
         onClickCapture={(event) => {

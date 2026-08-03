@@ -10,6 +10,11 @@ import AppChrome from '../src/components/AppChrome';
 export const metadata: Metadata = {
   title: { default: 'Aura Tech | Tecnologia e celulares', template: '%s | Aura Tech' },
   description: 'Tecnologia, celulares, acessórios e seminovos com garantia e compra protegida.',
+  icons: {
+    icon: [{ url: '/icon.png', type: 'image/png', sizes: '512x512' }],
+    shortcut: [{ url: '/icon.png', type: 'image/png' }],
+    apple: [{ url: '/apple-icon.png', type: 'image/png' }],
+  },
 };
 
 export default function RootLayout({

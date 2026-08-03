@@ -88,7 +88,7 @@ model NavigationItem {
 
 model SiteContent {
   id                        String   @id @default("main")
-  storeName                 String   @default("DroidStore")
+  storeName                 String   @default("Aura Tech")
   heroEyebrow               String   @default("Tecnologia boa cabe no seu bolso")
   heroTitle                 String   @default("Seu próximo Android, escolhido sem complicação.")
   heroDescription           String   @default("Novos e seminovos com procedência, revisão técnica e garantia.")

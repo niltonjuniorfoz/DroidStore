@@ -5,6 +5,7 @@ import { requireAdmin } from "../../../../src/lib/admin";
 import { readInstagramFromCatalogBanner } from "../../../../src/lib/contact";
 import {
   readHomeFeaturedTitle,
+  readHomeFooterBanner,
   readHomeProductSections,
   readHomePromoBanners,
 } from "../../../../src/lib/homeContent";
@@ -34,6 +35,15 @@ const homePromoBannerSchema = z.object({
   buttonHref: z.string().trim().startsWith("/").max(200),
 });
 
+
+const homeFooterBannerSchema = z.object({
+  imageUrl: z.string().trim().min(1).max(500),
+  linkHref: z.string().trim().max(200).refine((value) => value === "" || value.startsWith("/"), {
+    message: "O link deve ser vazio ou começar com /.",
+  }),
+  active: z.boolean(),
+});
+
 const homeProductSectionSchema = z.object({
   title: z.string().trim().min(1).max(60),
   query: z.string().trim().min(1).max(160),
@@ -47,6 +57,7 @@ const schema = z.object({
   catalogBanner: catalogBannerSchema.optional(),
   catalogSlides: z.array(catalogBannerSchema).min(1).max(5).optional(),
   homeFeaturedTitle: z.string().trim().min(1).max(80),
+  homeFooterBanner: homeFooterBannerSchema,
   homePromoBanners: z.array(homePromoBannerSchema).length(2),
   homeProductSections: z.array(homeProductSectionSchema).length(2),
   navigation: z.array(z.object({
@@ -65,8 +76,10 @@ export async function GET() {
   ]);
   return NextResponse.json({
     ...content,
+    storeName: ["DroidStore", "Brasil Store"].includes(content.storeName) ? "Aura Tech" : content.storeName,
     navigation,
     homeFeaturedTitle: readHomeFeaturedTitle(content.catalogBanner),
+    homeFooterBanner: readHomeFooterBanner(content.catalogBanner),
     homePromoBanners: readHomePromoBanners(content.catalogBanner),
     homeProductSections: readHomeProductSections(content.catalogBanner),
   });
@@ -83,6 +96,7 @@ export async function PUT(req: Request) {
     catalogBanner,
     catalogSlides,
     homeFeaturedTitle,
+    homeFooterBanner,
     homePromoBanners,
     homeProductSections,
     storeName,
@@ -94,6 +108,7 @@ export async function PUT(req: Request) {
     ...(catalogBanner ?? {}),
     ...(instagramUrl ? { instagramUrl } : {}),
     homeFeaturedTitle,
+    homeFooterBanner,
     homePromoBanners,
     homeProductSections,
   };

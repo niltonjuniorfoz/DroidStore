@@ -21,8 +21,10 @@ import {
 import type { HeroSlide } from "../../../src/components/HeroCarousel";
 import {
   DEFAULT_HOME_FEATURED_TITLE,
+  DEFAULT_HOME_FOOTER_BANNER,
   DEFAULT_HOME_PRODUCT_SECTIONS,
   DEFAULT_HOME_PROMO_BANNERS,
+  type HomeFooterBanner,
   type HomeProductSection,
   type HomePromoBanner,
 } from "../../../src/lib/homeContent";
@@ -35,6 +37,7 @@ type Content = {
   catalogBanner: CatalogBanner;
   catalogSlides: CatalogBanner[];
   homeFeaturedTitle: string;
+  homeFooterBanner: HomeFooterBanner;
   homePromoBanners: HomePromoBanner[];
   homeProductSections: HomeProductSection[];
   navigation: MenuItem[];
@@ -64,11 +67,12 @@ const blankSlide = (): HeroSlide => ({
 });
 
 const initial: Content = {
-  storeName: "Brasil Store",
+  storeName: "Aura Tech",
   heroSlides: [blankSlide()],
   catalogBanner: defaultCatalogBanner(),
   catalogSlides: [blankCatalogSlide()],
   homeFeaturedTitle: DEFAULT_HOME_FEATURED_TITLE,
+  homeFooterBanner: { ...DEFAULT_HOME_FOOTER_BANNER },
   homePromoBanners: DEFAULT_HOME_PROMO_BANNERS.map((banner) => ({ ...banner })),
   homeProductSections: DEFAULT_HOME_PRODUCT_SECTIONS.map((section) => ({ ...section })),
   navigation: [],
@@ -121,11 +125,14 @@ export default function AdminConteudo() {
         : defaultCatalogBanner();
 
       setContent({
-        storeName: data.storeName ?? "Brasil Store",
+        storeName: data.storeName ?? "Aura Tech",
         heroSlides: savedSlides,
         catalogBanner,
         catalogSlides: savedCatalogSlides,
         homeFeaturedTitle: data.homeFeaturedTitle ?? DEFAULT_HOME_FEATURED_TITLE,
+        homeFooterBanner: data.homeFooterBanner && typeof data.homeFooterBanner === "object"
+          ? { ...DEFAULT_HOME_FOOTER_BANNER, ...data.homeFooterBanner }
+          : { ...DEFAULT_HOME_FOOTER_BANNER },
         homePromoBanners: Array.isArray(data.homePromoBanners) && data.homePromoBanners.length === 2
           ? data.homePromoBanners
           : DEFAULT_HOME_PROMO_BANNERS.map((banner) => ({ ...banner })),
@@ -192,6 +199,13 @@ export default function AdminConteudo() {
     }));
   }
 
+  function updateHomeFooterBanner(patch: Partial<HomeFooterBanner>) {
+    setContent((current) => ({
+      ...current,
+      homeFooterBanner: { ...current.homeFooterBanner, ...patch },
+    }));
+  }
+
   async function upload(index: number, file?: File) {
     if (!file) return;
     setBusy(true);
@@ -227,6 +241,19 @@ export default function AdminConteudo() {
     const response = await fetch("/api/admin/upload", { method: "POST", body: form });
     const data = await response.json();
     if (response.ok) updateHomePromo(index, { imageUrl: data.url });
+    else setMessage(data.error);
+    setBusy(false);
+  }
+
+  async function uploadHomeFooterBanner(file?: File) {
+    if (!file) return;
+    setBusy(true);
+    setMessage("");
+    const form = new FormData();
+    form.set("file", file);
+    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
+    const data = await response.json();
+    if (response.ok) updateHomeFooterBanner({ imageUrl: data.url });
     else setMessage(data.error);
     setBusy(false);
   }
@@ -461,6 +488,46 @@ export default function AdminConteudo() {
               <label>Link<input value={section.buttonHref} onChange={(event) => updateHomeSection(index, { buttonHref: event.target.value })} /></label>
             </div>
           ))}
+        </div>
+
+        <div className="footer-banner-config">
+          <div className="panel-heading compact-heading">
+            <div>
+              <h3>Banner final da página inicial</h3>
+              <p>Este banner aparece logo depois da prateleira Informática. Você pode trocar a imagem, o link ou ocultá-lo.</p>
+            </div>
+          </div>
+
+          <div className="footer-banner-config-grid">
+            <div className="footer-banner-admin-preview">
+              <img src={content.homeFooterBanner.imageUrl} alt="Prévia do banner final" />
+            </div>
+
+            <div className="footer-banner-config-fields">
+              <label className="compact-upload-button">
+                <ImagePlus size={15} /> Trocar banner
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void uploadHomeFooterBanner(event.target.files?.[0])} />
+              </label>
+
+              <label>
+                Link ao clicar (opcional)
+                <input
+                  value={content.homeFooterBanner.linkHref}
+                  onChange={(event) => updateHomeFooterBanner({ linkHref: event.target.value })}
+                  placeholder="/celulares"
+                />
+              </label>
+
+              <label className="footer-banner-toggle">
+                <input
+                  type="checkbox"
+                  checked={content.homeFooterBanner.active}
+                  onChange={(event) => updateHomeFooterBanner({ active: event.target.checked })}
+                />
+                <span>Exibir banner no final da página inicial</span>
+              </label>
+            </div>
+          </div>
         </div>
       </section>
 

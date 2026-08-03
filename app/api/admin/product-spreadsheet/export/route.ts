@@ -12,7 +12,7 @@ export async function GET() {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="DroidStore-produtos-${date}.xlsx"`,
+      "Content-Disposition": `attachment; filename="Aura-Tech-produtos-${date}.xlsx"`,
       "Cache-Control": "no-store",
     },
   });

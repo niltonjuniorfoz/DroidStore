@@ -27,7 +27,7 @@ export async function sendPaidOrderEmail(orderId: string) {
   });
   if (!claimed.count) return { sent: false, reason: "already-sent" };
 
-  const storeName = content.storeName || "Brasil Store";
+  const storeName = content.storeName || "Aura Tech";
   const customerName = order.user.name?.trim() || "cliente";
   const items = order.items.map((item) => `
     <tr>

@@ -2148,3 +2148,60 @@
   padding: .2rem;
   object-fit: contain;
 }
+
+/* Editor do banner final da página inicial. */
+.footer-banner-config {
+  margin-top: .9rem;
+  padding-top: .9rem;
+  border-top: 1px solid var(--line);
+}
+.footer-banner-config .compact-heading { margin-bottom: .65rem; }
+.footer-banner-config .compact-heading h3 { margin: 0 0 .2rem; font-size: .82rem; }
+.footer-banner-config .compact-heading p { margin: 0; color: var(--muted); font-size: .63rem; }
+.footer-banner-config-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.45fr) minmax(260px, .55fr);
+  gap: .8rem;
+  align-items: center;
+}
+.footer-banner-admin-preview {
+  overflow: hidden;
+  border: 1px solid #dedfdf;
+  border-radius: 10px;
+  background: #08090a;
+}
+.footer-banner-admin-preview img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1983 / 793;
+  object-fit: cover;
+}
+.footer-banner-config-fields { display: flex; flex-direction: column; gap: .65rem; }
+.footer-banner-config-fields > label:not(.compact-upload-button) {
+  display: flex;
+  flex-direction: column;
+  gap: .28rem;
+  font-size: .62rem;
+  font-weight: 800;
+}
+.footer-banner-config-fields input[type="text"],
+.footer-banner-config-fields input:not([type]) {
+  min-height: 36px;
+  padding: .5rem .6rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+.footer-banner-toggle {
+  flex-direction: row !important;
+  align-items: center;
+  gap: .5rem !important;
+  padding: .6rem;
+  border: 1px solid #eceeed;
+  border-radius: 8px;
+  background: #fafbfa;
+}
+.footer-banner-toggle input { width: 16px; height: 16px; accent-color: #FF7900; }
+
+@media (max-width: 900px) {
+  .footer-banner-config-grid { grid-template-columns: 1fr; }
+}

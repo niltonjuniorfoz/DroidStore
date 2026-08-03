@@ -8,6 +8,7 @@ import {
 import { readInstagramFromCatalogBanner } from "./contact";
 import {
   readHomeFeaturedTitle,
+  readHomeFooterBanner,
   readHomeProductSections,
   readHomePromoBanners,
 } from "./homeContent";
@@ -228,8 +229,10 @@ export async function getSiteContent() {
     const normalizedContent = content
       ? {
           ...content,
+          storeName: ["DroidStore", "Brasil Store"].includes(content.storeName) ? "Aura Tech" : content.storeName,
           instagramUrl: readInstagramFromCatalogBanner(content.catalogBanner),
           homeFeaturedTitle: readHomeFeaturedTitle(content.catalogBanner),
+          homeFooterBanner: readHomeFooterBanner(content.catalogBanner),
           homePromoBanners: readHomePromoBanners(content.catalogBanner),
           homeProductSections: readHomeProductSections(content.catalogBanner),
         }

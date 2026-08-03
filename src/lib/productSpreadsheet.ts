@@ -126,7 +126,7 @@ export async function createProductsWorkbook(includeCost: boolean) {
     orderBy: [{ brand: "asc" }, { name: "asc" }],
   });
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "DroidStore";
+  workbook.creator = "Aura Tech";
   workbook.created = new Date();
   workbook.modified = new Date();
 
@@ -144,7 +144,7 @@ export async function createProductsWorkbook(includeCost: boolean) {
     guide.getCell(row, 1).alignment = { wrapText: true, vertical: "middle" };
     guide.getRow(row).height = 34;
   }
-  await guide.protect("DroidStore", { selectLockedCells: true, selectUnlockedCells: true });
+  await guide.protect("Aura Tech", { selectLockedCells: true, selectUnlockedCells: true });
 
   const byBrand = new Map<string, typeof products>();
   for (const product of products) {
@@ -233,7 +233,7 @@ export async function createProductsWorkbook(includeCost: boolean) {
       }
     }
     sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: Math.max(1, sheet.rowCount), column: columns.length } };
-    await sheet.protect("DroidStore", {
+    await sheet.protect("Aura Tech", {
       selectLockedCells: true,
       selectUnlockedCells: true,
       autoFilter: true,

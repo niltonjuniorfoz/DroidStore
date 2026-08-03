@@ -14,6 +14,12 @@ export type HomeProductSection = {
   buttonHref: string;
 };
 
+export type HomeFooterBanner = {
+  imageUrl: string;
+  linkHref: string;
+  active: boolean;
+};
+
 export const DEFAULT_HOME_FEATURED_TITLE = "Mais vendidos";
 
 export const DEFAULT_HOME_PROMO_BANNERS: HomePromoBanner[] = [
@@ -34,6 +40,12 @@ export const DEFAULT_HOME_PROMO_BANNERS: HomePromoBanner[] = [
     buttonHref: "/celulares?categoria=notebook",
   },
 ];
+
+export const DEFAULT_HOME_FOOTER_BANNER: HomeFooterBanner = {
+  imageUrl: "/home-banners/aura-tech-footer-banner.png",
+  linkHref: "/celulares",
+  active: true,
+};
 
 export const DEFAULT_HOME_PRODUCT_SECTIONS: HomeProductSection[] = [
   {
@@ -93,4 +105,14 @@ export function readHomeProductSections(value: unknown): HomeProductSection[] {
       buttonHref: text(item?.buttonHref, fallback.buttonHref),
     };
   });
+}
+
+export function readHomeFooterBanner(value: unknown): HomeFooterBanner {
+  const source = record(value);
+  const saved = record(source?.homeFooterBanner);
+  return {
+    imageUrl: text(saved?.imageUrl, DEFAULT_HOME_FOOTER_BANNER.imageUrl),
+    linkHref: text(saved?.linkHref, DEFAULT_HOME_FOOTER_BANNER.linkHref),
+    active: typeof saved?.active === "boolean" ? saved.active : DEFAULT_HOME_FOOTER_BANNER.active,
+  };
 }

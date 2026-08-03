@@ -20,7 +20,7 @@ const items = [
 export default function AdminSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   return <aside className={`admin-sidebar ${open ? "is-open" : ""}`}>
-    <div className="admin-brand"><Link href="/admin"><span>D</span><div><strong>DroidStore</strong><small>Central de gestão</small></div></Link>{onClose && <button onClick={onClose} aria-label="Fechar menu"><X /></button>}</div>
+    <div className="admin-brand"><Link href="/admin"><span>A</span><div><strong>Aura Tech</strong><small>Central de gestão</small></div></Link>{onClose && <button onClick={onClose} aria-label="Fechar menu"><X /></button>}</div>
     <div className="admin-section-label">OPERAÇÃO</div>
     <nav aria-label="Navegação administrativa">{items.map((item) => {
       const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);

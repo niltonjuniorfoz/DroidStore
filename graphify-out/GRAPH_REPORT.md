@@ -1,7 +1,7 @@
 # Graph Report - Site Android  (2026-08-02)
 
 ## Corpus Check
-- 141 files · ~622,471 words
+- 141 files · ~645,331 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a34b8043`
+- Built from commit: `c9926d7d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -176,7 +176,7 @@ Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
 ## Knowledge Gaps
-- **253 isolated node(s):** `Props`, `DragState`, `MenuItem`, `SearchProduct`, `QuickBuyState` (+248 more)
+- **253 isolated node(s):** `metadata`, `MenuItem`, `SearchProduct`, `QuickBuyState`, `defaultNavigation` (+248 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -189,7 +189,7 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **Why does `CatalogProduct` connect `ProductPageClient.tsx` to `catalog.ts`, `app/page.tsx`?**
   _High betweenness centrality (0.014) - this node is a cross-community bridge._
-- **What connects `Props`, `DragState`, `MenuItem` to the rest of the system?**
+- **What connects `metadata`, `MenuItem`, `SearchProduct` to the rest of the system?**
   _253 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `auth.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.07741935483870968 - nodes in this community are weakly interconnected._

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import type { HomeProductSection, HomePromoBanner } from "../lib/homeContent";
+import type { HomeFooterBanner, HomeProductSection, HomePromoBanner } from "../lib/homeContent";
 
 export type SiteContentData = {
   storeName?: string | null;
@@ -16,6 +16,7 @@ export type SiteContentData = {
   catalogBanner?: unknown;
   catalogSlides?: unknown;
   homeFeaturedTitle?: string | null;
+  homeFooterBanner?: HomeFooterBanner | null;
   homePromoBanners?: HomePromoBanner[] | null;
   homeProductSections?: HomeProductSection[] | null;
 };

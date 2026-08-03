@@ -99,7 +99,7 @@ export default function AdminDashboard() {
       {/* HEADER DE COMANDO EXECUTIVO */}
       <div className="dash-header-bar">
         <div>
-          <span className="eyebrow">Central de Operações • Brasil Store</span>
+          <span className="eyebrow">Central de Operações • Aura Tech</span>
           <h1>Visão Geral da Loja</h1>
           <p>Métricas em tempo real calculadas diretamente das vendas e do estoque atual.</p>
         </div>

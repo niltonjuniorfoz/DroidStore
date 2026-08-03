@@ -14,7 +14,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const admin = pathname.startsWith("/admin");
   const { content } = useSiteContent();
   const store = {
-    name: content?.storeName ?? "Brasil Store",
+    name: content?.storeName ?? "Aura Tech",
     email: content?.contactEmail ?? "",
     whatsapp: content?.whatsapp ?? "",
     instagramUrl: content?.instagramUrl ?? "",
