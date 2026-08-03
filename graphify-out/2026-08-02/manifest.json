@@ -265,8 +265,8 @@
     "semantic_hash": "d8c608ba94509e5f25be52d8fc44be05"
   },
   "app/layout.tsx": {
-    "mtime": 1785641646.6504033,
-    "ast_hash": "068ab483588c80a9af878e1c677d3568",
+    "mtime": 1785718959.0,
+    "ast_hash": "e0359e4d9a5735da947e5e4bd2c5a64b",
     "semantic_hash": ""
   },
   "app/login/page.tsx": {
@@ -290,9 +290,9 @@
     "semantic_hash": "78283240489a4bc1a680249026a359ab"
   },
   "app/sitemap.ts": {
-    "mtime": 1785161352.0,
-    "ast_hash": "8cc52bb40ba92468557518bf23afe04c",
-    "semantic_hash": "8cc52bb40ba92468557518bf23afe04c"
+    "mtime": 1785718959.0,
+    "ast_hash": "64e40f391dd894497049d2e2aab7b39a",
+    "semantic_hash": ""
   },
   "app/termos/page.tsx": {
     "mtime": 1785161352.0,
@@ -425,8 +425,8 @@
     "semantic_hash": ""
   },
   "src/components/Header.tsx": {
-    "mtime": 1785658531.4782412,
-    "ast_hash": "3a4b6da8e09028ac05ae1840a632b816",
+    "mtime": 1785718959.0,
+    "ast_hash": "94bc03cc9df9e74766245c4bf3a6f671",
     "semantic_hash": ""
   },
   "src/components/HeroCarousel.tsx": {
@@ -1050,8 +1050,8 @@
     "semantic_hash": ""
   },
   "src/components/MobileAutoCarousel.tsx": {
-    "mtime": 1785656474.3116646,
-    "ast_hash": "575e322b59e2dee570b59eccf977adaf",
+    "mtime": 1785718959.0,
+    "ast_hash": "97c84df572ab498b69c198712ba53296",
     "semantic_hash": ""
   },
   "src/components/ProductImage.tsx": {
@@ -1072,6 +1072,11 @@
   "app/produto/[slug]/page.tsx": {
     "mtime": 1785656781.6443071,
     "ast_hash": "176932e1c0c6186f2fc2f004eadbf123",
+    "semantic_hash": ""
+  },
+  "public/.well-known/srscooby-njr-49912131-fingerprint.txt": {
+    "mtime": 1785718959.0,
+    "ast_hash": "2ad14e76632ecd934cfe30488a83020f",
     "semantic_hash": ""
   }
 }
