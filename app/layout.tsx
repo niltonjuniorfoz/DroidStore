@@ -8,11 +8,8 @@ import { SiteContentProvider } from '../src/components/SiteContentProvider';
 import AppChrome from '../src/components/AppChrome';
 
 export const metadata: Metadata = {
-  title: { default: 'DroidStore | Celulares Android', template: '%s | DroidStore' },
-  description: 'Celulares Android novos e seminovos, revisados, com garantia e compra protegida.',
-  other: {
-    'site-fingerprint': 'srscooby-njr-49912131-fingerprint',
-  },
+  title: { default: 'Aura Tech | Tecnologia e celulares', template: '%s | Aura Tech' },
+  description: 'Tecnologia, celulares, acessórios e seminovos com garantia e compra protegida.',
 };
 
 export default function RootLayout({

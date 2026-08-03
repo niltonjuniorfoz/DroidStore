@@ -420,8 +420,8 @@
     "semantic_hash": "df5d5d2aad196185a3d1d7b1ca878a3f"
   },
   "src/components/FeaturedCarousel.tsx": {
-    "mtime": 1785650480.0296054,
-    "ast_hash": "59511b3ca96b7f97e7ea632f1f9a97a2",
+    "mtime": 1785720704.0,
+    "ast_hash": "9f4f757ee5e59eebe750eb1b5506c9e3",
     "semantic_hash": ""
   },
   "src/components/Header.tsx": {
@@ -1050,8 +1050,8 @@
     "semantic_hash": ""
   },
   "src/components/MobileAutoCarousel.tsx": {
-    "mtime": 1785719912.0,
-    "ast_hash": "b3acdcc9f41ad2d1beb50d77b956cc37",
+    "mtime": 1785720704.0,
+    "ast_hash": "c90fccf3821031518fd9d784ca610d95",
     "semantic_hash": ""
   },
   "src/components/ProductImage.tsx": {

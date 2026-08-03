@@ -226,16 +226,11 @@ export default function Header() {
         downwardDistance = 0;
       }
 
-      const mobileHeader = window.matchMedia("(max-width: 992px)").matches;
-      const hideAfter = mobileHeader ? 38 : 95;
-      const hideDistance = mobileHeader ? 12 : 30;
-      const showDistance = mobileHeader ? 44 : 70;
-
-      // No celular a faixa recolhe cedo para deixar somente o cabeçalho e a linha
-      // laranja. No desktop mantemos uma histerese maior para evitar oscilações.
-      if (!categoriesHiddenRef.current && currentScrollY > hideAfter && downwardDistance >= hideDistance) {
+      // Histerese com trava de animação: desce 30 px para esconder e sobe 70 px
+      // para mostrar novamente. Assim uma pequena oscilação não alterna o menu.
+      if (!categoriesHiddenRef.current && currentScrollY > 95 && downwardDistance >= 30) {
         applyCategoriesVisibility(true, currentScrollY);
-      } else if (categoriesHiddenRef.current && upwardDistance >= showDistance) {
+      } else if (categoriesHiddenRef.current && upwardDistance >= 70) {
         applyCategoriesVisibility(false, currentScrollY);
       }
 
@@ -303,12 +298,12 @@ export default function Header() {
             <Link
               href="/"
               className="brand storefront-brand brasil-store-logo-link"
-              aria-label="Brasil Store, página inicial"
+              aria-label="Aura Tech, página inicial"
               onClick={closeMenu}
             >
               <img
-                src="/brasil-store-logo.png"
-                alt="Brasil Store"
+                src="/aura-tech-logo.png"
+                alt="Aura Tech"
                 className="brasil-store-logo-img"
               />
             </Link>
@@ -466,7 +461,6 @@ export default function Header() {
               </div>
             </div>
           )}
-          <div className="header-accent-line" aria-hidden="true" />
           <MegaMenu customNavigation={navigation} />
           <nav className="mobile-category-strip" aria-label="Categorias da loja">
             {mobileCategories.map((item) => (
