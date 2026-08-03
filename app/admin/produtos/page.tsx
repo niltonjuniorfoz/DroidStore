@@ -1230,7 +1230,7 @@ export default function AdminProdutos() {
               </label>
               <label>Preço de Venda (Tabela)<input required name="price" type="number" min="1" step=".01" defaultValue={editing ? Number(editing.variants[0]?.price) : undefined} /></label>
               {ownerView && <label className="owner-field">Preço de custo (somente administrador)<input required name="costPrice" type="number" min="0" step=".01" defaultValue={editing ? Number(editing.variants[0]?.costPrice ?? 0) : 0} /></label>}
-              <label>Estoque Total<input required name="stock" type="number" min="0" step="1" defaultValue={editing?.variants[0]?.stock ?? 20} /></label>
+              <label>Estoque Total<input required name="stock" type="number" min="0" step="1" defaultValue={editing?.variants[0]?.stock ?? 0} /></label>
               <label>Alerta de estoque mínimo<input required name="lowStockThreshold" type="number" min="0" step="1" defaultValue={editing?.variants[0]?.lowStockThreshold ?? 5} /></label>
 
               <label className="wide">

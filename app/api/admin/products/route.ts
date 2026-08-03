@@ -45,7 +45,7 @@ const productSchema = z.object({
   condition: z.enum(PRODUCT_CONDITIONS),
   price: z.coerce.number().positive().max(100000),
   costPrice: z.coerce.number().min(0).max(100000).default(0),
-  stock: z.coerce.number().int().min(0).max(100000).default(20),
+  stock: z.coerce.number().int().min(0).max(100000).default(0),
   lowStockThreshold: z.coerce.number().int().min(0).max(10000).default(5),
   filterOptionIds: z.array(z.string().min(1).max(100)).max(30).default([]),
   imageUrls: z.array(imageUrlSchema).max(4).default([]),
