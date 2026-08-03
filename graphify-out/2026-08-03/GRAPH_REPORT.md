@@ -1,27 +1,27 @@
 # Graph Report - Site Android  (2026-08-03)
 
 ## Corpus Check
-- 143 files · ~710,761 words
+- 142 files · ~710,166 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 659 nodes · 1139 edges · 46 communities (35 shown, 11 thin omitted)
+- 651 nodes · 1136 edges · 39 communities (29 shown, 10 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.73)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2bbafcbd`
+- Built from commit: `3f691cd9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - auth.ts
-- ProductPageClient.tsx
+- SiteContentProvider.tsx
 - brazil.ts
-- conteudo/page.tsx
+- AutoplayVideo.tsx
 - catalog.ts
 - devDependencies
-- MegaMenu.tsx
+- Header.tsx
 - compilerOptions
 - dependencies
 - requireAdmin
@@ -29,23 +29,18 @@
 - What You Must Do When Invoked
 - ai-product/route.ts
 - planilha/page.tsx
-- app/page.tsx
 - admin/page.tsx
 - estoque/page.tsx
 - filtros/page.tsx
-- homeContent.ts
 - vercel.json
 - next.config.mjs
 - next-env.d.ts
 - { GET, POST }
 - productSpreadsheet.ts
-- content/route.ts
-- upload/route.ts
 - 2. Estrutura do Cabeçalho (Header STORE BR)
 - storefront.ts
 - graphify reference: extra exports and benchmark
 - DroidStore
-- home-footer-banner/route.ts
 - graphify reference: query, path, explain
 - graphify reference: add a URL and watch a folder
 - graphify reference: commit hook and native CLAUDE.md integration
@@ -54,11 +49,9 @@
 - graphify reference: transcribe video and audio
 - AGENTS.md
 - extraction-spec.md
-- site-content/route.ts
-- HomePromoBanners.tsx
 
 ## God Nodes (most connected - your core abstractions)
-1. `requireAdmin()` - 47 edges
+1. `requireAdmin()` - 48 edges
 2. `isOwnerAdmin()` - 26 edges
 3. `useSiteContent()` - 17 edges
 4. `compilerOptions` - 15 edges
@@ -72,47 +65,47 @@
 ## Surprising Connections (you probably didn't know these)
 - `DELETE()` --calls--> `requireAdmin()`  [EXTRACTED]
   app/api/admin/products/[id]/route.ts → src/lib/admin.ts
-- `GET()` --calls--> `getProducts()`  [EXTRACTED]
-  app/api/products/route.ts → src/lib/storefront.ts
-- `Home()` --calls--> `getProducts()`  [EXTRACTED]
-  app/page.tsx → src/lib/storefront.ts
-- `GET()` --calls--> `getProductBySlug()`  [EXTRACTED]
-  app/api/products/[slug]/route.ts → src/lib/storefront.ts
-- `ProductPage()` --calls--> `getProductBySlug()`  [EXTRACTED]
-  app/produto/[slug]/page.tsx → src/lib/storefront.ts
+- `main()` --calls--> `slugify()`  [EXTRACTED]
+  prisma/seed.ts → src/lib/slug.ts
+- `PUT()` --calls--> `readInstagramFromCatalogBanner()`  [EXTRACTED]
+  app/api/admin/content/route.ts → src/lib/contact.ts
+- `GET()` --calls--> `createProductsWorkbook()`  [EXTRACTED]
+  app/api/admin/product-spreadsheet/export/route.ts → src/lib/productSpreadsheet.ts
+- `AtendimentoPage()` --calls--> `useSiteContent()`  [EXTRACTED]
+  app/atendimento/page.tsx → src/components/SiteContentProvider.tsx
 
 ## Import Cycles
 - None detected.
 
-## Communities (46 total, 11 thin omitted)
+## Communities (39 total, 10 thin omitted)
 
 ### Community 0 - "auth.ts"
 Cohesion: 0.08
 Nodes (15): favoriteSchema, GET(), POST(), userId(), icons, labels, icons, labels (+7 more)
 
-### Community 1 - "ProductPageClient.tsx"
-Cohesion: 0.07
-Nodes (43): CartPage(), CheckoutPage(), Favorite, FavoritosPage(), money(), metadata, parseStorageInMb(), ProductPageClient() (+35 more)
+### Community 1 - "SiteContentProvider.tsx"
+Cohesion: 0.08
+Nodes (25): AdminPedidos(), money(), Order, OrderItem, statusLabels, AtendimentoPage(), emptyForm, SupportForm (+17 more)
 
 ### Community 2 - "brazil.ts"
-Cohesion: 0.06
-Nodes (47): AdminClientes(), Customer, money(), AdminConfiguracoes(), SettingsResponse, AdminPedidos(), money(), Order (+39 more)
+Cohesion: 0.07
+Nodes (35): AdminClientes(), Customer, money(), AdminConfiguracoes(), SettingsResponse, addressSchema, DELETE(), PATCH() (+27 more)
 
-### Community 3 - "conteudo/page.tsx"
-Cohesion: 0.20
-Nodes (12): AdminConteudo(), blankCatalogSlide(), blankSlide(), CatalogBanner, Content, defaultCatalogBanner(), initial, MenuItem (+4 more)
+### Community 3 - "AutoplayVideo.tsx"
+Cohesion: 0.33
+Nodes (7): AutoplayVideo(), localPosterFor(), Props, RETRY_DELAYS, CatalogCarousel(), CatalogSlide, isVideoUrl()
 
 ### Community 4 - "catalog.ts"
-Cohesion: 0.07
-Nodes (39): CatalogBanner, CatalogContent(), defaultBanner, PublicFilter, AutoplayVideo(), localPosterFor(), Props, RETRY_DELAYS (+31 more)
+Cohesion: 0.06
+Nodes (57): CartPage(), CatalogBanner, CatalogContent(), defaultBanner, PublicFilter, CheckoutPage(), Favorite, FavoritosPage() (+49 more)
 
 ### Community 5 - "devDependencies"
 Cohesion: 0.05
 Nodes (36): autoprefixer, devDependencies, autoprefixer, prisma, tailwindcss, tsx, @types/bcryptjs, @types/node (+28 more)
 
-### Community 6 - "MegaMenu.tsx"
-Cohesion: 0.50
-Nodes (4): DepartmentId, MegaMenu(), MegaMenuProps, TabletIcon()
+### Community 6 - "Header.tsx"
+Cohesion: 0.15
+Nodes (11): defaultNavigation, MenuItem, mobileCategories, popularSearches, QuickBuyState, searchMoney, SearchProduct, DepartmentId (+3 more)
 
 ### Community 7 - "compilerOptions"
 Cohesion: 0.07
@@ -123,12 +116,12 @@ Cohesion: 0.06
 Nodes (31): bcryptjs, exceljs, lucide-react, mercadopago, next, next-auth, dependencies, bcryptjs (+23 more)
 
 ### Community 9 - "requireAdmin"
-Cohesion: 0.06
-Nodes (53): GET(), GET(), SALES_STATUSES, DELETE(), PATCH(), patchSchema, createSchema, POST() (+45 more)
+Cohesion: 0.07
+Nodes (43): GET(), GET(), SALES_STATUSES, DELETE(), PATCH(), patchSchema, createSchema, POST() (+35 more)
 
 ### Community 10 - "produtos/page.tsx"
-Cohesion: 0.13
-Nodes (25): AdminProduct, AdminProdutos(), AdminVariant, CatalogFilter, emptyImages(), FilterOption, getBaseModelName(), GroupedModel (+17 more)
+Cohesion: 0.09
+Nodes (36): AdminProduct, AdminProdutos(), AdminVariant, CatalogFilter, emptyImages(), FilterOption, getBaseModelName(), GroupedModel (+28 more)
 
 ### Community 11 - "What You Must Do When Invoked"
 Cohesion: 0.08
@@ -142,37 +135,21 @@ Nodes (9): getOllamaUrl(), OllamaResponse, POST(), requestSchema, researchProduc
 Cohesion: 0.32
 Nodes (7): ChangeItem, fieldLabels, fieldValue(), ImportHistory, money(), Preview, ProductSpreadsheetPage()
 
-### Community 14 - "app/page.tsx"
-Cohesion: 0.21
-Nodes (8): dynamic, Home(), normalized(), productsForSection(), readSlides(), HomeFooterBanner(), ActionCardProps, HomeFooterBanner
-
 ### Community 15 - "admin/page.tsx"
 Cohesion: 0.40
 Nodes (5): AdminDashboard(), DailySale, Dashboard, money(), statusLabel
 
-### Community 18 - "homeContent.ts"
-Cohesion: 0.41
-Nodes (10): DEFAULT_HOME_FEATURED_TITLE, DEFAULT_HOME_FOOTER_BANNER, DEFAULT_HOME_PRODUCT_SECTIONS, DEFAULT_HOME_PROMO_BANNERS, readHomeFeaturedTitle(), readHomeFooterBanner(), readHomeProductSections(), readHomePromoBanners() (+2 more)
-
 ### Community 27 - "productSpreadsheet.ts"
-Cohesion: 0.16
-Nodes (19): POST(), runtime, GET(), runtime, cellText(), createProductsWorkbook(), decimal(), normalize() (+11 more)
-
-### Community 28 - "content/route.ts"
-Cohesion: 0.22
-Nodes (6): catalogBannerSchema, homeFooterBannerSchema, homeProductSectionSchema, homePromoBannerSchema, schema, slideSchema
-
-### Community 29 - "upload/route.ts"
-Cohesion: 0.47
-Nodes (5): allowed, footerBannerMimeTypes, jsonRecord(), POST(), saveFooterBanner()
+Cohesion: 0.19
+Nodes (17): GET(), runtime, cellText(), createProductsWorkbook(), decimal(), normalize(), parseCondition(), ParsedRow (+9 more)
 
 ### Community 30 - "2. Estrutura do Cabeçalho (Header STORE BR)"
 Cohesion: 0.20
 Nodes (9): 1. Paleta de Cores e Tipografia, 2. Estrutura do Cabeçalho (Header STORE BR), 3. Padrões de Layout e Componentes da Página Inicial, A. Barra Superior (Top Utility Bar), B. Cabeçalho Principal (Main Header), C. Menu de Categorias (Sub-Header Navigation), Cores da Marca & Destaques, Design System: STORE BR (+1 more)
 
 ### Community 31 - "storefront.ts"
-Cohesion: 0.22
-Nodes (11): GET(), GET(), publicCache, ProductPage(), conditionLabels, getFamilyVariantsForProduct(), getProductBySlug(), getProducts() (+3 more)
+Cohesion: 0.06
+Nodes (55): AdminConteudo(), blankCatalogSlide(), blankSlide(), CatalogBanner, Content, defaultCatalogBanner(), initial, MenuItem (+47 more)
 
 ### Community 32 - "graphify reference: extra exports and benchmark"
 Cohesion: 0.22
@@ -181,10 +158,6 @@ Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only
 ### Community 33 - "DroidStore"
 Cohesion: 0.22
 Nodes (8): Conteúdo de produtos com IA, DroidStore, Implantação, Login com Google, Pagamentos, Preparação, Qualidade, Segurança
-
-### Community 34 - "home-footer-banner/route.ts"
-Cohesion: 0.50
-Nodes (4): dynamic, GET(), record(), revalidate
 
 ### Community 35 - "graphify reference: query, path, explain"
 Cohesion: 0.33
@@ -202,29 +175,25 @@ Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify refer
 Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
-### Community 44 - "site-content/route.ts"
-Cohesion: 0.50
-Nodes (4): dynamic, GET(), revalidate, getSiteContent()
-
 ## Knowledge Gaps
-- **257 isolated node(s):** `MenuItem`, `CatalogBanner`, `Content`, `initial`, `slideSchema` (+252 more)
+- **254 isolated node(s):** `MenuItem`, `CatalogBanner`, `Content`, `initial`, `DailySale` (+249 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `requireAdmin()` connect `requireAdmin` to `brazil.ts`, `produtos/page.tsx`, `ai-product/route.ts`, `productSpreadsheet.ts`, `content/route.ts`, `upload/route.ts`?**
-  _High betweenness centrality (0.050) - this node is a cross-community bridge._
-- **Why does `useSiteContent()` connect `ProductPageClient.tsx` to `brazil.ts`, `catalog.ts`?**
-  _High betweenness centrality (0.015) - this node is a cross-community bridge._
-- **Why does `CatalogProduct` connect `catalog.ts` to `ProductPageClient.tsx`, `app/page.tsx`, `storefront.ts`?**
+- **Why does `requireAdmin()` connect `requireAdmin` to `brazil.ts`, `produtos/page.tsx`, `ai-product/route.ts`, `productSpreadsheet.ts`, `storefront.ts`?**
+  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+- **Why does `useSiteContent()` connect `catalog.ts` to `SiteContentProvider.tsx`, `Header.tsx`?**
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+- **Why does `CatalogProduct` connect `catalog.ts` to `storefront.ts`?**
   _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **What connects `MenuItem`, `CatalogBanner`, `Content` to the rest of the system?**
-  _257 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _254 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `auth.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.07526881720430108 - nodes in this community are weakly interconnected._
-- **Should `ProductPageClient.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.06504494976203067 - nodes in this community are weakly interconnected._
+- **Should `SiteContentProvider.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.07827260458839407 - nodes in this community are weakly interconnected._
 - **Should `brazil.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.05501165501165501 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07180851063829788 - nodes in this community are weakly interconnected._

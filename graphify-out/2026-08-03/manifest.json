@@ -15,8 +15,8 @@
     "semantic_hash": "4366c24aee3b1b53bd85940523909125"
   },
   "app/admin/conteudo/page.tsx": {
-    "mtime": 1785727379.0,
-    "ast_hash": "d225a4d438c8ac07bd2db797126a52ee",
+    "mtime": 1785723677.0,
+    "ast_hash": "d80fa981ee9e3662d46832677d135989",
     "semantic_hash": ""
   },
   "app/admin/estoque/page.tsx": {
@@ -80,8 +80,8 @@
     "semantic_hash": "bf6cddcf03a39b20efb9f4556ba46da7"
   },
   "app/api/admin/content/route.ts": {
-    "mtime": 1785727379.0,
-    "ast_hash": "76cc0a96b1f5f037b260930757fc4d32",
+    "mtime": 1785723677.0,
+    "ast_hash": "c3f72f20b5f190b10b383072aad805c8",
     "semantic_hash": ""
   },
   "app/api/admin/customers/route.ts": {
@@ -170,8 +170,8 @@
     "semantic_hash": "a7b1348133520afe41a3f16624ccf88e"
   },
   "app/api/admin/upload/route.ts": {
-    "mtime": 1785727379.0,
-    "ast_hash": "9a836e1aa81a182103eac466fa1ed5b1",
+    "mtime": 1785641646.0058248,
+    "ast_hash": "e15ba5488d2037004beb08251988d105",
     "semantic_hash": ""
   },
   "app/api/auth/[...nextauth]/route.ts": {
@@ -515,8 +515,8 @@
     "semantic_hash": "ba4016abda0c536dfd4b986d4c1de52b"
   },
   "src/lib/storefront.ts": {
-    "mtime": 1785727379.0,
-    "ast_hash": "3e5deaa27284b09d86e82729106f78c5",
+    "mtime": 1785723677.0,
+    "ast_hash": "0aa4780ad27d910c004581c9ad726837",
     "semantic_hash": ""
   },
   "tests/catalog.test.ts": {
@@ -1050,8 +1050,8 @@
     "semantic_hash": ""
   },
   "src/components/MobileAutoCarousel.tsx": {
-    "mtime": 1785727379.0,
-    "ast_hash": "ab4866503211260e12b95e5778b5bd8b",
+    "mtime": 1785723677.0,
+    "ast_hash": "48ad5a901306613fb93bf0d5b53eca3d",
     "semantic_hash": ""
   },
   "src/components/ProductImage.tsx": {
@@ -1097,11 +1097,6 @@
   "public/home-banners/aura-tech-footer-banner.png": {
     "mtime": 1785723677.0,
     "ast_hash": "1f04850f0d8021cf56aa36f517b852a1",
-    "semantic_hash": ""
-  },
-  "app/api/media/home-footer-banner/route.ts": {
-    "mtime": 1785727379.0,
-    "ast_hash": "f5fa2fda81654c4bebf6d6ba90c0f81f",
     "semantic_hash": ""
   }
 }

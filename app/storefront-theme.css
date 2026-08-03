@@ -5909,3 +5909,69 @@ body {
   .storefront-theme .aura-footer-benefits b { font-size: .57rem; }
   .storefront-theme .aura-footer-benefits small { font-size: .5rem; }
 }
+
+
+/* ==========================================================================
+   Aura Tech — alinhamento final de banners e espaçamento mobile
+   ========================================================================== */
+
+/* O banner institucional usa exatamente a mesma largura-base das prateleiras. */
+.storefront-theme .home-footer-banner {
+  width: calc(100% - 2.5rem) !important;
+  max-width: 1460px !important;
+  box-sizing: border-box !important;
+}
+
+/* A imagem sempre aparece inteira, sem recorte, independentemente da proporção
+   escolhida no painel administrativo. */
+.storefront-theme .home-footer-banner img {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+@media (max-width: 650px) {
+  /* Promoções, carrosséis e banner final passam a seguir a mesma coluna visual. */
+  .storefront-theme .home-section.home-promo-grid,
+  .storefront-theme .home-section.home-product-shelf,
+  .storefront-theme .home-section.featured-carousel-section,
+  .storefront-theme .home-footer-banner {
+    width: calc(100% - 1rem) !important;
+    max-width: none !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .storefront-theme .home-section.home-promo-grid {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Mantém o espaçamento padrão entre Xiaomi, Informática e demais prateleiras. */
+  .storefront-theme .home-section.home-product-shelf,
+  .storefront-theme .home-section.featured-carousel-section {
+    margin-top: .9rem !important;
+    margin-bottom: .9rem !important;
+  }
+
+  .storefront-theme .home-product-shelf + .home-product-shelf {
+    margin-top: 1rem !important;
+  }
+
+  .storefront-theme .home-footer-banner {
+    margin-top: 1rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .storefront-theme .home-footer-banner img {
+    height: auto !important;
+    aspect-ratio: auto !important;
+    object-fit: contain !important;
+  }
+}

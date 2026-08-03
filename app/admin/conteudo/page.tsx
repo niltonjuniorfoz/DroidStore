@@ -92,6 +92,12 @@ export default function AdminConteudo() {
     setMessage(notification);
   }
 
+  function scrollToAdminMessage() {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
   useEffect(() => {
     fetch("/api/admin/content").then((response) => response.json()).then((data) => {
       const savedSlides = Array.isArray(data.heroSlides) && data.heroSlides.length
@@ -217,39 +223,45 @@ export default function AdminConteudo() {
   async function upload(index: number, file?: File) {
     if (!file) return;
     setBusy(true);
-    setMessage("");
+    setMessage("Enviando nova imagem...");
+    scrollToAdminMessage();
     const form = new FormData();
     form.set("file", file);
     const response = await fetch("/api/admin/upload", { method: "POST", body: form });
     const data = await response.json();
     if (response.ok) updateSlide(index, { imageUrl: data.url });
-    else setMessage(data.error);
+    else setMessage(data.error ?? "Não foi possível trocar a imagem.");
+    scrollToAdminMessage();
     setBusy(false);
   }
 
   async function uploadCatalogSlide(index: number, file?: File) {
     if (!file) return;
     setBusy(true);
-    setMessage("");
+    setMessage("Enviando nova imagem...");
+    scrollToAdminMessage();
     const form = new FormData();
     form.set("file", file);
     const response = await fetch("/api/admin/upload", { method: "POST", body: form });
     const data = await response.json();
     if (response.ok) updateCatalogSlide(index, { imageUrl: data.url });
-    else setMessage(data.error);
+    else setMessage(data.error ?? "Não foi possível trocar a imagem.");
+    scrollToAdminMessage();
     setBusy(false);
   }
 
   async function uploadHomePromo(index: number, file?: File) {
     if (!file) return;
     setBusy(true);
-    setMessage("");
+    setMessage("Enviando nova imagem...");
+    scrollToAdminMessage();
     const form = new FormData();
     form.set("file", file);
     const response = await fetch("/api/admin/upload", { method: "POST", body: form });
     const data = await response.json();
     if (response.ok) updateHomePromo(index, { imageUrl: data.url });
-    else setMessage(data.error);
+    else setMessage(data.error ?? "Não foi possível trocar a imagem.");
+    scrollToAdminMessage();
     setBusy(false);
   }
 
@@ -257,6 +269,7 @@ export default function AdminConteudo() {
     if (!file) return;
     setBusy(true);
     setMessage("Enviando e salvando o novo banner...");
+    scrollToAdminMessage();
 
     try {
       const form = new FormData();
@@ -267,6 +280,7 @@ export default function AdminConteudo() {
 
       if (!response.ok) {
         setMessage(data.error ?? "Não foi possível trocar o banner.");
+        scrollToAdminMessage();
         return;
       }
 
@@ -277,8 +291,10 @@ export default function AdminConteudo() {
         }),
         data.message ?? "Banner trocado e publicado com sucesso.",
       );
+      scrollToAdminMessage();
     } catch {
       setMessage("Não foi possível trocar o banner. Verifique sua conexão e tente novamente.");
+      scrollToAdminMessage();
     } finally {
       setBusy(false);
     }
@@ -313,7 +329,7 @@ export default function AdminConteudo() {
         </button>
       </header>
 
-      {message && <p className="admin-message" role="status">{message}</p>}
+      {message && <p className="admin-message" role="status" aria-live="polite">{message}</p>}
 
       {/* --- KPI CARDS DE CONTEÚDO --- */}
       <section className="catalog-kpi-grid">
