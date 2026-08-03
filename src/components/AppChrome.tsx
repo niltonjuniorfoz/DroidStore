@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Instagram, Mail, MessageCircle } from "lucide-react";
+import { Award, Headphones, Instagram, Mail, MessageCircle, ShieldCheck, Truck } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import Header from "./Header";
 import CookieBanner from "./CookieBanner";
@@ -139,25 +139,56 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     <Header />
     <CartDrawer />
     {children}
-    <footer className="site-footer">
-      <div>
-        <strong>{store.name}</strong>
-        <p>Especialistas em tecnologia.</p>
+    <footer className="site-footer aura-footer">
+      <span className="aura-footer-watermark" aria-hidden="true">AURA</span>
+
+      <div className="aura-footer-main">
+        <section className="aura-footer-brand" aria-label="Aura Tech">
+          <img src="/aura-tech-logo.png" alt="Aura Tech" loading="lazy" decoding="async" />
+          <p>Tecnologia que conecta você ao futuro. Produtos selecionados, compra segura e atendimento de verdade.</p>
+        </section>
+
+        <nav className="aura-footer-column" aria-label="Categorias do rodapé">
+          <strong>Categorias</strong>
+          <a href="/celulares?q=iphone">iPhone</a>
+          <a href="/celulares?q=samsung">Samsung</a>
+          <a href="/celulares?q=motorola">Motorola</a>
+          <a href="/celulares?q=xiaomi">Xiaomi</a>
+          <a href="/celulares?categoria=notebook">Notebook</a>
+        </nav>
+
+        <section className="aura-footer-column aura-footer-payment">
+          <strong>Pagamento seguro</strong>
+          <p>Ambiente protegido para suas compras.</p>
+          <div className="aura-payment-logos" aria-label="Formas de pagamento aceitas">
+            <span className="payment-visa" aria-label="Visa">VISA</span>
+            <span className="payment-mastercard" aria-label="Mastercard"><i /><i /></span>
+            <span className="payment-pix" aria-label="Pix">PIX</span>
+            <span className="payment-amex" aria-label="American Express">AMEX</span>
+            <span className="payment-apple" aria-label="Apple Pay"> Pay</span>
+          </div>
+        </section>
+
+        <section className="aura-footer-column aura-footer-contact">
+          <strong>Atendimento</strong>
+          <p>Fale com a Aura Tech.</p>
+          <div className="aura-footer-contact-icons">
+            {contactLinks.whatsapp && <a href={contactLinks.whatsapp} target="_blank" rel="noreferrer" aria-label="WhatsApp" title="WhatsApp"><MessageCircle /></a>}
+            {contactLinks.instagram && <a href={contactLinks.instagram} target="_blank" rel="noreferrer" aria-label="Instagram" title="Instagram"><Instagram /></a>}
+            {contactLinks.email && <a href={contactLinks.email} aria-label="E-mail" title="E-mail"><Mail /></a>}
+            {!contactLinks.whatsapp && !contactLinks.email && !contactLinks.instagram && <small>Cadastre os canais no painel administrativo.</small>}
+          </div>
+        </section>
       </div>
-      <div>
-        <strong>Compra segura</strong>
-        <p>Pagamento processado pelo Mercado Pago.</p>
+
+      <div className="aura-footer-benefits" aria-label="Benefícios da Aura Tech">
+        <div><ShieldCheck /><span><b>Compra 100% segura</b><small>Seus dados protegidos</small></span></div>
+        <div><Award /><span><b>Produtos de qualidade</b><small>Seleção e procedência</small></span></div>
+        <div><Truck /><span><b>Envio para todo o Brasil</b><small>Entrega rápida e rastreada</small></span></div>
+        <div><Headphones /><span><b>Atendimento especializado</b><small>Antes e depois da compra</small></span></div>
       </div>
-      <div className="footer-support">
-        <strong>Atendimento</strong>
-        <p>Escolha o canal mais fácil para falar com a loja.</p>
-        <div className="footer-contact-actions">
-          {contactLinks.whatsapp && <a href={contactLinks.whatsapp} target="_blank" rel="noreferrer"><MessageCircle /> WhatsApp</a>}
-          {contactLinks.email && <a href={contactLinks.email}><Mail /> E-mail</a>}
-          {contactLinks.instagram && <a href={contactLinks.instagram} target="_blank" rel="noreferrer"><Instagram /> Instagram</a>}
-          {!contactLinks.whatsapp && !contactLinks.email && !contactLinks.instagram && <small>Cadastre os canais no painel administrativo.</small>}
-        </div>
-      </div>
+
+      <div className="aura-footer-bottom">© {new Date().getFullYear()} {store.name}. Todos os direitos reservados.</div>
     </footer>
     <CookieBanner />
   </div>;

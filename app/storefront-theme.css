@@ -5406,3 +5406,486 @@ body {
     object-position: center;
   }
 }
+
+/* ========================================================================== 
+   Aura Tech — alinhamento mobile das prateleiras e feedback de interação
+   ========================================================================== */
+
+/* O estado ativo agora pertence ao carrossel tocado/arrastado, evitando que o
+   efeito dependa apenas de :hover ou de um seletor amplo da página. */
+.storefront-theme .home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading,
+.storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading,
+.storefront-theme .home-product-shelf:hover .home-shelf-heading,
+.storefront-theme .featured-carousel-section:hover .home-shelf-heading {
+  border-bottom-color: var(--store-orange) !important;
+}
+.storefront-theme .home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading::before,
+.storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading::before,
+.storefront-theme .home-product-shelf:hover .home-shelf-heading::before,
+.storefront-theme .featured-carousel-section:hover .home-shelf-heading::before {
+  opacity: 1 !important;
+}
+.storefront-theme .home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading h2,
+.storefront-theme .home-product-shelf:has(.product-carousel-shell.is-active) .home-shelf-heading a,
+.storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading h2,
+.storefront-theme .featured-carousel-section:has(.product-carousel-shell.is-active) .home-shelf-heading a,
+.storefront-theme .home-product-shelf:hover .home-shelf-heading h2,
+.storefront-theme .home-product-shelf:hover .home-shelf-heading a,
+.storefront-theme .featured-carousel-section:hover .home-shelf-heading h2,
+.storefront-theme .featured-carousel-section:hover .home-shelf-heading a {
+  color: #fff !important;
+}
+
+@media (max-width: 650px) {
+  /* Mesma largura, margem e contorno para todas as prateleiras e para o banner. */
+  .storefront-theme .home-section.home-product-shelf,
+  .storefront-theme .home-section.featured-carousel-section,
+  .storefront-theme .home-footer-banner {
+    width: calc(100% - 1rem) !important;
+    max-width: none !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .storefront-theme .home-section.home-product-shelf,
+  .storefront-theme .home-section.featured-carousel-section {
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 1px solid #dce4df !important;
+    border-radius: 16px !important;
+    background: #fff !important;
+    box-shadow: 0 10px 28px rgba(22, 30, 26, .06) !important;
+  }
+
+  .storefront-theme .home-section.home-product-shelf .home-shelf-heading,
+  .storefront-theme .home-section.featured-carousel-section .home-shelf-heading {
+    position: relative;
+    width: 100% !important;
+    min-height: 43px;
+    margin: 0 !important;
+    padding: .62rem .75rem !important;
+    box-sizing: border-box;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(255, 121, 0, .24) !important;
+    border-radius: 15px 15px 0 0 !important;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .storefront-theme .home-section.home-product-shelf .home-shelf-heading::before,
+  .storefront-theme .home-section.featured-carousel-section .home-shelf-heading::before {
+    display: block !important;
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(100deg, var(--store-orange-dark), #ff9638);
+    opacity: 0;
+    transition: opacity 1.05s cubic-bezier(.22, 1, .36, 1) !important;
+  }
+
+  /* O cabeçalho começa no laranja suave já usado no celular; ao tocar/arrastar,
+     a camada ativa entra devagar e dá o feedback visual solicitado. */
+  .storefront-theme .home-section.home-product-shelf .home-shelf-heading,
+  .storefront-theme .home-section.featured-carousel-section .home-shelf-heading {
+    background: linear-gradient(90deg, #ff8522, #ff9a43) !important;
+  }
+  .storefront-theme .home-section.home-product-shelf .home-shelf-heading h2,
+  .storefront-theme .home-section.home-product-shelf .home-shelf-heading a,
+  .storefront-theme .home-section.featured-carousel-section .home-shelf-heading h2,
+  .storefront-theme .home-section.featured-carousel-section .home-shelf-heading a {
+    color: #fff !important;
+    transition: color .9s ease !important;
+  }
+
+  .storefront-theme .home-section.featured-carousel-section .featured-carousel-viewport,
+  .storefront-theme .home-product-shelf .product-carousel-shell,
+  .storefront-theme .featured-carousel-section .product-carousel-shell {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .storefront-theme .home-product-shelf .mobile-auto-track,
+  .storefront-theme .featured-carousel-section .mobile-auto-track,
+  .storefront-theme .featured-carousel-section .featured-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: .78rem .72rem .9rem !important;
+    box-sizing: border-box !important;
+    gap: .72rem !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x mandatory !important;
+    scroll-padding-inline: .72rem !important;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y !important;
+  }
+
+  .storefront-theme .infinite-carousel-track > .carousel-slide {
+    flex: 0 0 min(76vw, 255px) !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: normal;
+  }
+
+  .storefront-theme .home-footer-banner {
+    margin-top: 1rem !important;
+    margin-bottom: 1.5rem !important;
+    border: 1px solid rgba(255, 121, 0, .25) !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 28px rgba(22, 30, 26, .08) !important;
+  }
+  .storefront-theme .home-footer-banner img {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1983 / 793;
+    object-fit: cover !important;
+    object-position: center !important;
+  }
+}
+
+/* ========================================================================== 
+   Aura Tech — rodapé branco, compacto e com marca d'água suave
+   ========================================================================== */
+.storefront-theme .site-footer.aura-footer {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  margin: 0;
+  padding: 2rem max(1rem, calc((100vw - 1460px) / 2)) .9rem;
+  display: block !important;
+  overflow: hidden;
+  border: 0;
+  border-top: 1px solid #e8ecea;
+  background: #fff;
+  color: #17201c;
+  box-shadow: 0 -10px 34px rgba(20, 28, 24, .035);
+}
+
+.storefront-theme .aura-footer-watermark {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: -2.5rem;
+  transform: translateX(-50%);
+  color: var(--store-orange);
+  font-size: clamp(7rem, 20vw, 19rem);
+  font-weight: 950;
+  line-height: .72;
+  letter-spacing: .08em;
+  opacity: .035;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.storefront-theme .aura-footer-main,
+.storefront-theme .aura-footer-benefits,
+.storefront-theme .aura-footer-bottom {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1460px);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.storefront-theme .aura-footer-main {
+  display: grid;
+  grid-template-columns: minmax(230px, 1.35fr) minmax(130px, .65fr) minmax(220px, .95fr) minmax(180px, .7fr);
+  gap: clamp(1.2rem, 3vw, 3.6rem);
+  align-items: start;
+}
+
+.storefront-theme .aura-footer-brand img {
+  display: block;
+  width: min(190px, 100%);
+  height: auto;
+  max-height: 78px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.storefront-theme .aura-footer-brand p,
+.storefront-theme .aura-footer-column p {
+  margin: .65rem 0 0;
+  color: #67736d !important;
+  font-size: .72rem;
+  line-height: 1.65;
+}
+
+.storefront-theme .aura-footer-brand p {
+  max-width: 330px;
+}
+
+.storefront-theme .aura-footer-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .48rem;
+}
+
+.storefront-theme .aura-footer-column > strong {
+  margin-bottom: .18rem;
+  color: #17201c !important;
+  font-size: .76rem;
+  font-weight: 900;
+}
+
+.storefront-theme .aura-footer-column > a {
+  color: #5e6a64;
+  text-decoration: none;
+  font-size: .7rem;
+  font-weight: 650;
+  transition: color .18s ease, transform .18s ease;
+}
+
+.storefront-theme .aura-footer-column > a:hover {
+  color: var(--store-orange-dark);
+  transform: translateX(2px);
+}
+
+.storefront-theme .aura-payment-logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .42rem;
+  margin-top: .55rem;
+}
+
+.storefront-theme .aura-payment-logos > span {
+  min-width: 48px;
+  height: 29px;
+  padding: 0 .45rem;
+  border: 1px solid #dde3e0;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 3px 10px rgba(20,28,24,.05);
+  font-size: .62rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.storefront-theme .payment-visa { color: #1434cb; font-style: italic; }
+.storefront-theme .payment-pix { color: #008f83; letter-spacing: .04em; }
+.storefront-theme .payment-amex { color: #1976d2; font-size: .56rem !important; }
+.storefront-theme .payment-apple { color: #111; font-size: .64rem !important; }
+
+.storefront-theme .payment-mastercard {
+  position: relative;
+  min-width: 52px !important;
+  gap: 0;
+}
+.storefront-theme .payment-mastercard i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: block;
+  background: #eb001b;
+}
+.storefront-theme .payment-mastercard i + i {
+  margin-left: -5px;
+  background: #f79e1b;
+  opacity: .92;
+}
+
+.storefront-theme .aura-footer-contact-icons {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin-top: .55rem;
+}
+
+.storefront-theme .aura-footer-contact-icons a {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255,121,0,.35);
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,.88);
+  color: var(--store-orange-dark);
+  text-decoration: none;
+  box-shadow: 0 5px 14px rgba(255,121,0,.08);
+  transition: color .2s ease, background .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.storefront-theme .aura-footer-contact-icons a:hover {
+  border-color: var(--store-orange);
+  background: var(--store-orange);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.storefront-theme .aura-footer-contact-icons svg {
+  width: 18px;
+  height: 18px;
+}
+
+.storefront-theme .aura-footer-contact-icons small {
+  color: #7b8781;
+  font-size: .63rem;
+  line-height: 1.4;
+}
+
+.storefront-theme .aura-footer-benefits {
+  margin-top: 1.55rem;
+  padding: 1rem 0 .9rem;
+  border-top: 1px solid #e7ebe9;
+  border-bottom: 1px solid #e7ebe9;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.storefront-theme .aura-footer-benefits > div {
+  min-width: 0;
+  padding: 0 clamp(.7rem, 2vw, 1.5rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .65rem;
+  border-right: 1px solid #e7ebe9;
+}
+.storefront-theme .aura-footer-benefits > div:first-child { padding-left: 0; justify-content: flex-start; }
+.storefront-theme .aura-footer-benefits > div:last-child { padding-right: 0; border-right: 0; justify-content: flex-end; }
+
+.storefront-theme .aura-footer-benefits svg {
+  flex: 0 0 auto;
+  width: 25px;
+  height: 25px;
+  color: var(--store-orange);
+  stroke-width: 1.8;
+}
+
+.storefront-theme .aura-footer-benefits span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .12rem;
+}
+
+.storefront-theme .aura-footer-benefits b {
+  color: #222c27;
+  font-size: .65rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.storefront-theme .aura-footer-benefits small {
+  color: #78837e;
+  font-size: .56rem;
+  line-height: 1.25;
+}
+
+.storefront-theme .aura-footer-bottom {
+  padding-top: .85rem;
+  color: #7a8580;
+  text-align: center;
+  font-size: .58rem;
+}
+
+@media (max-width: 900px) {
+  .storefront-theme .aura-footer-main {
+    grid-template-columns: 1.15fr .7fr .95fr;
+  }
+  .storefront-theme .aura-footer-contact {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    padding-top: .9rem;
+    border-top: 1px solid #edf0ee;
+  }
+  .storefront-theme .aura-footer-contact p { margin: 0; }
+  .storefront-theme .aura-footer-contact-icons { margin-top: 0; }
+}
+
+@media (max-width: 650px) {
+  .storefront-theme .site-footer.aura-footer {
+    padding: 1.35rem .8rem calc(74px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .storefront-theme .aura-footer-watermark {
+    bottom: 4.2rem;
+    font-size: 34vw;
+    opacity: .028;
+  }
+
+  .storefront-theme .aura-footer-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.15rem .85rem;
+  }
+
+  .storefront-theme .aura-footer-brand {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    align-items: center;
+    gap: .8rem;
+  }
+
+  .storefront-theme .aura-footer-brand img {
+    width: 120px;
+    max-height: 56px;
+  }
+
+  .storefront-theme .aura-footer-brand p {
+    margin: 0;
+    font-size: .62rem;
+    line-height: 1.5;
+  }
+
+  .storefront-theme .aura-footer-column > strong { font-size: .7rem; }
+  .storefront-theme .aura-footer-column > a,
+  .storefront-theme .aura-footer-column p { font-size: .61rem; }
+
+  .storefront-theme .aura-footer-contact {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: .7rem;
+  }
+
+  .storefront-theme .aura-footer-contact p { display: none; }
+  .storefront-theme .aura-footer-contact-icons { margin: 0; }
+  .storefront-theme .aura-footer-contact-icons a { width: 38px; height: 38px; }
+
+  .storefront-theme .aura-payment-logos { gap: .32rem; }
+  .storefront-theme .aura-payment-logos > span {
+    min-width: 43px;
+    height: 27px;
+    padding: 0 .34rem;
+    font-size: .55rem;
+  }
+
+  .storefront-theme .aura-footer-benefits {
+    margin-top: 1.15rem;
+    padding: .8rem 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem 0;
+  }
+
+  .storefront-theme .aura-footer-benefits > div,
+  .storefront-theme .aura-footer-benefits > div:first-child,
+  .storefront-theme .aura-footer-benefits > div:last-child {
+    padding: 0 .55rem;
+    justify-content: flex-start;
+    border-right: 1px solid #e7ebe9;
+  }
+
+  .storefront-theme .aura-footer-benefits > div:nth-child(2n) { border-right: 0; }
+  .storefront-theme .aura-footer-benefits svg { width: 21px; height: 21px; }
+  .storefront-theme .aura-footer-benefits b { font-size: .57rem; }
+  .storefront-theme .aura-footer-benefits small { font-size: .5rem; }
+}

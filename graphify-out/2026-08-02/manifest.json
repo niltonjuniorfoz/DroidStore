@@ -265,8 +265,8 @@
     "semantic_hash": "d8c608ba94509e5f25be52d8fc44be05"
   },
   "app/layout.tsx": {
-    "mtime": 1785718959.0,
-    "ast_hash": "e0359e4d9a5735da947e5e4bd2c5a64b",
+    "mtime": 1785721537.0,
+    "ast_hash": "b8562aa0f71e880df771e19a58e32d41",
     "semantic_hash": ""
   },
   "app/login/page.tsx": {
@@ -425,8 +425,8 @@
     "semantic_hash": ""
   },
   "src/components/Header.tsx": {
-    "mtime": 1785719912.0,
-    "ast_hash": "781121f37b2d94a73fa143399faee3c4",
+    "mtime": 1785721537.0,
+    "ast_hash": "aef9ba3584b2023310641dd312a96cc2",
     "semantic_hash": ""
   },
   "src/components/HeroCarousel.tsx": {
@@ -755,8 +755,8 @@
     "semantic_hash": ""
   },
   "app/icon.png": {
-    "mtime": 1785161352.0,
-    "ast_hash": "c1459f164de5789cd19083553164495e",
+    "mtime": 1785721498.0,
+    "ast_hash": "4d1b8dc61ae26323aaea9a24084e094e",
     "semantic_hash": ""
   },
   "public/android-mascot.png": {
@@ -1077,6 +1077,16 @@
   "public/.well-known/srscooby-njr-49912131-fingerprint.txt": {
     "mtime": 1785718959.0,
     "ast_hash": "2ad14e76632ecd934cfe30488a83020f",
+    "semantic_hash": ""
+  },
+  "app/apple-icon.png": {
+    "mtime": 1785721529.0,
+    "ast_hash": "05d2c26bc9758d37b1222608b9e9a7ab",
+    "semantic_hash": ""
+  },
+  "public/aura-tech-logo.png": {
+    "mtime": 1785721498.0,
+    "ast_hash": "4132f6ec5b9ff3cc379f044fac57fb2e",
     "semantic_hash": ""
   }
 }
