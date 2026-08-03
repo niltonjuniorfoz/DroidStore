@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "../../../../src/lib/prisma";
 import { requireAdmin } from "../../../../src/lib/admin";
+import { audit } from "../../../../src/lib/audit";
 import { readInstagramFromCatalogBanner } from "../../../../src/lib/contact";
 import {
   readHomeFeaturedTitle,
@@ -93,7 +94,8 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  if (!await requireAdmin()) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const session = await requireAdmin();
+  if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Revise os textos, imagens e links informados." }, { status: 400 });
 
@@ -154,6 +156,12 @@ export async function PUT(req: Request) {
         data: navigation.map((item, position) => ({ label: item.label, href: item.href, active: item.active, position })),
       });
     }
+  });
+  await audit(session, {
+    action: "content.update",
+    entity: "SiteContent",
+    entityId: "main",
+    summary: "Vitrine e menu atualizados",
   });
   return NextResponse.json({ ok: true });
 }

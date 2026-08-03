@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "../../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
+import { audit } from "../../../../../src/lib/audit";
 import { hasFeaturedCapacity, MAX_FEATURED_PRODUCTS } from "../../../../../src/lib/featuredProducts";
 import {
   isSupportedProductStorage,
@@ -176,6 +177,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       },
     });
   });
+  await audit(session, {
+    action: "product.update",
+    entity: "Product",
+    entityId: id,
+    summary: `Produto atualizado: ${product.name} (${Object.keys(parsed.data).join(", ")})`,
+    after: { price, costPriceChanged: costPrice !== undefined, stock, active: parsed.data.active },
+  });
   if (isOwnerAdmin(session)) return NextResponse.json(product);
   return NextResponse.json({
     ...product,
@@ -184,7 +192,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!await requireAdmin()) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const session = await requireAdmin();
+  if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   const { id } = await params;
   const product = await prisma.product.findUnique({
     where: { id },
@@ -198,6 +207,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const hasOrderHistory = product.variants.some((variant) => variant._count.orderItems > 0);
   if (hasOrderHistory) {
     await prisma.product.update({ where: { id }, data: { active: false, featured: false } });
+    await audit(session, {
+      action: "product.deactivate",
+      entity: "Product",
+      entityId: id,
+      summary: "Produto desativado (removido da vitrine)",
+    });
     return NextResponse.json({
       deleted: false,
       archived: true,

@@ -266,6 +266,22 @@ model Favorite {
   @@index([userId, createdAt])
 }
 
+model AdminAuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actorEmail String?
+  action     String // ex.: "product.update", "order.status", "settings.update"
+  entity     String // ex.: "Product", "Order", "SiteContent", "User"
+  entityId   String?
+  summary    String? // frase curta legível no painel
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entity, entityId, createdAt])
+  @@index([createdAt])
+}
+
 model CatalogFilter {
   id        String   @id @default(uuid())
   name      String

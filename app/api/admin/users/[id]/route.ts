@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "../../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
 import { validateAdminPassword, validateAdminPatch } from "../../../../../src/lib/adminUsers";
+import { audit } from "../../../../../src/lib/audit";
 
 const patchSchema = z.object({
   role: z.enum(["ADMIN", "MANAGER"]).optional(),
@@ -82,5 +83,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof updated === "string") {
     return NextResponse.json({ error: updated }, { status: 409 });
   }
+  const changes = [
+    parsed.data.role !== undefined ? `papel → ${parsed.data.role}` : null,
+    parsed.data.active !== undefined ? (parsed.data.active ? "reativado" : "desativado") : null,
+    parsed.data.password !== undefined ? "senha redefinida" : null,
+  ].filter(Boolean).join(", ");
+  await audit(session, {
+    action: "user.update",
+    entity: "User",
+    entityId: updated.id,
+    summary: `${updated.email}: ${changes}`,
+    after: { role: updated.role, active: updated.active },
+  });
   return NextResponse.json(updated);
 }

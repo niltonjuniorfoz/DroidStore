@@ -5,6 +5,7 @@ import prisma from "../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../src/lib/admin";
 import { readInstagramFromCatalogBanner } from "../../../../src/lib/contact";
 import { brazilNationalPhoneDigits, formatBrazilPhone } from "../../../../src/lib/brazil";
+import { audit } from "../../../../src/lib/audit";
 
 const settingsSchema = z.object({
   storeName: z.string().trim().min(2).max(80),
@@ -112,6 +113,28 @@ export async function PATCH(req: Request) {
       transactionalReplyTo: settings.transactionalReplyTo || null,
       whatsapp: formattedWhatsapp,
       catalogBanner,
+    },
+  });
+  await audit(session, {
+    action: "settings.update",
+    entity: "SiteContent",
+    entityId: "main",
+    summary: "Configurações da loja alteradas",
+    before: current
+      ? {
+          storeName: current.storeName,
+          contactEmail: current.contactEmail,
+          whatsapp: current.whatsapp,
+          pixDiscount: current.pixDiscount,
+          maxInstallments: current.maxInstallments,
+        }
+      : undefined,
+    after: {
+      storeName: content.storeName,
+      contactEmail: content.contactEmail,
+      whatsapp: content.whatsapp,
+      pixDiscount: content.pixDiscount,
+      maxInstallments: content.maxInstallments,
     },
   });
   return NextResponse.json({ content: withInstagram(content), integrations: integrations(), ownerView: true });

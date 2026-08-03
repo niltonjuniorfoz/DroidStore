@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../src/lib/admin";
 import { validateAdminPassword } from "../../../../src/lib/adminUsers";
+import { audit } from "../../../../src/lib/audit";
 
 const createSchema = z.object({
   name: z.string().trim().min(2).max(80),
@@ -66,6 +67,14 @@ export async function POST(req: Request) {
       },
       select: userSelect,
     });
+    await audit(session, {
+      action: "user.promote",
+      entity: "User",
+      entityId: promoted.id,
+      summary: `Cliente ${promoted.email} promovido a ${promoted.role}`,
+      before: { role: "CUSTOMER" },
+      after: { role: promoted.role, active: true },
+    });
     return NextResponse.json(promoted, { status: 201 });
   }
 
@@ -77,6 +86,13 @@ export async function POST(req: Request) {
       role: parsed.data.role,
     },
     select: userSelect,
+  });
+  await audit(session, {
+    action: "user.create",
+    entity: "User",
+    entityId: created.id,
+    summary: `Acesso criado para ${created.email} (${created.role})`,
+    after: { role: created.role, active: true },
   });
   return NextResponse.json(created, { status: 201 });
 }

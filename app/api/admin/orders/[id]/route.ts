@@ -5,6 +5,7 @@ import prisma from "../../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
 import { sendPaidOrderEmail } from "../../../../../src/lib/orderEmail";
 import { canTransition, shouldRestock } from "../../../../../src/lib/orderStatus";
+import { audit } from "../../../../../src/lib/audit";
 
 const patchSchema = z.object({
   status: z.nativeEnum(OrderStatus).optional(),
@@ -82,6 +83,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       });
     }
     return result;
+  });
+
+  await audit(session, {
+    action: "order.update",
+    entity: "Order",
+    entityId: order.id,
+    summary: nextStatus !== order.status
+      ? `Pedido #${order.id.slice(0, 8).toUpperCase()}: ${order.status} → ${nextStatus}`
+      : `Pedido #${order.id.slice(0, 8).toUpperCase()}: rastreio atualizado`,
+    before: { status: order.status, trackingCode: order.trackingCode },
+    after: { status: nextStatus, trackingCode: updated.trackingCode },
   });
 
   if (order.status === "PENDING" && nextStatus === "PAID") await sendPaidOrderEmail(order.id);

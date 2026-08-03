@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 6/24 · **FASE 0 concluída**
+**Última atualização:** 2026-08-03 · **Progresso:** 7/24 · **FASE 0 concluída**
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -21,7 +21,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 ## FASE 1 — Operação segura
 
 - [x] 🟠 **1.1 Gestão de usuários admin** — tela `/admin/usuarios` (só ADMIN vê no menu) + API: criar acesso, promover/rebaixar, desativar/reativar, redefinir senha. Proteções: não remove o próprio acesso, não remove o último ADMIN ativo. `User.active` novo; login recusa conta desativada; `requireAdmin` confere papel/ativo no banco — demissão vale na hora, sem esperar o token expirar.
-- [ ] 🟠 **1.2 Log de auditoria** — modelo `AdminAuditLog` (quem, ação, entidade, antes/depois, quando); registrar em produtos, pedidos, config, upload, planilha.
+- [x] 🟠 **1.2 Log de auditoria** — modelo `AdminAuditLog` (quem, ação, entidade, antes/depois, quando) registrando: produtos (criar/editar/desativar), pedidos (status/rastreio), equipe, configurações, vitrine, planilha (apply/rollback) e uploads. Tela `/admin/auditoria` (só ADMIN) com filtro por área. Auditoria nunca derruba a operação (falha só loga no console).
 - [ ] 🟡 **1.3 Rate limit** — nas rotas de mutação admin + `ai-product` + `/api/cadastro` + `/api/checkout` (Upstash Redis ou similar).
 - [ ] 🟡 **1.4 E-mails que faltam** — "pedido criado" (com instrução Pix) e "pedido enviado" (com rastreio). Reaproveitar padrão idempotente do `orderEmail.ts`.
 - [ ] 🟡 **1.5 Middleware real** — criar `middleware.ts` usando o `authorized` que hoje é código morto; manter defesa em profundidade nas rotas.
@@ -62,6 +62,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 0.4 Expiração de reserva PENDING (lazy + cron) | `773e3d7` |
 | 2026-08-03 | 0.5 IMEI: decisão de manter fora (sem código) | — |
 | 2026-08-03 | 1.1 Gestão de equipe (`/admin/usuarios`) | `fd08696` |
+| 2026-08-03 | 1.2 Trilha de auditoria (`/admin/auditoria`) | `cda9ebd` |
 
 ## Descobertos no caminho (triagem pendente)
 

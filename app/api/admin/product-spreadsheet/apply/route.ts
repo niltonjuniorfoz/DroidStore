@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
+import { audit } from "../../../../../src/lib/audit";
 import prisma from "../../../../../src/lib/prisma";
 import { previewProductsWorkbook } from "../../../../../src/lib/productSpreadsheet";
 
@@ -72,6 +73,12 @@ export async function POST(request: Request) {
           createdByName: user.name ?? user.email ?? "Administrador",
         },
       });
+    });
+    await audit(session, {
+      action: "spreadsheet.apply",
+      entity: "ProductImport",
+      entityId: result.id,
+      summary: `Planilha ${file.name}: ${preview.changedRows} produto(s) alterado(s)`,
     });
     return NextResponse.json({ importId: result.id, ...preview, changes: undefined, errors: undefined });
   } catch (error) {

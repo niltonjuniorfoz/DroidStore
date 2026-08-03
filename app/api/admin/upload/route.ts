@@ -5,6 +5,7 @@ import type { Prisma } from "@prisma/client";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "../../../../src/lib/admin";
+import { audit } from "../../../../src/lib/audit";
 import { matchesSignature } from "../../../../src/lib/fileSignature";
 import { readHomeFooterBanner } from "../../../../src/lib/homeContent";
 import prisma from "../../../../src/lib/prisma";
@@ -101,8 +102,15 @@ export async function GET() {
 }
 
 // Fluxo de upload direto navegador -> Vercel Blob (gera o token com validação).
-async function handleBlobUpload(req: Request) {
+async function handleBlobUpload(req: Request, session: unknown) {
   const body = (await req.json()) as HandleUploadBody;
+  if (body.type === "blob.generate-client-token") {
+    await audit(session, {
+      action: "upload.blob",
+      entity: "Upload",
+      summary: `Upload direto autorizado: ${(body.payload as { pathname?: string })?.pathname ?? "arquivo"}`,
+    });
+  }
   try {
     const result = await handleUpload({
       body,
@@ -132,10 +140,11 @@ async function handleBlobUpload(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!await requireAdmin()) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const session = await requireAdmin();
+  if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   if ((req.headers.get("content-type") ?? "").includes("application/json")) {
-    return handleBlobUpload(req);
+    return handleBlobUpload(req, session);
   }
 
   try {
@@ -169,6 +178,12 @@ export async function POST(req: Request) {
     await mkdir(directory, { recursive: true });
     const filename = `${randomUUID()}.${extension}`;
     await writeFile(path.join(directory, filename), bytes, { flag: "wx" });
+    await audit(session, {
+      action: "upload.file",
+      entity: "Upload",
+      summary: `Arquivo enviado: ${file.name} (${Math.round(file.size / 1024)} KB)`,
+      after: { url: `/uploads/${filename}`, type: file.type, size: file.size },
+    });
     return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
   } catch (error) {
     console.error("Falha ao enviar arquivo:", error);

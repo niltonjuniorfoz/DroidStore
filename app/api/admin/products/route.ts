@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../src/lib/admin";
+import { audit } from "../../../../src/lib/audit";
 import { hasFeaturedCapacity, MAX_FEATURED_PRODUCTS } from "../../../../src/lib/featuredProducts";
 import {
   isSupportedProductStorage,
@@ -184,6 +185,13 @@ export async function POST(req: Request) {
       specifications: { orderBy: { position: "asc" } },
       filterSelections: { include: { option: { include: { filter: true } } } },
     },
+  });
+  await audit(session, {
+    action: "product.create",
+    entity: "Product",
+    entityId: product.id,
+    summary: `Produto criado: ${product.name}`,
+    after: { name: product.name, price: data.price, stock: data.stock, active: data.active },
   });
   if (isOwnerAdmin(session)) return NextResponse.json(product, { status: 201 });
   return NextResponse.json({

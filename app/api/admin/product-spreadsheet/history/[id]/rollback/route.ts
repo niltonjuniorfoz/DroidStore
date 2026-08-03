@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isOwnerAdmin, requireAdmin } from "../../../../../../../src/lib/admin";
 import prisma from "../../../../../../../src/lib/prisma";
 import type { ProductSpreadsheetChange } from "../../../../../../../src/lib/productSpreadsheet";
+import { audit } from "../../../../../../../src/lib/audit";
 
 function decimal(value: unknown) {
   return Number(value).toFixed(2);
@@ -66,6 +67,12 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       }
     }
     await tx.productImport.update({ where: { id }, data: { status: "ROLLED_BACK", rolledBackAt: new Date(), rollbackById: user.id } });
+  });
+  await audit(session, {
+    action: "spreadsheet.rollback",
+    entity: "ProductImport",
+    entityId: id,
+    summary: `Importação "${productImport.fileName}" desfeita`,
   });
   return NextResponse.json({ ok: true });
 }
