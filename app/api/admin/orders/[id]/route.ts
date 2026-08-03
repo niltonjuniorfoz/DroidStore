@@ -3,7 +3,7 @@ import { OrderStatus } from "@prisma/client";
 import { z } from "zod";
 import prisma from "../../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
-import { sendPaidOrderEmail } from "../../../../../src/lib/orderEmail";
+import { sendPaidOrderEmail, sendShippedOrderEmail } from "../../../../../src/lib/orderEmail";
 import { canTransition, shouldRestock } from "../../../../../src/lib/orderStatus";
 import { audit } from "../../../../../src/lib/audit";
 
@@ -97,6 +97,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   });
 
   if (order.status === "PENDING" && nextStatus === "PAID") await sendPaidOrderEmail(order.id);
+  if (order.status !== "SHIPPED" && nextStatus === "SHIPPED") await sendShippedOrderEmail(order.id);
 
   if (isOwnerAdmin(session)) return NextResponse.json(updated);
   return NextResponse.json({

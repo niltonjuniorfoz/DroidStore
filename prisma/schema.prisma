@@ -164,6 +164,8 @@ model Order {
   shippedAt            DateTime?
   deliveredAt          DateTime?
   cancelledAt          DateTime?
+  createdEmailSentAt   DateTime?
+  shippedEmailSentAt   DateTime?
   paidEmailSentAt      DateTime?
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt

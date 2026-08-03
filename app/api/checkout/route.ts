@@ -6,6 +6,7 @@ import prisma from "../../../src/lib/prisma";
 import { isBrazilState } from "../../../src/lib/brazil";
 import { expireStaleOrders } from "../../../src/lib/expireOrders";
 import { RATE_LIMITED_MESSAGE, clientIp, rateLimit } from "../../../src/lib/rateLimit";
+import { sendOrderCreatedEmail } from "../../../src/lib/orderEmail";
 
 const checkoutSchema = z.object({
   items: z.array(z.object({
@@ -110,6 +111,8 @@ export async function POST(req: Request) {
       });
       return created;
     }, { isolationLevel: "Serializable" });
+
+    await sendOrderCreatedEmail(order.id).catch((error) => console.error("E-mail de pedido criado falhou", error));
 
     if (!process.env.MERCADO_PAGO_ACCESS_TOKEN || !process.env.APP_URL) {
       return NextResponse.json({
