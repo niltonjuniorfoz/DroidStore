@@ -16,6 +16,7 @@ model User {
   cpf       String?   @unique
   birthDate DateTime?
   role      Role      @default(CUSTOMER)
+  active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
