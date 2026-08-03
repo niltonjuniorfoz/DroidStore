@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 3/24
+**Última atualização:** 2026-08-03 · **Progresso:** 4/24
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -15,7 +15,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 - [x] 🔴 **0.1 Upload funcionando na Vercel** — Vercel Blob com upload direto do browser (até 100 MB, fora do limite de 4,5 MB); magic bytes validados no caminho multipart; fallback dev local mantido. **Requer criar um Blob Store no painel da Vercel** (Storage → Create → Blob; o token `BLOB_READ_WRITE_TOKEN` é injetado sozinho).
 - [x] 🔴 **0.2 Cancelamento/estorno de pedido pago** — `REFUNDED` no enum; `PAID→CANCELLED/REFUNDED`, `SHIPPED/DELIVERED→REFUNDED`; webhook trata `refunded`/`charged_back` (dedupe por pagamento+status); estoque volta sozinho só se o aparelho não saiu (PENDING/PAID). Obs.: marcar REFUNDED **não** devolve o dinheiro — o estorno financeiro é feito no painel do Mercado Pago.
 - [x] 🔴 **0.3 Matar estoque fantasma** — default(20)→0 em **3 lugares**: schema Prisma (+migration), zod do POST de produtos e valor inicial do formulário. Seed e planilha passam estoque explícito, não afetados.
-- [ ] 🟠 **0.4 Expiração de reserva** — pedido PENDING além de X horas (sugestão: 24h) cancela automático e devolve estoque (cron Vercel ou verificação lazy).
+- [x] 🟠 **0.4 Expiração de reserva** — PENDING além de 24h (`ORDER_RESERVATION_HOURS`) cancela automático com devolução de estoque e histórico. Varredura lazy (admin de pedidos + checkout) + cron diário 03h (`vercel.json` → `/api/cron/expire-orders`, protegido por `CRON_SECRET`). Índice novo em `Order(status, createdAt)`.
 - [ ] 🟠 **0.5 Decidir destino do rastreio IMEI** — `DeviceUnit` foi removido em `20260802143000`. Confirmar com Wender: era intencional? Se voltar: modelo enxuto (IMEI, serial, bateria, laudo, lote de compra) com `variant.stock` derivado, sem os bugs da v1.
 
 ## FASE 1 — Operação segura
@@ -58,6 +58,8 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 |------|------|--------|
 | 2026-08-03 | 0.1 Upload na Vercel (Blob + magic bytes) | `14c903b` |
 | 2026-08-03 | 0.2 Reembolso de pedido pago + chargeback no webhook | `c75f449` |
+| 2026-08-03 | 0.3 Estoque fantasma (default 20→0 em 3 lugares) | `876a6c3` |
+| 2026-08-03 | 0.4 Expiração de reserva PENDING (lazy + cron) | `773e3d7` |
 
 ## Descobertos no caminho (triagem pendente)
 

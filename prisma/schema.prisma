@@ -170,6 +170,8 @@ model Order {
   items         OrderItem[]
   paymentEvents PaymentEvent[]
   statusHistory OrderStatusHistory[]
+
+  @@index([status, createdAt])
 }
 
 model PaymentEvent {

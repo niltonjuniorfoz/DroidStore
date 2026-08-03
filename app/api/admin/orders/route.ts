@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import prisma from "../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../src/lib/admin";
 import { calculateGrossProfit } from "../../../../src/lib/profit";
+import { expireStaleOrders } from "../../../../src/lib/expireOrders";
 
 export async function GET() {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+
+  await expireStaleOrders().catch((error) => console.error("Expiração de reservas falhou", error));
 
   const orders = await prisma.order.findMany({
     take: 250,

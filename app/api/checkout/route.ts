@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auth } from "../../../auth";
 import prisma from "../../../src/lib/prisma";
 import { isBrazilState } from "../../../src/lib/brazil";
+import { expireStaleOrders } from "../../../src/lib/expireOrders";
 
 const checkoutSchema = z.object({
   items: z.array(z.object({
@@ -33,6 +34,9 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Dados do checkout inválidos." }, { status: 400 });
     }
+
+    // Libera estoque preso em reservas abandonadas antes de tentar reservar.
+    await expireStaleOrders().catch((error) => console.error("Expiração de reservas falhou", error));
 
     const content = await prisma.siteContent.findUnique({ where: { id: "main" } });
     const pixDiscount = Math.min(30, Math.max(0, content?.pixDiscount ?? 10));
