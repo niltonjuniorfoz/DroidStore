@@ -5,6 +5,7 @@
   "3": "catalog.ts",
   "4": "ProductPageClient.tsx",
   "5": "devDependencies",
+  "6": "MegaMenu.tsx",
   "7": "compilerOptions",
   "8": "dependencies",
   "9": "sendPaidOrderEmail",

@@ -1,6 +1,14 @@
 "use client";
 
-import { Children, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Children,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type Props = {
   children: ReactNode;
@@ -8,16 +16,26 @@ type Props = {
   label: string;
 };
 
+type DragState = {
+  pointerId: number;
+  startX: number;
+  startScrollLeft: number;
+  moved: boolean;
+};
+
 export default function MobileAutoCarousel({ children, className = "", label }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
-  const pausedRef = useRef(false);
-  const lastManualInteractionRef = useRef(0);
+  const dragRef = useRef<DragState | null>(null);
+  const pauseUntilRef = useRef(0);
+  const suppressClickRef = useRef(false);
   const interactionTimerRef = useRef<number | null>(null);
+  const normalizeTimerRef = useRef<number | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const items = useMemo(() => Children.toArray(children), [children]);
 
-  const markInteracting = () => {
-    lastManualInteractionRef.current = Date.now();
+  const markInteracting = (pauseMs = 4200) => {
+    pauseUntilRef.current = Date.now() + pauseMs;
     setIsInteracting(true);
     if (interactionTimerRef.current) window.clearTimeout(interactionTimerRef.current);
     interactionTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1800);
@@ -25,64 +43,147 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
 
   useEffect(() => () => {
     if (interactionTimerRef.current) window.clearTimeout(interactionTimerRef.current);
+    if (normalizeTimerRef.current) window.clearTimeout(normalizeTimerRef.current);
   }, []);
 
   useEffect(() => {
     const track = trackRef.current;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (!track || reduceMotion.matches || items.length < 2) return;
+    if (!track || items.length < 2) return;
+
+    const copyStart = (copy: number) => track.querySelector<HTMLElement>(`[data-carousel-copy="${copy}"][data-carousel-index="0"]`);
+
+    const jumpTo = (left: number) => {
+      const previousBehavior = track.style.scrollBehavior;
+      track.style.scrollBehavior = "auto";
+      track.scrollLeft = left;
+      track.style.scrollBehavior = previousBehavior;
+    };
 
     const normalizeLoop = () => {
-      const half = track.scrollWidth / 2;
-      if (!half) return;
-      if (track.scrollLeft >= half - 2) {
-        const previousBehavior = track.style.scrollBehavior;
-        track.style.scrollBehavior = "auto";
-        track.scrollLeft -= half;
-        track.style.scrollBehavior = previousBehavior;
+      const firstStart = copyStart(0);
+      const secondStart = copyStart(1);
+      const thirdStart = copyStart(2);
+      if (!firstStart || !secondStart || !thirdStart) return;
+
+      const segmentWidth = secondStart.offsetLeft - firstStart.offsetLeft;
+      if (segmentWidth <= 0) return;
+
+      if (track.scrollLeft >= thirdStart.offsetLeft - 2) {
+        jumpTo(track.scrollLeft - segmentWidth);
+      } else if (track.scrollLeft <= firstStart.offsetLeft + 2) {
+        jumpTo(track.scrollLeft + segmentWidth);
       }
     };
 
+    const initialize = () => {
+      const secondStart = copyStart(1);
+      if (!secondStart) return;
+      if (Math.abs(track.scrollLeft - secondStart.offsetLeft) > 2) jumpTo(secondStart.offsetLeft);
+    };
+
+    const scheduleNormalize = (delay = 110) => {
+      if (normalizeTimerRef.current) window.clearTimeout(normalizeTimerRef.current);
+      normalizeTimerRef.current = window.setTimeout(normalizeLoop, delay);
+    };
+
     const advance = () => {
-      if (pausedRef.current || document.hidden || Date.now() - lastManualInteractionRef.current < 4500) return;
+      if (dragRef.current || document.hidden || Date.now() < pauseUntilRef.current) return;
       normalizeLoop();
-      const firstCard = track.firstElementChild as HTMLElement | null;
-      if (!firstCard) return;
-      const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
-      const step = firstCard.getBoundingClientRect().width + gap;
-      track.scrollTo({ left: track.scrollLeft + step, behavior: "smooth" });
-      window.setTimeout(normalizeLoop, 650);
+
+      const firstSlide = track.children.item(0) as HTMLElement | null;
+      const secondSlide = track.children.item(1) as HTMLElement | null;
+      if (!firstSlide || !secondSlide) return;
+
+      const step = secondSlide.offsetLeft - firstSlide.offsetLeft;
+      if (step <= 0) return;
+
+      track.scrollBy({ left: step, behavior: "smooth" });
+      scheduleNormalize(760);
     };
 
-    const onScroll = () => {
-      if (!pausedRef.current) window.requestAnimationFrame(normalizeLoop);
-    };
-
-    const timer = window.setInterval(advance, 3600);
+    const onScroll = () => scheduleNormalize(140);
+    const frame = window.requestAnimationFrame(initialize);
+    const timer = window.setInterval(advance, 3200);
+    const resizeObserver = new ResizeObserver(() => window.requestAnimationFrame(initialize));
+    resizeObserver.observe(track);
     track.addEventListener("scroll", onScroll, { passive: true });
+
     return () => {
+      window.cancelAnimationFrame(frame);
       window.clearInterval(timer);
+      resizeObserver.disconnect();
       track.removeEventListener("scroll", onScroll);
     };
   }, [items.length]);
 
+  const finishDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const track = trackRef.current;
+    const drag = dragRef.current;
+    if (!track || !drag || drag.pointerId !== event.pointerId) return;
+
+    suppressClickRef.current = drag.moved;
+    dragRef.current = null;
+    setIsDragging(false);
+    markInteracting();
+
+    if (track.hasPointerCapture(event.pointerId)) track.releasePointerCapture(event.pointerId);
+    window.setTimeout(() => { suppressClickRef.current = false; }, 120);
+  };
+
   return (
     <div
       ref={trackRef}
-      className={`product-grid mobile-auto-track infinite-carousel-track ${isInteracting ? "is-interacting" : ""} ${className}`.trim()}
+      className={`product-grid mobile-auto-track infinite-carousel-track ${isInteracting ? "is-interacting" : ""} ${isDragging ? "is-dragging" : ""} ${className}`.trim()}
       aria-label={label}
-      onPointerDown={() => { pausedRef.current = true; markInteracting(); }}
-      onPointerMove={() => { if (pausedRef.current) markInteracting(); }}
-      onPointerUp={() => { pausedRef.current = false; markInteracting(); }}
-      onPointerCancel={() => { pausedRef.current = false; markInteracting(); }}
-      onWheel={markInteracting}
-      onMouseEnter={() => { pausedRef.current = true; }}
-      onMouseLeave={() => { pausedRef.current = false; }}
-      onFocus={() => { pausedRef.current = true; markInteracting(); }}
-      onBlur={() => { pausedRef.current = false; }}
+      onPointerDown={(event) => {
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        const track = trackRef.current;
+        if (!track) return;
+
+        dragRef.current = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startScrollLeft: track.scrollLeft,
+          moved: false,
+        };
+        track.setPointerCapture(event.pointerId);
+        setIsDragging(true);
+        markInteracting();
+      }}
+      onPointerMove={(event) => {
+        const track = trackRef.current;
+        const drag = dragRef.current;
+        if (!track || !drag || drag.pointerId !== event.pointerId) return;
+
+        const deltaX = event.clientX - drag.startX;
+        if (Math.abs(deltaX) > 5) drag.moved = true;
+        if (!drag.moved) return;
+
+        event.preventDefault();
+        track.scrollLeft = drag.startScrollLeft - deltaX;
+      }}
+      onPointerUp={finishDrag}
+      onPointerCancel={finishDrag}
+      onWheel={() => markInteracting(5000)}
+      onFocus={() => markInteracting(5000)}
+      onClickCapture={(event) => {
+        if (!suppressClickRef.current) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onDragStart={(event) => event.preventDefault()}
     >
-      {items}
-      {items.map((item, index) => <div className="carousel-clone" aria-hidden="true" key={`carousel-clone-${index}`}>{item}</div>)}
+      {[0, 1, 2].flatMap((copy) => items.map((item, index) => (
+        <div
+          className="carousel-slide"
+          data-carousel-copy={copy}
+          data-carousel-index={index}
+          aria-hidden={copy !== 1 ? "true" : undefined}
+          key={`carousel-${copy}-${index}`}
+        >
+          {item}
+        </div>
+      )))}
     </div>
   );
 }

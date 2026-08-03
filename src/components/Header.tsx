@@ -226,11 +226,16 @@ export default function Header() {
         downwardDistance = 0;
       }
 
-      // Histerese com trava de animação: desce 30 px para esconder e sobe 70 px
-      // para mostrar novamente. Assim uma pequena oscilação não alterna o menu.
-      if (!categoriesHiddenRef.current && currentScrollY > 95 && downwardDistance >= 30) {
+      const mobileHeader = window.matchMedia("(max-width: 992px)").matches;
+      const hideAfter = mobileHeader ? 38 : 95;
+      const hideDistance = mobileHeader ? 12 : 30;
+      const showDistance = mobileHeader ? 44 : 70;
+
+      // No celular a faixa recolhe cedo para deixar somente o cabeçalho e a linha
+      // laranja. No desktop mantemos uma histerese maior para evitar oscilações.
+      if (!categoriesHiddenRef.current && currentScrollY > hideAfter && downwardDistance >= hideDistance) {
         applyCategoriesVisibility(true, currentScrollY);
-      } else if (categoriesHiddenRef.current && upwardDistance >= 70) {
+      } else if (categoriesHiddenRef.current && upwardDistance >= showDistance) {
         applyCategoriesVisibility(false, currentScrollY);
       }
 
