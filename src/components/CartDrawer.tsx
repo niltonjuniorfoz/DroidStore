@@ -10,7 +10,7 @@ import ProductImage from "./ProductImage";
 const drawerMoney = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function CartDrawer() {
-  const { items, count, subtotal, drawerOpen, closeDrawer, remove, setQuantity } = useCart();
+  const { items, count, subtotal, drawerOpen, closeDrawer, remove, setQuantity, priceNotice, dismissPriceNotice } = useCart();
   const { content } = useSiteContent();
   const pixDiscount = content?.pixDiscount ?? 10;
   const pixTotal = subtotal * (1 - pixDiscount / 100);
@@ -48,6 +48,13 @@ export default function CartDrawer() {
           <span><Truck size={15} /> Entrega calculada no checkout</span>
           <span><ShieldCheck size={15} /> Compra segura e protegida</span>
         </div>
+
+        {priceNotice && items.length > 0 && (
+          <div className="cart-drawer-benefits" role="status" style={{ background: "#fff7ee", color: "#8a5200" }}>
+            <span>{priceNotice}</span>
+            <button type="button" onClick={dismissPriceNotice} aria-label="Entendi" style={{ background: "none", border: "none", color: "inherit", fontWeight: 700, cursor: "pointer" }}>OK</button>
+          </div>
+        )}
 
         <div className="cart-drawer-items">
           {items.length === 0 ? (

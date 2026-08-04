@@ -9,6 +9,8 @@ type CartContextValue = {
   count: number;
   subtotal: number;
   drawerOpen: boolean;
+  priceNotice: string | null;
+  dismissPriceNotice: () => void;
   add: (product: CatalogProduct) => void;
   remove: (id: string) => void;
   setQuantity: (id: string, quantity: number) => void;
@@ -19,41 +21,65 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+const CART_KEY = "auratech-cart";
+const LEGACY_CART_KEY = "droidstore-cart";
+
+function loadSavedCart(): CartLine[] {
+  const saved = window.localStorage.getItem(CART_KEY) ?? window.localStorage.getItem(LEGACY_CART_KEY);
+  if (!saved) return [];
+  const parsed = JSON.parse(saved) as CartLine[];
+  window.localStorage.removeItem(LEGACY_CART_KEY);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLine[]>([]);
   const [ready, setReady] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [priceNotice, setPriceNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     try {
-      const saved = window.localStorage.getItem("droidstore-cart");
-      if (saved) {
-        const parsed = JSON.parse(saved) as CartLine[];
-        const savedItems = Array.isArray(parsed) ? parsed : [];
+      const savedItems = loadSavedCart();
+      if (savedItems.length) {
         setItems(savedItems);
 
-        const missingSlugs = Array.from(new Set(savedItems.filter((item) => !item.imageUrl).map((item) => item.slug)));
-        if (missingSlugs.length) {
-          void Promise.all(missingSlugs.map(async (slug) => {
-            const response = await fetch(`/api/products/${encodeURIComponent(slug)}`);
-            if (!response.ok) return [slug, undefined] as const;
-            const product = await response.json() as CatalogProduct;
-            return [slug, product.images?.[0] ?? product.imageUrl] as const;
-          })).then((entries) => {
-            if (cancelled) return;
-            const images = new Map(entries.filter((entry): entry is readonly [string, string] => Boolean(entry[1])));
-            if (images.size) setItems((current) => current.map((item) => ({ ...item, imageUrl: item.imageUrl ?? images.get(item.slug) })));
-          }).catch(() => undefined);
-        }
+        // O preço salvo no navegador é só exibição: revalida contra a loja
+        // para o cliente não ver um valor no carrinho e outro no checkout.
+        void fetch("/api/products")
+          .then((response) => response.json())
+          .then((catalog: CatalogProduct[]) => {
+            if (cancelled || !Array.isArray(catalog)) return;
+            const byId = new Map(catalog.map((product) => [product.id, product]));
+            let changed = 0;
+            setItems((current) => current.map((item) => {
+              const fresh = byId.get(item.id);
+              if (!fresh) return item;
+              if (fresh.price !== item.price) changed += 1;
+              return {
+                ...item,
+                price: fresh.price,
+                imageUrl: item.imageUrl ?? fresh.images?.[0] ?? fresh.imageUrl,
+              };
+            }));
+            if (changed) {
+              setPriceNotice(changed === 1
+                ? "O preço de um item do carrinho foi atualizado pela loja."
+                : `Os preços de ${changed} itens do carrinho foram atualizados pela loja.`);
+            }
+          })
+          .catch(() => undefined);
       }
+    } catch {
+      // Carrinho corrompido no storage: começa vazio.
     } finally {
       setReady(true);
     }
     return () => { cancelled = true; };
   }, []);
   useEffect(() => {
-    if (ready) window.localStorage.setItem("droidstore-cart", JSON.stringify(items));
+    if (ready) window.localStorage.setItem(CART_KEY, JSON.stringify(items));
   }, [items, ready]);
 
   const value = useMemo<CartContextValue>(() => ({
@@ -61,6 +87,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     count: items.reduce((total, item) => total + item.quantity, 0),
     subtotal: items.reduce((total, item) => total + item.price * item.quantity, 0),
     drawerOpen,
+    priceNotice,
+    dismissPriceNotice() { setPriceNotice(null); },
     add(product) {
       setItems((current) => {
         const found = current.find((item) => item.id === product.id);
@@ -88,7 +116,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     clear() { setItems([]); },
     openDrawer() { setDrawerOpen(true); },
     closeDrawer() { setDrawerOpen(false); },
-  }), [drawerOpen, items]);
+  }), [drawerOpen, items, priceNotice]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

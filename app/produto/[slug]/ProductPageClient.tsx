@@ -285,7 +285,7 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
             {viewing3D && product.model3dUrl ? (
               <ModelViewer3D src={product.model3dUrl} alt={`Modelo 3D de ${product.name}`} />
             ) : images[selectedImage] ? (
-              <ProductImage src={images[selectedImage]} alt={`${product.name} - foto ${selectedImage + 1}`} />
+              <ProductImage src={images[selectedImage]} alt={`${product.name} - foto ${selectedImage + 1}`} priority />
             ) : (
               <ProductImage alt="" />
             )}
@@ -333,7 +333,7 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
                   }}
                   aria-label={`Ver foto ${index + 1}`}
                 >
-                  <img src={image} alt="" />
+                  <img src={image} alt="" loading="lazy" decoding="async" />
                 </button>
               ))}
             </div>

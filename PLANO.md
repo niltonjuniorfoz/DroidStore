@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 12/24 · **FASES 0 e 1 concluídas**
+**Última atualização:** 2026-08-03 · **Progresso:** 14/24 (2 parciais aguardando preview) · **FASES 0 e 1 concluídas**
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -30,10 +30,10 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 
 - [x] 🟠 **2.1 `generateMetadata` por produto** — title com modelo/capacidade/cor/condição, description com preço, OG image + Twitter card, canonical. Busca deduplicada com `cache()`. Bônus: sitemap agora puxa os produtos **do banco** (antes era só o catálogo estático — produto cadastrado no admin ficava fora).
 - [x] 🟠 **2.2 JSON-LD `Product`+`Offer`** — preço, disponibilidade (InStock/OutOfStock), condição mapeada pro vocabulário schema.org (Novo→New, Reembalado/Outlet→Refurbished, usados→Used), marca e vendedor.
-- [ ] 🟡 **2.3 Catálogo server-side** — `/celulares` renderizar lista inicial no servidor (filtros continuam client); avaliar `searchParams` como fonte de estado.
-- [ ] 🟡 **2.4 `next/image` nos 18 `<img>`** — lazy, srcset, sizes; priorizar hero e cards do catálogo.
-- [ ] ⚪ **2.5 Quebrar `storefront-theme.css`** (5.977 linhas) — por rota/componente; remover morto.
-- [ ] ⚪ **2.6 Carrinho: preço vivo** — revalidar preço ao abrir carrinho/checkout e avisar mudança; renomear chave `droidstore-cart` → `auratech-cart` com migração.
+- [x] 🟡 **2.3 Catálogo server-side** — `/celulares` virou server component com ISR 60s: Google e primeira pintura recebem os produtos reais do banco; filtros e revalidação ao vivo continuam no client. Rota `/api/catalog-filters` e página compartilham a mesma lib.
+- [~] 🟡 **2.4 Otimização de imagens** — **Parcial:** `lazy`/`decoding=async` em toda a vitrine + `fetchPriority=high` na foto principal do produto (LCP). Conversão completa para `next/image` (`fill` + `sizes`) **adiada até existir preview visual** — mexer em layout às cegas num CSS de 6.000 linhas arrisca quebrar a vitrine em produção.
+- [~] ⚪ **2.5 Quebrar `storefront-theme.css`** (5.977 linhas) — **Adiado pelo mesmo motivo do 2.4:** refactor visual sem preview pra conferir = risco alto, valor baixo agora. Fazer junto com o 2.4 quando o preview estiver de pé.
+- [x] ⚪ **2.6 Carrinho: preço vivo** — preço revalidado contra a loja ao carregar o carrinho, com aviso discreto no drawer quando algum valor mudou; chave migrada `droidstore-cart` → `auratech-cart` (migração automática, sem perder carrinho salvo).
 
 ## FASE 3 — Escala do admin
 
@@ -67,6 +67,8 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 1.4 E-mails de pedido recebido e enviado | `37abe89` |
 | 2026-08-03 | 1.5 Middleware de borda (`middleware.ts`) | `734712f` |
 | 2026-08-03 | 2.1+2.2 SEO por produto (metadata, JSON-LD, sitemap) | `fadfefe` |
+| 2026-08-03 | 2.3 Catálogo server-side (ISR 60s) | `286bde7` |
+| 2026-08-03 | 2.4 (parcial: lazy+priority) e 2.6 Carrinho preço vivo | `18c463e` |
 
 ## Descobertos no caminho (triagem pendente)
 
