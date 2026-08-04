@@ -633,6 +633,19 @@ export default function AdminProdutos() {
             <small>Com base no preço de custo</small>
           </div>
         )}
+        {(() => {
+          // Qualidade do catálogo: produto sem foto não vende; sem descrição não rankeia.
+          const noPhoto = items.filter((item) => item.active && !item.imageUrl).length;
+          const noDescription = items.filter((item) => item.active && (item.description ?? "").length < 10).length;
+          const dirty = noPhoto + noDescription;
+          return (
+            <div className={`kpi-card ${dirty > 0 ? "warning" : ""}`}>
+              <span><Package size={16} /> Qualidade do Catálogo</span>
+              <strong>{noPhoto}</strong>
+              <small>{noPhoto} sem foto · {noDescription} sem descrição — não vendem bem</small>
+            </div>
+          );
+        })()}
       </section>
 
       {/* --- TOOLBAR AVANÇADA COM SELETOR DE MODO AGRUPADO --- */}

@@ -27,6 +27,27 @@ export default function AdminThemePreview() {
             </div>
           </div>
 
+          <section className="action-queue">
+            <a className="action-card urgent" href="#"><strong>4</strong><span>pedido(s) pagos para enviar</span><em>2 há mais de 24h — prioridade</em></a>
+            <a className="action-card" href="#"><strong>3</strong><span>aguardando pagamento</span></a>
+            <a className="action-card warn" href="#"><strong>7</strong><span>variações em estoque crítico</span></a>
+            <a className="action-card warn" href="#"><strong>357</strong><span>produto(s) ativos sem foto</span></a>
+          </section>
+
+          <section className="today-strip">
+            <div><span>Hoje</span><strong>R$ 4.310,00</strong><small>3 pedido(s) confirmado(s)</small></div>
+            <div><span>Ontem</span><strong>R$ 2.980,00</strong><small>2 pedido(s)</small></div>
+            <div className="today-methods"><span>Pagamento no mês</span><div><small><b>PIX</b> R$ 121.400,00 (139)</small><small><b>CARTAO</b> R$ 26.920,00 (25)</small></div></div>
+          </section>
+
+          <section className="list-stats">
+            <div><span>Clientes</span><strong>1.208</strong></div>
+            <div><span>Com recompra</span><strong className="good">214 (31%)</strong></div>
+            <div><span>Envio atrasado (+24h)</span><strong className="bad">2</strong></div>
+            <div><span>Segmentos</span><strong><span className="seg-badge champion">Campeão</span> <span className="seg-badge repeat">Recorrente</span> <span className="seg-badge new">Novo</span> <span className="seg-badge risk">Em risco</span> <span className="seg-badge inactive">Inativo</span></strong></div>
+            <div><span>SLA</span><strong><span className="sla-badge late">pago há 31h — enviar!</span> <span className="sla-badge soon">pago há 14h</span></strong></div>
+          </section>
+
           <section className="metric-grid">
             <article className="metric-card accent">
               <span><CircleDollarSign /> Faturamento no mês</span>

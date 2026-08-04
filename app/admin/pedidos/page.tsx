@@ -304,6 +304,25 @@ export default function AdminPedidos() {
       </section>
 
       {/* --- TOOLBAR AVANÇADA DE PEDIDOS --- */}
+      {(() => {
+        // Resumo do conjunto filtrado (período/busca ativos): visão de pregão.
+        const confirmed = filteredOrders.filter((order) => ["PAID", "SHIPPED", "DELIVERED"].includes(order.status));
+        const revenue = confirmed.reduce((total, order) => total + Number(order.totalAmount), 0);
+        const late = filteredOrders.filter((order) => {
+          if (order.status !== "PAID") return false;
+          const paidAt = order.statusHistory.find((entry) => entry.toStatus === "PAID")?.createdAt;
+          return paidAt ? Date.now() - new Date(paidAt).getTime() > 24 * 36e5 : false;
+        }).length;
+        return (
+          <section className="list-stats" aria-label="Resumo dos pedidos filtrados">
+            <div><span>Pedidos no recorte</span><strong>{filteredOrders.length}</strong></div>
+            <div><span>Receita confirmada</span><strong>{money(revenue)}</strong></div>
+            <div><span>Ticket médio</span><strong>{money(confirmed.length ? revenue / confirmed.length : 0)}</strong></div>
+            <div><span>Envio atrasado (+24h)</span><strong className={late > 0 ? "bad" : "good"}>{late}</strong></div>
+          </section>
+        );
+      })()}
+
       <div className="product-toolbar-pro">
         <div className="pro-tabs">
           <button className={`pro-tab ${status === "ALL" ? "active" : ""}`} onClick={() => setStatus("ALL")}>
@@ -486,6 +505,16 @@ export default function AdminPedidos() {
                       <em className={`status-chip ${order.status.toLowerCase()}`}>
                         {statusLabels[order.status] ?? order.status}
                       </em>
+                      {(() => {
+                        // SLA de envio: pago há +12h/+24h sem despachar chama atenção.
+                        if (order.status !== "PAID") return null;
+                        const paidAt = order.statusHistory.find((entry) => entry.toStatus === "PAID")?.createdAt;
+                        if (!paidAt) return null;
+                        const hours = (Date.now() - new Date(paidAt).getTime()) / 36e5;
+                        if (hours >= 24) return <span className="sla-badge late">pago há {Math.floor(hours)}h — enviar!</span>;
+                        if (hours >= 12) return <span className="sla-badge soon">pago há {Math.floor(hours)}h</span>;
+                        return null;
+                      })()}
                       {order.trackingCode && (
                         <button
                           className="tracking-code-btn"

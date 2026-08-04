@@ -81,6 +81,35 @@ export async function GET() {
     prisma.product.count({ where: { active: true } }),
   ]);
 
+  // Visão de pregão diário + fila de ação (padrão Shopify Home / Seller Central):
+  // o topo do painel responde "como está HOJE" e "o que fazer AGORA".
+  const [todayRows, queueRows, methodRows] = await Promise.all([
+    prisma.$queryRaw<Array<{ day: string; revenue: number; orders: number }>>`
+      SELECT CASE WHEN ("createdAt" AT TIME ZONE 'America/Sao_Paulo')::date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date
+                  THEN 'today' ELSE 'yesterday' END AS day,
+             COALESCE(SUM("totalAmount"), 0)::float AS revenue,
+             COUNT(*)::int AS orders
+      FROM "Order"
+      WHERE status = ANY(${SALES})
+        AND ("createdAt" AT TIME ZONE 'America/Sao_Paulo')::date >= (NOW() AT TIME ZONE 'America/Sao_Paulo')::date - 1
+      GROUP BY 1`,
+    prisma.$queryRaw<Array<{ pending: number; toship: number; late: number; nophoto: number }>>`
+      SELECT
+        (SELECT COUNT(*) FROM "Order" WHERE status = 'PENDING')::int AS pending,
+        (SELECT COUNT(*) FROM "Order" WHERE status = 'PAID')::int AS toship,
+        (SELECT COUNT(*) FROM "Order" o WHERE o.status = 'PAID' AND EXISTS (
+           SELECT 1 FROM "OrderStatusHistory" h
+           WHERE h."orderId" = o.id AND h."toStatus" = 'PAID' AND h."createdAt" < NOW() - INTERVAL '24 hours'
+        ))::int AS late,
+        (SELECT COUNT(*) FROM "Product" WHERE active = true AND ("imageUrl" IS NULL OR "imageUrl" = ''))::int AS nophoto`,
+    prisma.order.groupBy({
+      by: ["paymentMethod"],
+      where: { status: { in: ["PAID", "SHIPPED", "DELIVERED"] }, createdAt: { gte: currentStart } },
+      _sum: { totalAmount: true },
+      _count: true,
+    }),
+  ]);
+
   const current = periodRows.find((row) => row.period === "current") ?? { revenue: 0, orders: 0 };
   const previous = periodRows.find((row) => row.period === "previous") ?? { revenue: 0, orders: 0 };
   const revenue = current.revenue;
@@ -130,6 +159,24 @@ export async function GET() {
           }
         : {}),
     },
+    today: {
+      revenue: todayRows.find((row) => row.day === "today")?.revenue ?? 0,
+      orders: todayRows.find((row) => row.day === "today")?.orders ?? 0,
+      yesterdayRevenue: todayRows.find((row) => row.day === "yesterday")?.revenue ?? 0,
+      yesterdayOrders: todayRows.find((row) => row.day === "yesterday")?.orders ?? 0,
+    },
+    actionQueue: {
+      awaitingPayment: queueRows[0]?.pending ?? 0,
+      toShip: queueRows[0]?.toship ?? 0,
+      lateShipments: queueRows[0]?.late ?? 0,
+      productsWithoutPhoto: queueRows[0]?.nophoto ?? 0,
+      lowStock: lowStockCountRows[0]?.total ?? 0,
+    },
+    paymentMethods: methodRows.map((row) => ({
+      method: row.paymentMethod,
+      revenue: Number(row._sum.totalAmount ?? 0),
+      orders: row._count,
+    })).sort((a, b) => b.revenue - a.revenue),
     dailySales,
     recentOrders,
     lowStockItems: lowStockRows,

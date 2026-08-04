@@ -512,3 +512,67 @@
   .admin-shell .admin-search { width: 100%; }
   .admin-shell .metric-card strong { font-size: 1.25rem; }
 }
+
+/* ---------- FILA DE AÇÃO ---------- */
+.admin-shell .action-queue { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.7rem; }
+.admin-shell .action-card {
+  display: flex; flex-direction: column; gap: 0.15rem;
+  background: var(--a-surface); border: 1px solid var(--a-line); border-radius: var(--a-radius-sm);
+  padding: 0.85rem 1rem; text-decoration: none; color: var(--a-ink);
+  box-shadow: var(--a-shadow-1);
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.1s;
+}
+.admin-shell .action-card:hover { border-color: var(--a-accent); box-shadow: var(--a-shadow-2); transform: translateY(-1px); }
+.admin-shell .action-card strong { font-size: 1.35rem; font-weight: 780; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.admin-shell .action-card span { font-size: 0.66rem; color: var(--a-ink-2); font-weight: 600; }
+.admin-shell .action-card em { font-style: normal; font-size: 0.6rem; font-weight: 750; margin-top: 0.3rem; }
+.admin-shell .action-card.urgent { border-color: #f3c1be; background: linear-gradient(180deg, #fff, var(--a-danger-soft)); }
+.admin-shell .action-card.urgent strong, .admin-shell .action-card.urgent em { color: var(--a-danger); }
+.admin-shell .action-card.warn { border-color: #f2ddb8; }
+.admin-shell .action-card.warn strong { color: var(--a-warning); }
+
+/* ---------- PREGÃO DE HOJE ---------- */
+.admin-shell .today-strip {
+  display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start;
+  background: var(--a-surface); border: 1px solid var(--a-line); border-radius: var(--a-radius-sm);
+  padding: 0.8rem 1.15rem; box-shadow: var(--a-shadow-1);
+}
+.admin-shell .today-strip > div { display: flex; flex-direction: column; gap: 0.1rem; }
+.admin-shell .today-strip span { font-size: 0.6rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-muted); }
+.admin-shell .today-strip strong { font-size: 1.05rem; font-weight: 760; font-variant-numeric: tabular-nums; }
+.admin-shell .today-strip small { font-size: 0.62rem; color: var(--a-ink-2); }
+.admin-shell .today-methods { margin-left: auto; }
+.admin-shell .today-methods > div { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-top: 0.25rem; }
+.admin-shell .today-methods b { color: var(--a-accent-ink); }
+
+/* ---------- STRIPS DE RESUMO DAS LISTAS ---------- */
+.admin-shell .list-stats {
+  display: flex; gap: 1.4rem; flex-wrap: wrap;
+  background: var(--a-surface); border: 1px solid var(--a-line); border-radius: var(--a-radius-sm);
+  padding: 0.7rem 1.1rem; box-shadow: var(--a-shadow-1);
+}
+.admin-shell .list-stats > div { display: flex; flex-direction: column; }
+.admin-shell .list-stats span { font-size: 0.58rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-muted); }
+.admin-shell .list-stats strong { font-size: 0.95rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+.admin-shell .list-stats strong.warn { color: var(--a-warning); }
+.admin-shell .list-stats strong.bad { color: var(--a-danger); }
+.admin-shell .list-stats strong.good { color: var(--a-success); }
+
+/* ---------- BADGES DE SEGMENTO / SLA ---------- */
+.admin-shell .seg-badge {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.22rem 0.5rem; border-radius: 999px;
+  font-size: 0.58rem; font-weight: 780; letter-spacing: 0.02em; text-transform: uppercase;
+}
+.admin-shell .seg-badge.champion { background: #171d18; color: #ffb26b; }
+.admin-shell .seg-badge.repeat { background: var(--a-success-soft); color: var(--a-success); }
+.admin-shell .seg-badge.new { background: var(--a-info-soft); color: var(--a-info); }
+.admin-shell .seg-badge.risk { background: var(--a-warning-soft); color: var(--a-warning); }
+.admin-shell .seg-badge.inactive { background: #eef0ed; color: var(--a-muted); }
+.admin-shell .sla-badge {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  padding: 0.2rem 0.45rem; border-radius: 6px;
+  font-size: 0.56rem; font-weight: 780;
+}
+.admin-shell .sla-badge.late { background: var(--a-danger-soft); color: var(--a-danger); }
+.admin-shell .sla-badge.soon { background: var(--a-warning-soft); color: var(--a-warning); }

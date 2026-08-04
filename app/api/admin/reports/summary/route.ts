@@ -29,7 +29,10 @@ export async function GET(req: Request) {
   if (from >= to) return NextResponse.json({ error: "Período inválido." }, { status: 400 });
   const periodDays = Math.max(1, Math.round((to.getTime() - from.getTime()) / DAY_MS));
 
-  const [totalsRows, abcRows, turnoverRows] = await Promise.all([
+  // Período anterior de mesmo tamanho, para comparação honesta.
+  const prevFrom = new Date(from.getTime() - (to.getTime() - from.getTime()));
+
+  const [totalsRows, prevRows, methodRows, abcRows, turnoverRows] = await Promise.all([
     prisma.$queryRaw<Array<{ revenue: number; orders: number; fees: number; cost: number }>>`
       SELECT COALESCE(SUM(o."totalAmount"), 0)::float AS revenue,
              COUNT(DISTINCT o.id)::int AS orders,
@@ -39,6 +42,16 @@ export async function GET(req: Request) {
                        WHERE o2.status = ANY(${SALES}) AND o2."createdAt" >= ${from} AND o2."createdAt" < ${to}), 0)::float AS cost
       FROM "Order" o
       WHERE o.status = ANY(${SALES}) AND o."createdAt" >= ${from} AND o."createdAt" < ${to}`,
+    prisma.$queryRaw<Array<{ revenue: number; orders: number }>>`
+      SELECT COALESCE(SUM("totalAmount"), 0)::float AS revenue, COUNT(*)::int AS orders
+      FROM "Order"
+      WHERE status = ANY(${SALES}) AND "createdAt" >= ${prevFrom} AND "createdAt" < ${from}`,
+    prisma.order.groupBy({
+      by: ["paymentMethod"],
+      where: { status: { in: ["PAID", "SHIPPED", "DELIVERED"] }, createdAt: { gte: from, lt: to } },
+      _sum: { totalAmount: true },
+      _count: true,
+    }),
     prisma.$queryRaw<Array<{ id: string; name: string; units: number; revenue: number; cost: number }>>`
       SELECT p.id, p.name,
              SUM(oi.quantity)::int AS units,
@@ -78,6 +91,12 @@ export async function GET(req: Request) {
       profit: totals.revenue - totals.fees - totals.cost,
       averageTicket: totals.orders ? totals.revenue / totals.orders : 0,
     },
+    previous: prevRows[0] ?? { revenue: 0, orders: 0 },
+    paymentMethods: methodRows.map((row) => ({
+      method: row.paymentMethod,
+      revenue: Number(row._sum.totalAmount ?? 0),
+      orders: row._count,
+    })).sort((a, b) => b.revenue - a.revenue),
     abc: abcRows.map((row) => ({ ...row, profit: row.revenue - row.cost })),
     turnover: turnoverRows.map((row) => {
       const perDay = row.units / periodDays;

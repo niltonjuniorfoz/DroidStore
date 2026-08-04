@@ -241,6 +241,21 @@ export default function AdminEstoque() {
           <strong>R$ {totalPotentialProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
           <small>Soma do valor de venda esperada</small>
         </div>
+
+        {(() => {
+          // Capital parado: tem estoque, mas nenhuma venda nas últimas movimentações.
+          const stale = items.filter((item) =>
+            item.stock > 0 && !item.stockMovements.some((movement) => movement.type === "SALE"),
+          );
+          const staleValue = stale.reduce((total, item) => total + Number(item.price ?? 0) * item.stock, 0);
+          return (
+            <div className={`kpi-card ${stale.length ? "warning" : ""}`}>
+              <span><Boxes size={16} /> Capital Sem Giro</span>
+              <strong>{stale.length} variações</strong>
+              <small>R$ {staleValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} parados sem venda recente</small>
+            </div>
+          );
+        })()}
       </section>
 
       {/* --- TOOLBAR DE FILTROS DO ESTOQUE --- */}

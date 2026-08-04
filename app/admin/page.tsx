@@ -41,6 +41,9 @@ type Dashboard = {
     netProfit?: number;
     inventoryCost?: number;
   };
+  today: { revenue: number; orders: number; yesterdayRevenue: number; yesterdayOrders: number };
+  actionQueue: { awaitingPayment: number; toShip: number; lateShipments: number; productsWithoutPhoto: number; lowStock: number };
+  paymentMethods: Array<{ method: string; revenue: number; orders: number }>;
   dailySales: DailySale[];
   ownerView: boolean;
   recentOrders: Array<{
@@ -129,6 +132,51 @@ export default function AdminDashboard() {
       </div>
 
       {error && <div className="form-error">{error}</div>}
+
+      {/* FILA DE AÇÃO — o que precisa de você agora */}
+      <section className="action-queue" aria-label="Fila de ação">
+        <Link href="/admin/pedidos" className={`action-card ${data.actionQueue.lateShipments > 0 ? "urgent" : ""}`}>
+          <strong>{data.actionQueue.toShip}</strong>
+          <span>pedido(s) pagos para enviar</span>
+          {data.actionQueue.lateShipments > 0 && <em>{data.actionQueue.lateShipments} há mais de 24h — prioridade</em>}
+        </Link>
+        <Link href="/admin/pedidos" className="action-card">
+          <strong>{data.actionQueue.awaitingPayment}</strong>
+          <span>aguardando pagamento</span>
+        </Link>
+        <Link href="/admin/estoque" className={`action-card ${data.actionQueue.lowStock > 0 ? "warn" : ""}`}>
+          <strong>{data.actionQueue.lowStock}</strong>
+          <span>variações em estoque crítico</span>
+        </Link>
+        <Link href="/admin/produtos" className={`action-card ${data.actionQueue.productsWithoutPhoto > 0 ? "warn" : ""}`}>
+          <strong>{data.actionQueue.productsWithoutPhoto}</strong>
+          <span>produto(s) ativos sem foto</span>
+        </Link>
+      </section>
+
+      {/* PREGÃO DE HOJE */}
+      <section className="today-strip" aria-label="Vendas de hoje">
+        <div>
+          <span>Hoje</span>
+          <strong>{money(data.today.revenue)}</strong>
+          <small>{data.today.orders} pedido(s) confirmado(s)</small>
+        </div>
+        <div>
+          <span>Ontem</span>
+          <strong>{money(data.today.yesterdayRevenue)}</strong>
+          <small>{data.today.yesterdayOrders} pedido(s)</small>
+        </div>
+        {data.paymentMethods.length > 0 && (
+          <div className="today-methods">
+            <span>Pagamento no mês</span>
+            <div>
+              {data.paymentMethods.slice(0, 3).map((entry) => (
+                <small key={entry.method}><b>{entry.method}</b> {money(entry.revenue)} ({entry.orders})</small>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* CARDS DE KPI EXECUTIVOS */}
       <section className="metric-grid">

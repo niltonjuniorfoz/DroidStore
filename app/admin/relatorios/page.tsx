@@ -6,6 +6,8 @@ import { BarChart3, CircleDollarSign, FileDown, PackageCheck, TrendingUp } from 
 type Summary = {
   period: { from: string; to: string; days: number };
   totals: { revenue: number; orders: number; fees: number; cost: number; profit: number; averageTicket: number };
+  previous: { revenue: number; orders: number };
+  paymentMethods: Array<{ method: string; revenue: number; orders: number }>;
   abc: Array<{ id: string; name: string; units: number; revenue: number; cost: number; profit: number }>;
   turnover: Array<{ id: string; name: string; stock: number; units: number; daysOfStock: number | null }>;
 };
@@ -63,7 +65,14 @@ export default function AdminRelatorios() {
         <article className="metric-card accent">
           <span><CircleDollarSign /> Faturamento</span>
           <strong>{money(data.totals.revenue)}</strong>
-          <small>{data.totals.orders} pedidos • ticket {money(data.totals.averageTicket)}</small>
+          {(() => {
+            const delta = data.previous.revenue
+              ? ((data.totals.revenue - data.previous.revenue) / data.previous.revenue) * 100
+              : data.totals.revenue > 0 ? 100 : 0;
+            return <small className={delta >= 0 ? "positive" : "negative"}>
+              {delta >= 0 ? "▲" : "▼"} {Math.abs(delta).toFixed(1)}% vs período anterior ({money(data.previous.revenue)}) • {data.totals.orders} pedidos • ticket {money(data.totals.averageTicket)}
+            </small>;
+          })()}
         </article>
         <article className="metric-card profit">
           <span><TrendingUp /> Lucro do período</span>
@@ -76,6 +85,17 @@ export default function AdminRelatorios() {
           <small>{data.abc.length} produtos com venda no período</small>
         </article>
       </section>
+
+      {data.paymentMethods.length > 0 && (
+        <section className="list-stats" aria-label="Vendas por método de pagamento">
+          {data.paymentMethods.map((entry) => (
+            <div key={entry.method}>
+              <span>{entry.method}</span>
+              <strong>{money(entry.revenue)} <small style={{ fontWeight: 500, color: "var(--a-muted)" }}>({entry.orders} pedidos{data.totals.revenue ? ` · ${Math.round((entry.revenue / data.totals.revenue) * 100)}%` : ""})</small></strong>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="admin-data-card">
         <div className="admin-toolbar"><strong style={{ fontSize: "0.8rem" }}><BarChart3 size={14} style={{ verticalAlign: "-2px" }} /> Curva ABC — o que sustenta o faturamento</strong></div>

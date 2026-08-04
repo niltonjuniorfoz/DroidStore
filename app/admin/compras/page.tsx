@@ -173,6 +173,30 @@ export default function AdminCompras() {
       </form>
     </section>
 
+    {lots.length > 0 && (() => {
+      const totalBrl = lots.reduce((total, lot) => total + Number(lot.unitCostBrl) * lot.quantity, 0);
+      const units = lots.reduce((total, lot) => total + lot.quantity, 0);
+      const byCurrency = new Map<string, number>();
+      for (const lot of lots) {
+        byCurrency.set(lot.currency, (byCurrency.get(lot.currency) ?? 0) + Number(lot.unitCostFx) * lot.quantity);
+      }
+      const bySupplier = new Map<string, number>();
+      for (const lot of lots) {
+        bySupplier.set(lot.supplier, (bySupplier.get(lot.supplier) ?? 0) + Number(lot.unitCostBrl) * lot.quantity);
+      }
+      const topSupplier = [...bySupplier.entries()].sort((a, b) => b[1] - a[1])[0];
+      return (
+        <section className="list-stats" aria-label="Resumo das compras">
+          <div><span>Investido (últimos lotes)</span><strong>{money(totalBrl)}</strong></div>
+          <div><span>Unidades compradas</span><strong>{units}</strong></div>
+          {[...byCurrency.entries()].map(([currency, amount]) => (
+            <div key={currency}><span>Total {currency}</span><strong>{currency === "BRL" ? money(amount) : `${currency} ${amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}</strong></div>
+          ))}
+          {topSupplier && <div><span>Maior fornecedor</span><strong>{topSupplier[0]} ({money(topSupplier[1])})</strong></div>}
+        </section>
+      );
+    })()}
+
     <section className="admin-data-card">
       <div className="admin-toolbar"><strong style={{ fontSize: "0.8rem" }}>Últimos lotes</strong></div>
       <div className="compact-list">
