@@ -222,6 +222,28 @@ export async function getFamilyVariantsForProduct(targetProduct: CatalogProduct)
   }));
 }
 
+// Filtros públicos do catálogo (mesma resposta da rota /api/catalog-filters).
+export async function getPublicCatalogFilters() {
+  try {
+    return await prisma.catalogFilter.findMany({
+      where: { active: true },
+      orderBy: [{ position: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        options: {
+          where: { active: true },
+          orderBy: [{ position: "asc" }, { label: "asc" }],
+          select: { id: true, label: true, slug: true },
+        },
+      },
+    });
+  } catch {
+    return [];
+  }
+}
+
 export async function getSiteContent() {
   try {
     const [content, navigation] = await Promise.all([
