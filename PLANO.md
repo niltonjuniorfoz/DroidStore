@@ -49,7 +49,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 - [x] 🟠 **4.1 Lote de compra multi-moeda** — tela `/admin/compras` (só ADMIN): fornecedor, moeda USD/USDT/BRL, custo na moeda, cotação do dia, quantidade, frete do lote, data. Registrar o lote **soma o estoque** (movimentação ENTRY) e **recalcula o custo médio ponderado** da variação em BRL — a cotação congela na compra, a margem não mente quando o dólar muda. Preview do custo em reais ao vivo no formulário. Auditado.
 - [x] 🟠 **4.2 Margem verdadeira** — webhook captura a **taxa real** cobrada pelo Mercado Pago em cada pagamento (`fee_details` → `Order.gatewayFeeBrl`, sem configurar percentual); dashboard mostra **Lucro no mês = bruto − taxas MP** com as taxas discriminadas no card. Custo já vem do lote (média ponderada do 4.1). Frete de envio ainda não é rastreado por pedido — entra quando houver integração de frete.
 - [x] 🟡 **4.3 Exportação contábil** — botão **"Exportar mês"** no dashboard (só ADMIN): XLSX com aba Vendas (data, pedido, cliente, status, bruto, taxa gateway, líquido, custo, lucro — uma linha por pedido, inclui REFUNDED para conferência) + aba **Produtos (ABC)** do mês. Pronto pra mandar pro contador e simular carga tributária sobre a margem real. `?month=YYYY-MM` exporta meses anteriores.
-- [ ] ⚪ **4.4 Relatórios em tela** — vendas por período com filtro de data livre, giro de estoque. Parcialmente coberto: o export 4.3 já traz vendas mensais + curva ABC; falta a versão em tela com período livre.
+- [x] ⚪ **4.4 Relatórios em tela** — tela `/admin/relatorios` (só ADMIN): período livre (De/Até), cards de faturamento/lucro/taxas, **curva ABC** com % acumulado e classe A/B/C, **giro de estoque** com cobertura em dias (vermelho <15d, amarelo <45d, "parado" sem venda). Queries validadas contra o banco real. Atalho pro XLSX mensal.
 
 ---
 
@@ -77,6 +77,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 3.3+3.4+3.5 Higiene, erros por código, testes de guarda | `13d2146` |
 | 2026-08-03 | 4.1 Lotes de compra multi-moeda (`/admin/compras`) | `586d7b1` |
 | 2026-08-03 | 4.2+4.3 Taxa real do MP + exportação contábil XLSX | `ade38c2` |
+| 2026-08-03 | 4.4 Relatórios em tela (`/admin/relatorios`) | `8e4313a` |
 
 ## Descobertos no caminho (triagem pendente)
 
