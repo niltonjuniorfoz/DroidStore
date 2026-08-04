@@ -46,58 +46,14 @@ import {
 import { calculateGrossProfit } from "../../../src/lib/profit";
 import { uploadAdminFile } from "../../../src/lib/uploadClient";
 import { useAdminFeedback } from "../../../src/components/admin/AdminFeedback";
-
-type AdminVariant = {
-  id: string;
-  price: string;
-  costPrice?: string;
-  stock: number;
-  lowStockThreshold: number;
-  storage?: string;
-  color?: string;
-  condition: string;
-  sku?: string;
-};
-
-type Specification = { id?: string; label: string; value: string };
-type ProductImage = { id?: string; url: string; color?: string; position?: number };
-type FilterOption = { id: string; label: string; active: boolean };
-type CatalogFilter = { id: string; name: string; slug: string; active: boolean; options: FilterOption[] };
-
-type AdminProduct = {
-  id: string;
-  name: string;
-  brand: string;
-  description?: string;
-  active: boolean;
-  featured: boolean;
-  imageUrl?: string;
-  model3dUrl?: string | null;
-  images?: ProductImage[];
-  specifications?: Specification[];
-  filterSelections?: Array<{ option: { id: string; filterId: string; label: string; filter: { id: string; name: string; slug: string } } }>;
-  variants: AdminVariant[];
-};
-
-type GroupedModel = {
-  modelKey: string;
-  modelName: string;
-  brand: string;
-  items: AdminProduct[];
-  totalStock: number;
-  minPrice: number;
-  maxPrice: number;
-  colors: string[];
-  storages: string[];
-  conditions: string[];
-  featured: boolean;
-};
-
-const emptyImages = () => ["", "", "", ""];
-
-function getBaseModelName(name: string) {
-  return name.replace(/\s*-\s*\d+\s*(GB|TB).*/i, "").replace(/\s*-\s*(Seminovo|Novo|Excelente|Muito Bom|Outlet|Reembalado).*/i, "").trim();
-}
+import {
+  emptyImages,
+  getBaseModelName,
+  type AdminProduct,
+  type CatalogFilter,
+  type GroupedModel,
+  type Specification,
+} from "./types";
 
 export default function AdminProdutos() {
   const { confirmDialog } = useAdminFeedback();
