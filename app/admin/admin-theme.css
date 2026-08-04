@@ -685,3 +685,67 @@
 .admin-shell .pill-stock.zero { background: var(--a-danger-soft); color: var(--a-danger); }
 
 .admin-shell .stock-pagination { border-bottom: 0; border-top: 1px solid var(--a-line); justify-content: space-between; }
+
+/* ---------- FILTROS V2: MASTER-DETAIL ---------- */
+.admin-shell .filter-master { display: grid; grid-template-columns: 290px minmax(0, 1fr); min-height: 420px; }
+@media (max-width: 900px) { .admin-shell .filter-master { grid-template-columns: 1fr; } .admin-shell .filter-nav { border-right: 0; border-bottom: 1px solid var(--a-line); max-height: 300px; } }
+
+.admin-shell .filter-nav { border-right: 1px solid var(--a-line); background: var(--a-surface-2); display: flex; flex-direction: column; overflow-y: auto; }
+.admin-shell .filter-nav-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  width: 100%; text-align: left; border: 0; background: transparent; cursor: pointer;
+  padding: 0.75rem 1rem; border-bottom: 1px solid #eef0ed; font-family: inherit;
+  transition: background 0.1s;
+}
+.admin-shell .filter-nav-item:hover { background: #f4f0e9; }
+.admin-shell .filter-nav-item.active { background: #fff; box-shadow: inset 3px 0 0 var(--a-accent); }
+.admin-shell .filter-nav-item.muted .filter-nav-info strong { color: var(--a-muted); }
+.admin-shell .filter-nav-info { min-width: 0; }
+.admin-shell .filter-nav-info strong { font-size: 0.76rem; display: block; }
+.admin-shell .filter-nav-info strong em { font-style: normal; font-size: 0.6rem; font-weight: 650; color: var(--a-warning); }
+.admin-shell .filter-nav-info small { font-size: 0.62rem; color: var(--a-muted); }
+.admin-shell .filter-nav-arrows { display: flex; flex-direction: column; gap: 2px; }
+.admin-shell .filter-nav-arrows span { display: grid; place-items: center; width: 22px; height: 18px; border-radius: 5px; color: var(--a-muted); cursor: pointer; }
+.admin-shell .filter-nav-arrows span:hover { background: var(--a-canvas); color: var(--a-ink); }
+.admin-shell .filter-nav-arrows span.disabled { opacity: 0.25; pointer-events: none; }
+.admin-shell .filter-nav-footer { margin-top: auto; padding: 0.7rem; border-top: 1px solid var(--a-line); }
+.admin-shell .filter-new-form { display: flex; gap: 0.4rem; }
+.admin-shell .filter-new-form input { flex: 1; min-width: 0; min-height: 34px; }
+
+.admin-shell .filter-detail { padding: 1.1rem 1.3rem 1.4rem; display: flex; flex-direction: column; gap: 0.9rem; min-width: 0; }
+.admin-shell .filter-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+.admin-shell .filter-detail-head h2 { display: flex; align-items: center; gap: 0.45rem; font-size: 1.02rem; }
+.admin-shell .filter-detail-head h2 svg { color: var(--a-accent); }
+.admin-shell .filter-detail-head small { font-size: 0.64rem; color: var(--a-muted); display: block; margin-top: 0.2rem; }
+.admin-shell .filter-detail-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+.admin-shell .filter-add-bar { display: flex; gap: 0.5rem; }
+.admin-shell .filter-add-bar input { flex: 1; min-width: 0; }
+
+.admin-shell .filter-detail-toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.admin-shell .filter-detail-toolbar .toolbar-search { flex: 1; min-width: 200px; }
+
+.admin-shell .option-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.5rem; }
+.admin-shell .option-chip {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  border: 1px solid var(--a-line); border-radius: 10px; background: #fff;
+  padding: 0.55rem 0.7rem; min-width: 0;
+  transition: border-color 0.1s, box-shadow 0.1s;
+}
+.admin-shell .option-chip:hover { border-color: var(--a-line-strong); box-shadow: var(--a-shadow-1); }
+.admin-shell .option-chip.orphan { border-style: dashed; border-color: #f2ddb8; background: #fffdf8; }
+.admin-shell .option-chip.muted { opacity: 0.55; }
+.admin-shell .option-chip-info { min-width: 0; }
+.admin-shell .option-chip-info strong { font-size: 0.72rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-shell .option-chip-info small { font-size: 0.6rem; color: var(--a-muted); }
+.admin-shell .option-chip-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; }
+.admin-shell .option-chip:hover .option-chip-actions, .admin-shell .option-chip:focus-within .option-chip-actions { opacity: 1; }
+.admin-shell .option-chip-actions button {
+  border: 0; background: transparent; cursor: pointer; color: var(--a-muted);
+  width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px;
+}
+.admin-shell .option-chip-actions button:hover { background: var(--a-canvas); color: var(--a-ink); }
+.admin-shell .option-chip-actions .danger-text:hover { background: var(--a-danger-soft); color: var(--a-danger); }
+
+.admin-shell .inline-edit { display: flex; gap: 0.4rem; align-items: center; width: 100%; }
+.admin-shell .inline-edit input { flex: 1; min-width: 0; min-height: 34px; }
