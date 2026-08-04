@@ -1,3 +1,4 @@
+import { cache } from "react";
 import prisma from "./prisma";
 import {
   getBaseModelName,
@@ -120,7 +121,8 @@ export type StorefrontProductDetail = CatalogProduct & {
   familyVariants: ProductVariantOption[];
 };
 
-export async function getProductBySlug(slug: string): Promise<StorefrontProductDetail | null> {
+// cache() deduplica a busca entre generateMetadata e a página na mesma requisição.
+export const getProductBySlug = cache(async (slug: string): Promise<StorefrontProductDetail | null> => {
   try {
     const product = await prisma.product.findFirst({
       where: { slug, active: true },
@@ -143,7 +145,7 @@ export async function getProductBySlug(slug: string): Promise<StorefrontProductD
   const fallback = products.find((item) => item.slug === slug);
   if (!fallback) return null;
   return { ...fallback, familyVariants: await getFamilyVariantsForProduct(fallback) };
-}
+});
 
 export { getBaseModelName };
 

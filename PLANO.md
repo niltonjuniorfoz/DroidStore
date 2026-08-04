@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 10/24 · **FASES 0 e 1 concluídas**
+**Última atualização:** 2026-08-03 · **Progresso:** 12/24 · **FASES 0 e 1 concluídas**
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -28,8 +28,8 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 
 ## FASE 2 — Vitrine vendendo (SEO + performance)
 
-- [ ] 🟠 **2.1 `generateMetadata` por produto** — title, description, OG image (foto do aparelho), preço. (`app/produto/[slug]/page.tsx`)
-- [ ] 🟠 **2.2 JSON-LD `Product`+`Offer`** — preço, disponibilidade, condição; habilita rich results.
+- [x] 🟠 **2.1 `generateMetadata` por produto** — title com modelo/capacidade/cor/condição, description com preço, OG image + Twitter card, canonical. Busca deduplicada com `cache()`. Bônus: sitemap agora puxa os produtos **do banco** (antes era só o catálogo estático — produto cadastrado no admin ficava fora).
+- [x] 🟠 **2.2 JSON-LD `Product`+`Offer`** — preço, disponibilidade (InStock/OutOfStock), condição mapeada pro vocabulário schema.org (Novo→New, Reembalado/Outlet→Refurbished, usados→Used), marca e vendedor.
 - [ ] 🟡 **2.3 Catálogo server-side** — `/celulares` renderizar lista inicial no servidor (filtros continuam client); avaliar `searchParams` como fonte de estado.
 - [ ] 🟡 **2.4 `next/image` nos 18 `<img>`** — lazy, srcset, sizes; priorizar hero e cards do catálogo.
 - [ ] ⚪ **2.5 Quebrar `storefront-theme.css`** (5.977 linhas) — por rota/componente; remover morto.
@@ -66,6 +66,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 1.3 Rate limit (login, cadastro, checkout, IA) | `87c861d` |
 | 2026-08-03 | 1.4 E-mails de pedido recebido e enviado | `37abe89` |
 | 2026-08-03 | 1.5 Middleware de borda (`middleware.ts`) | `734712f` |
+| 2026-08-03 | 2.1+2.2 SEO por produto (metadata, JSON-LD, sitemap) | `fadfefe` |
 
 ## Descobertos no caminho (triagem pendente)
 
