@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Award, Headphones, Instagram, Mail, MessageCircle, ShieldCheck, Truck } from "lucide-react";
 import { useEffect, useMemo } from "react";
@@ -144,7 +145,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
 
       <div className="aura-footer-main">
         <section className="aura-footer-brand" aria-label="Aura Tech">
-          <img src="/aura-tech-logo.png" alt="Aura Tech" loading="lazy" decoding="async" />
+          <Image src="/aura-tech-logo.png" alt="Aura Tech" width={1200} height={507} sizes="200px" />
           <p>Tecnologia que conecta você ao futuro. Produtos selecionados, compra segura e atendimento de verdade.</p>
         </section>
 

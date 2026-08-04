@@ -2,6 +2,15 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  images: {
+    // Allowlist explícita: evita usar o otimizador como proxy aberto.
+    // Hosts fora da lista caem no <img> comum dentro de ProductImage.
+    remotePatterns: [
+      { protocol: 'https', hostname: '*.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: 'cdn.atacadoconnect.com' },
+      { protocol: 'https', hostname: 'www.atlanticoshop.com.py' },
+    ],
+  },
   async headers() {
     return [{
       source: '/(.*)',

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -301,10 +302,14 @@ export default function Header() {
               aria-label="Aura Tech, página inicial"
               onClick={closeMenu}
             >
-              <img
+              <Image
                 src="/aura-tech-logo.png"
                 alt="Aura Tech"
                 className="brasil-store-logo-img"
+                width={1200}
+                height={507}
+                priority
+                sizes="160px"
               />
             </Link>
 

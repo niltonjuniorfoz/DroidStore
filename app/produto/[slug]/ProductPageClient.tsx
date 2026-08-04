@@ -333,7 +333,7 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
                   }}
                   aria-label={`Ver foto ${index + 1}`}
                 >
-                  <img src={image} alt="" loading="lazy" decoding="async" />
+                  <ProductImage src={image} alt="" sizes="96px" />
                 </button>
               ))}
             </div>
