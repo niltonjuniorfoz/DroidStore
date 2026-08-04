@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 21/25 · **FASES 0–3 concluídas** (3.6 é polimento novo, opcional)
+**Última atualização:** 2026-08-03 · **Progresso:** 22/25 · **FASES 0–3 concluídas** (3.6 é polimento novo, opcional)
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -46,7 +46,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 
 ## FASE 4 — Financeiro real
 
-- [ ] 🟠 **4.1 Lote de compra multi-moeda** — modelo `PurchaseLot`: fornecedor, moeda (USD/USDT/BRL), valor, cotação, data, quantidade → custo unitário BRL real; vincular a variante/unidade.
+- [x] 🟠 **4.1 Lote de compra multi-moeda** — tela `/admin/compras` (só ADMIN): fornecedor, moeda USD/USDT/BRL, custo na moeda, cotação do dia, quantidade, frete do lote, data. Registrar o lote **soma o estoque** (movimentação ENTRY) e **recalcula o custo médio ponderado** da variação em BRL — a cotação congela na compra, a margem não mente quando o dólar muda. Preview do custo em reais ao vivo no formulário. Auditado.
 - [ ] 🟠 **4.2 Margem verdadeira** — dashboard descontar taxa MP (por modalidade) e frete do lucro bruto; custo vindo do lote, não do campo manual.
 - [ ] 🟡 **4.3 Exportação contábil** — CSV/XLSX mensal de vendas (data, valor, taxa, líquido) pronto para contador; base para simular carga tributária (Simples ~4% início) sobre margem real. Subsidia a decisão de regularização — conversar com contador.
 - [ ] ⚪ **4.4 Relatórios** — vendas por período com filtro de data, curva ABC, giro de estoque.
@@ -75,6 +75,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 3.1 Dashboard agregado + filtros no servidor | `90e3267` |
 | 2026-08-03 | 3.2 Duplicar produto como variação | `76d96df` |
 | 2026-08-03 | 3.3+3.4+3.5 Higiene, erros por código, testes de guarda | `13d2146` |
+| 2026-08-03 | 4.1 Lotes de compra multi-moeda (`/admin/compras`) | `586d7b1` |
 
 ## Descobertos no caminho (triagem pendente)
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Boxes, FileSpreadsheet, FileText, History, LayoutDashboard, LogOut, PanelsTopLeft, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Tags, Users, X } from "lucide-react";
+import { Boxes, FileSpreadsheet, FileText, History, LayoutDashboard, PackagePlus, LogOut, PanelsTopLeft, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Tags, Users, X } from "lucide-react";
 
 const items = [
   { href: "/admin", label: "Visão geral", icon: LayoutDashboard, exact: true },
@@ -14,6 +14,7 @@ const items = [
   { href: "/admin/conteudo", label: "Vitrine e menu", icon: PanelsTopLeft },
   { href: "/admin/estoque", label: "Estoque", icon: Tags },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
+  { href: "/admin/compras", label: "Compras (lotes)", icon: PackagePlus, adminOnly: true },
   { href: "/admin/usuarios", label: "Equipe", icon: ShieldCheck, adminOnly: true },
   { href: "/admin/auditoria", label: "Auditoria", icon: History, adminOnly: true },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
