@@ -26,8 +26,10 @@ export async function GET() {
       FROM "Order"
       WHERE status = ANY(${SALES}) AND "createdAt" >= ${previousStart}
       GROUP BY 1`,
-    prisma.$queryRaw<Array<{ costs: number }>>`
-      SELECT COALESCE(SUM(oi."costPrice" * oi.quantity), 0)::float AS costs
+    prisma.$queryRaw<Array<{ costs: number; fees: number }>>`
+      SELECT COALESCE(SUM(oi."costPrice" * oi.quantity), 0)::float AS costs,
+             COALESCE((SELECT SUM("gatewayFeeBrl") FROM "Order"
+                       WHERE status = ANY(${SALES}) AND "createdAt" >= ${currentStart}), 0)::float AS fees
       FROM "OrderItem" oi
       JOIN "Order" o ON o.id = oi."orderId"
       WHERE o.status = ANY(${SALES}) AND o."createdAt" >= ${currentStart}`,
@@ -84,6 +86,7 @@ export async function GET() {
   const revenue = current.revenue;
   const previousRevenue = previous.revenue;
   const costs = costRows[0]?.costs ?? 0;
+  const gatewayFees = costRows[0]?.fees ?? 0;
   const { grossProfit, grossMargin } = calculateGrossProfit(revenue, costs);
   const averageTicket = current.orders ? revenue / current.orders : 0;
   const inventory = inventoryRows[0] ?? { value: 0, cost: 0 };
@@ -121,6 +124,8 @@ export async function GET() {
             costs,
             grossProfit,
             grossMargin,
+            gatewayFees,
+            netProfit: grossProfit - gatewayFees,
             inventoryCost: inventory.cost,
           }
         : {}),

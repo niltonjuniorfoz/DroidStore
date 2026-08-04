@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  FileDown,
   AlertTriangle,
   ArrowUpRight,
   BarChart3,
@@ -36,6 +37,8 @@ type Dashboard = {
     costs?: number;
     grossProfit?: number;
     grossMargin?: number;
+    gatewayFees?: number;
+    netProfit?: number;
     inventoryCost?: number;
   };
   dailySales: DailySale[];
@@ -114,6 +117,11 @@ export default function AdminDashboard() {
           <Link href="/admin/pedidos" className="button ghost sm">
             <Receipt size={15} /> Ver Pedidos
           </Link>
+          {data.ownerView && (
+            <a href={`/api/admin/reports/sales-export?month=${new Date().toISOString().slice(0, 7)}`} className="button ghost sm" title="Baixar planilha de vendas do mês (bruto, taxas, líquido, custo, lucro)">
+              <FileDown size={15} /> Exportar mês
+            </a>
+          )}
           <button className="button ghost sm" onClick={() => void load()} title="Atualizar dados">
             <RefreshCw size={15} />
           </button>
@@ -134,9 +142,12 @@ export default function AdminDashboard() {
 
         {data.ownerView && (
           <article className="metric-card profit">
-            <span><TrendingUp /> Lucro bruto no mês</span>
-            <strong>{money(metrics.grossProfit)}</strong>
-            <small>{metrics.grossMargin?.toFixed(1)}% de margem • Custo: {money(metrics.costs)}</small>
+            <span><TrendingUp /> Lucro no mês</span>
+            <strong>{money(metrics.netProfit ?? metrics.grossProfit)}</strong>
+            <small>
+              {metrics.grossMargin?.toFixed(1)}% de margem bruta • Custo: {money(metrics.costs)}
+              {(metrics.gatewayFees ?? 0) > 0 ? ` • Taxas MP: ${money(metrics.gatewayFees)}` : ""}
+            </small>
           </article>
         )}
 

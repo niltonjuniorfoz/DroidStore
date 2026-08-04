@@ -61,7 +61,15 @@ export async function POST(req: Request) {
       });
 
       if (payment.status === "approved" && order.status === "PENDING") {
-        await tx.order.update({ where: { id: orderId }, data: { status: "PAID" } });
+        // Taxa real cobrada pelo gateway neste pagamento (para a margem líquida).
+        const gatewayFeeBrl = (payment.fee_details ?? []).reduce(
+          (total, fee) => total + Number(fee.amount ?? 0),
+          0,
+        );
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: "PAID", ...(gatewayFeeBrl > 0 ? { gatewayFeeBrl } : {}) },
+        });
         await tx.orderStatusHistory.create({
           data: {
             orderId,
