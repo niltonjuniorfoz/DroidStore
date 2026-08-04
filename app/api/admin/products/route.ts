@@ -63,9 +63,24 @@ function slugify(value: string) {
 export async function GET(request: Request) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  const summary = new URL(request.url).searchParams.get("view") === "summary";
+  const { searchParams } = new URL(request.url);
+  const summary = searchParams.get("view") === "summary";
+  const query = searchParams.get("q")?.trim().slice(0, 80);
+  const takeParam = Number(searchParams.get("take"));
+  const take = Number.isFinite(takeParam) && takeParam > 0 ? Math.min(1000, takeParam) : undefined;
+  const productWhere = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { brand: { contains: query, mode: "insensitive" as const } },
+          { slug: { contains: query, mode: "insensitive" as const } },
+        ],
+      }
+    : undefined;
   if (summary) {
     const rows = await prisma.product.findMany({
+      ...(take ? { take } : {}),
+      where: productWhere,
       select: {
         id: true,
         name: true,
@@ -97,6 +112,8 @@ export async function GET(request: Request) {
     })), { headers: { "X-Owner-View": "false" } });
   }
   const rows = await prisma.product.findMany({
+    ...(take ? { take } : {}),
+    where: productWhere,
     include: {
       variants: true,
       images: { orderBy: { position: "asc" } },

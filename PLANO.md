@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 16/24 · **FASES 0, 1 e 2 concluídas**
+**Última atualização:** 2026-08-03 · **Progresso:** 17/24 · **FASES 0, 1 e 2 concluídas**
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -37,7 +37,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 
 ## FASE 3 — Escala do admin
 
-- [ ] 🟡 **3.1 Paginação/busca no servidor** — `products`, `orders` (cursor + filtro data/status), `customers`; dashboard com `aggregate`/`groupBy` + índices (`Order.createdAt`, `Order.status`).
+- [x] 🟡 **3.1 Paginação/busca no servidor** — dashboard 100% agregado no banco (`$queryRaw` com SUM/GROUP BY, fuso de São Paulo no gráfico diário; queries validadas contra o banco real); pedidos filtram período+busca no servidor (o take de 250 não esconde mais pedido antigo procurado); clientes com busca servidor + take 200; produtos com `?q`/`?take`. Status das tabs de pedidos ficou no client de propósito (mantém as contagens). Índice `Order(status, createdAt)` já criado no 0.4.
 - [ ] 🟡 **3.2 Multi-variante no admin** — criar/editar N variantes por produto (128GB/256GB, cores) sem duplicar produto.
 - [ ] ⚪ **3.3 Higiene de UX** — trocar `alert()`/`confirm()` por toast+modal; `.catch` nos fetch; `error.tsx`/`loading.tsx`; quebrar `produtos/page.tsx`.
 - [ ] ⚪ **3.4 Erros Prisma por código** — `P2002` em vez de `message.includes`; tratar FK em DELETE de filtros.
@@ -71,6 +71,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 2.4 (parcial: lazy+priority) e 2.6 Carrinho preço vivo | `18c463e` |
 | 2026-08-03 | 2.4 next/image completo (allowlist de hosts) | `0f34a83` |
 | 2026-08-03 | 2.5 CSS em 8 módulos + 204 linhas mortas removidas | `df83d3a` |
+| 2026-08-03 | 3.1 Dashboard agregado + filtros no servidor | `90e3267` |
 
 ## Descobertos no caminho (triagem pendente)
 

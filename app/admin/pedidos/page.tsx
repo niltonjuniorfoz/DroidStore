@@ -88,16 +88,30 @@ export default function AdminPedidos() {
   const [sortField, setSortField] = useState<"date" | "total" | "status" | "customer">("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
-  async function load() {
+  async function load(period: string = dateFilter, query: string = search) {
     setLoading(true);
-    const response = await fetch("/api/admin/orders", { cache: "no-store" });
-    const body = await response.json();
-    if (!response.ok) setError(body.error ?? "Não foi possível carregar os pedidos.");
-    else { setOrders(body); setError(""); }
+    try {
+      // Período e busca filtram no servidor: o limite de 250 não esconde
+      // pedidos antigos quando se procura algo específico.
+      const params = new URLSearchParams();
+      if (period !== "all") params.set("period", period);
+      if (query.trim()) params.set("q", query.trim());
+      const suffix = params.size ? `?${params}` : "";
+      const response = await fetch(`/api/admin/orders${suffix}`, { cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok) setError(body.error ?? "Não foi possível carregar os pedidos.");
+      else { setOrders(body); setError(""); }
+    } catch {
+      setError("Falha de conexão. Tente novamente.");
+    }
     setLoading(false);
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    // Debounce só quando há busca digitada; troca de período recarrega na hora.
+    const timer = setTimeout(() => { void load(dateFilter, search); }, search.trim() ? 350 : 0);
+    return () => clearTimeout(timer);
+  }, [dateFilter, search]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setPage(1); }, [search, status, dateFilter, pageSize]);
 
   // FILTRAGEM E ORDENAÇÃO

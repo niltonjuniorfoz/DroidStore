@@ -18,13 +18,20 @@ export default function AdminClientes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => {
-    void fetch("/api/admin/customers", { cache: "no-store" }).then(async (response) => {
-      const body = await response.json();
-      if (!response.ok) setError(body.error ?? "Não foi possível carregar os clientes.");
-      else setCustomers(body);
-      setLoading(false);
-    });
-  }, []);
+    // Busca no servidor com debounce: com muitos clientes, o take não esconde ninguém.
+    const timer = setTimeout(() => {
+      const suffix = search.trim() ? `?q=${encodeURIComponent(search.trim())}` : "";
+      void fetch(`/api/admin/customers${suffix}`, { cache: "no-store" })
+        .then(async (response) => {
+          const body = await response.json();
+          if (!response.ok) setError(body.error ?? "Não foi possível carregar os clientes.");
+          else { setCustomers(body); setError(""); }
+        })
+        .catch(() => setError("Falha de conexão. Tente novamente."))
+        .finally(() => setLoading(false));
+    }, search.trim() ? 350 : 0);
+    return () => clearTimeout(timer);
+  }, [search]);
   const filtered = useMemo(() => {
     const term = search.toLowerCase().trim();
     return customers.filter((customer) => !term || `${customer.name} ${customer.email} ${customer.phone} ${customer.cpf}`.toLowerCase().includes(term));

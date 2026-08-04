@@ -2,10 +2,26 @@ import { NextResponse } from "next/server";
 import prisma from "../../../../src/lib/prisma";
 import { requireAdmin } from "../../../../src/lib/admin";
 
-export async function GET() {
+export async function GET(req: Request) {
   if (!await requireAdmin()) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  const { searchParams } = new URL(req.url);
+  const query = searchParams.get("q")?.trim().slice(0, 80);
+  const take = Math.min(500, Math.max(1, Number(searchParams.get("take")) || 200));
   const customers = await prisma.user.findMany({
-    where: { role: "CUSTOMER" },
+    take,
+    where: {
+      role: "CUSTOMER",
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { email: { contains: query, mode: "insensitive" } },
+              { phone: { contains: query } },
+              { cpf: { contains: query } },
+            ],
+          }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
     include: {
       addresses: true,
