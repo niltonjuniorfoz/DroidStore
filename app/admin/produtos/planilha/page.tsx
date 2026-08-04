@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useAdminFeedback } from "../../../../src/components/admin/AdminFeedback";
 import {
   AlertTriangle,
   ArrowDown,
@@ -78,6 +79,7 @@ function fieldValue(change: ChangeItem, field: ChangeItem["fields"][number], sid
 }
 
 export default function ProductSpreadsheetPage() {
+  const { confirmDialog } = useAdminFeedback();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -137,7 +139,7 @@ export default function ProductSpreadsheetPage() {
   }
 
   async function rollback(item: ImportHistory) {
-    if (!window.confirm(`Desfazer as ${item.changedRows} alterações da importação “${item.fileName}”?`)) return;
+    if (!(await confirmDialog({ title: "Desfazer importação", message: `Desfazer as ${item.changedRows} alterações da importação "${item.fileName}"?`, confirmLabel: "Desfazer", danger: true }))) return;
     setBusy("rollback");
     setError("");
     setSuccess("");

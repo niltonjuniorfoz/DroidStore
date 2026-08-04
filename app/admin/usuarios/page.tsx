@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { KeyRound, ShieldCheck, UserCheck, UserPlus, UserX } from "lucide-react";
+import { useAdminFeedback } from "../../../src/components/admin/AdminFeedback";
 
 type TeamUser = {
   id: string;
@@ -18,6 +19,7 @@ const roleLabels: Record<string, string> = {
 };
 
 export default function AdminUsuarios() {
+  const { confirmDialog } = useAdminFeedback();
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [selfId, setSelfId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -158,7 +160,7 @@ export default function AdminUsuarios() {
                   ? <button disabled={saving} className="button ghost sm" onClick={() => void patchUser(user.id, { role: "ADMIN" }, "Promovido a administrador.")}>Promover a admin</button>
                   : <button disabled={saving} className="button ghost sm" onClick={() => void patchUser(user.id, { role: "MANAGER" }, "Rebaixado para gerente.")}>Tornar gerente</button>}
                 {user.active
-                  ? <button disabled={saving} className="button danger sm" onClick={() => { if (confirm(`Desativar o acesso de ${user.email}? A pessoa perde o painel imediatamente.`)) void patchUser(user.id, { active: false }, "Acesso desativado."); }}><UserX /> Desativar</button>
+                  ? <button disabled={saving} className="button danger sm" onClick={() => { void confirmDialog({ title: "Desativar acesso", message: `Desativar o acesso de ${user.email}? A pessoa perde o painel imediatamente.`, confirmLabel: "Desativar", danger: true }).then((accepted) => { if (accepted) void patchUser(user.id, { active: false }, "Acesso desativado."); }); }}><UserX /> Desativar</button>
                   : <button disabled={saving} className="button primary sm" onClick={() => void patchUser(user.id, { active: true }, "Acesso reativado.")}><UserCheck /> Reativar</button>}
               </>}
               {passwordFor === user.id

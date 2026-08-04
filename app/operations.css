@@ -2205,3 +2205,19 @@
 @media (max-width: 900px) {
   .footer-banner-config-grid { grid-template-columns: 1fr; }
 }
+
+/* Toasts e diálogo de confirmação do painel */
+.admin-toast-stack{position:fixed;bottom:18px;right:18px;z-index:1200;display:flex;flex-direction:column;gap:.5rem;max-width:min(360px,calc(100vw - 36px))}
+.admin-toast{display:flex;align-items:center;gap:.55rem;padding:.7rem .9rem;border-radius:10px;background:#1e2923;color:#fff;font-size:.74rem;font-weight:600;box-shadow:0 8px 24px rgba(15,23,19,.25);animation:admin-toast-in .18s ease-out}
+.admin-toast svg{flex-shrink:0}
+.admin-toast.success{background:#0b6e2a}
+.admin-toast.error{background:#a52626}
+.admin-toast.info{background:#1e2923}
+@keyframes admin-toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.admin-confirm-overlay{position:fixed;inset:0;z-index:1190;background:rgba(15,23,19,.45);display:grid;place-items:center;padding:1rem}
+.admin-confirm-box{background:#fff;border-radius:14px;padding:1.4rem 1.5rem;max-width:420px;width:100%;display:grid;gap:.65rem;justify-items:start;box-shadow:0 18px 48px rgba(15,23,19,.3)}
+.admin-confirm-box>svg{width:26px;height:26px;color:#966000}
+.admin-confirm-box>svg.danger{color:#b42323}
+.admin-confirm-box h2{font-size:.95rem}
+.admin-confirm-box p{font-size:.78rem;color:#55605a;line-height:1.55;white-space:pre-line}
+.admin-confirm-actions{display:flex;gap:.5rem;justify-content:flex-end;width:100%;margin-top:.3rem}

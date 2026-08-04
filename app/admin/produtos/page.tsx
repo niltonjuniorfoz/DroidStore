@@ -45,6 +45,7 @@ import {
 } from "../../../src/lib/productStandards";
 import { calculateGrossProfit } from "../../../src/lib/profit";
 import { uploadAdminFile } from "../../../src/lib/uploadClient";
+import { useAdminFeedback } from "../../../src/components/admin/AdminFeedback";
 
 type AdminVariant = {
   id: string;
@@ -99,6 +100,7 @@ function getBaseModelName(name: string) {
 }
 
 export default function AdminProdutos() {
+  const { confirmDialog } = useAdminFeedback();
   const searchParams = useSearchParams();
   const [items, setItems] = useState<AdminProduct[]>([]);
   const [filters, setFilters] = useState<CatalogFilter[]>([]);
@@ -391,7 +393,7 @@ export default function AdminProdutos() {
   }
 
   async function removeProduct(item: AdminProduct) {
-    if (!confirm(`Tem certeza que deseja excluir "${item.name}"? Esta ação não pode ser desfeita.`)) return;
+    if (!(await confirmDialog({ title: "Excluir produto", message: `Excluir "${item.name}"? O produto sai da vitrine (a exclusão desativa, não apaga o histórico).`, confirmLabel: "Excluir", danger: true }))) return;
     setBusy(true);
     setMessage("");
     const response = await fetch(`/api/admin/products/${item.id}`, { method: "DELETE" });
@@ -480,7 +482,7 @@ export default function AdminProdutos() {
 
   async function bulkDelete() {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Tem certeza que deseja excluir os ${selectedIds.size} produto(s) selecionados? Esta ação não pode ser desfeita.`)) return;
+    if (!(await confirmDialog({ title: "Excluir em massa", message: `Excluir os ${selectedIds.size} produto(s) selecionados? Eles saem da vitrine.`, confirmLabel: "Excluir todos", danger: true }))) return;
     setBusy(true);
     const responses = await Promise.all(
       Array.from(selectedIds).map((id) => fetch(`/api/admin/products/${id}`, { method: "DELETE" }))

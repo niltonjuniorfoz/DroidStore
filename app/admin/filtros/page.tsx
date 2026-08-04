@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useAdminFeedback } from "../../../src/components/admin/AdminFeedback";
 import {
   ArrowDown,
   ArrowUp,
@@ -37,6 +38,7 @@ type CatalogFilter = {
 };
 
 export default function AdminFiltros() {
+  const { toast, confirmDialog } = useAdminFeedback();
   const [filters, setFilters] = useState<CatalogFilter[]>([]);
   const [newGroup, setNewGroup] = useState("");
   const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({});
@@ -126,22 +128,22 @@ export default function AdminFiltros() {
 
   async function removeFilter(filter: CatalogFilter) {
     const linked = filter.options.reduce((total, option) => total + option._count.productSelections, 0);
-    if (!confirm(`Excluir o filtro "${filter.name}"? ${linked ? `Ele está ligado a ${linked} produto(s) e essas ligações serão removidas.` : ""}`)) return;
+    if (!(await confirmDialog({ title: "Excluir filtro", message: `Excluir o filtro "${filter.name}"?${linked ? ` Ele está ligado a ${linked} produto(s) e essas ligações serão removidas.` : ""}`, confirmLabel: "Excluir", danger: true }))) return;
     if (await request(`/api/admin/filters/${filter.id}`, "DELETE")) setMessage("Filtro excluído.");
   }
 
   async function removeOption(filter: CatalogFilter, option: FilterOption) {
-    if (!confirm(`Excluir "${option.label}" de ${filter.name}? ${option._count.productSelections ? `A opção será removida de ${option._count.productSelections} produto(s).` : ""}`)) return;
+    if (!(await confirmDialog({ title: "Excluir opção", message: `Excluir "${option.label}" de ${filter.name}?${option._count.productSelections ? ` A opção será removida de ${option._count.productSelections} produto(s).` : ""}`, confirmLabel: "Excluir", danger: true }))) return;
     if (await request(`/api/admin/filter-options/${option.id}`, "DELETE")) setMessage("Opção excluída.");
   }
 
   async function purgeUnusedOptions(filter: CatalogFilter) {
     const unused = filter.options.filter((o) => o._count.productSelections === 0);
     if (unused.length === 0) {
-      alert("Não há opções com 0 produtos neste filtro.");
+      toast("Não há opções com 0 produtos neste filtro.", "info");
       return;
     }
-    if (!confirm(`Excluir todas as ${unused.length} opções sem produtos em "${filter.name}"?`)) return;
+    if (!(await confirmDialog({ title: "Limpar opções sem uso", message: `Excluir todas as ${unused.length} opções sem produtos em "${filter.name}"?`, confirmLabel: "Excluir todas", danger: true }))) return;
 
     setBusy(true);
     await Promise.all(unused.map((o) => fetch(`/api/admin/filter-options/${o.id}`, { method: "DELETE" })));

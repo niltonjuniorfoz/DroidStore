@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createWhatsAppUrl } from "../../../src/lib/contact";
 import { formatBrazilPhone } from "../../../src/lib/brazil";
+import { useAdminFeedback } from "../../../src/components/admin/AdminFeedback";
 import {
   ArrowUpDown,
   Check,
@@ -70,6 +71,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function AdminPedidos() {
+  const { toast, confirmDialog } = useAdminFeedback();
   const [orders, setOrders] = useState<Order[]>([]);
   const [selected, setSelected] = useState<Order | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -177,7 +179,12 @@ export default function AdminPedidos() {
 
   async function bulkUpdateStatus(nextStatus: string) {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Deseja alterar o status de ${selectedIds.size} pedido(s) para "${statusLabels[nextStatus]}"?`)) return;
+    if (!(await confirmDialog({
+      title: "Alterar em massa",
+      message: `Alterar o status de ${selectedIds.size} pedido(s) para "${statusLabels[nextStatus]}"?`,
+      confirmLabel: "Alterar",
+      danger: nextStatus === "CANCELLED",
+    }))) return;
     setSaving(true);
     await Promise.all(
       Array.from(selectedIds).map((id) =>
@@ -200,7 +207,7 @@ export default function AdminPedidos() {
       .join("\n\n---\n\n");
 
     void navigator.clipboard.writeText(list);
-    alert("Lista de endereços copiada para a área de transferência!");
+    toast("Lista de endereços copiada para a área de transferência.", "success");
   }
 
   function copyText(text: string, id: string) {
@@ -644,7 +651,7 @@ export default function AdminPedidos() {
                     disabled={saving}
                     className="button danger"
                     onClick={() => {
-                      if (confirm("Confirmar reembolso? O estoque volta e o pedido sai do faturamento. A devolução do dinheiro deve ser feita no painel do Mercado Pago.")) void updateOrder("REFUNDED");
+                      void confirmDialog({ title: "Reembolsar pedido", message: "O estoque volta e o pedido sai do faturamento. A devolução do dinheiro deve ser feita no painel do Mercado Pago.", confirmLabel: "Reembolsar", danger: true }).then((accepted) => { if (accepted) void updateOrder("REFUNDED"); });
                     }}
                   >
                     <XCircle size={15} /> Reembolsar
@@ -661,7 +668,7 @@ export default function AdminPedidos() {
                     disabled={saving}
                     className="button danger"
                     onClick={() => {
-                      if (confirm("Confirmar reembolso? O aparelho já foi enviado: o estoque NÃO volta sozinho — lance a devolução no estoque após conferir o aparelho.")) void updateOrder("REFUNDED");
+                      void confirmDialog({ title: "Reembolsar pedido enviado", message: "O aparelho já foi enviado: o estoque NÃO volta sozinho — lance a devolução no estoque após conferir o aparelho.", confirmLabel: "Reembolsar", danger: true }).then((accepted) => { if (accepted) void updateOrder("REFUNDED"); });
                     }}
                   >
                     <XCircle size={15} /> Reembolsar
@@ -680,7 +687,7 @@ export default function AdminPedidos() {
                   disabled={saving}
                   className="button danger"
                   onClick={() => {
-                    if (confirm("Confirmar reembolso (devolução/arrependimento)? O estoque NÃO volta sozinho — lance a devolução no estoque após conferir o aparelho.")) void updateOrder("REFUNDED");
+                    void confirmDialog({ title: "Reembolsar (devolução)", message: "Devolução/arrependimento: o estoque NÃO volta sozinho — lance a devolução no estoque após conferir o aparelho.", confirmLabel: "Reembolsar", danger: true }).then((accepted) => { if (accepted) void updateOrder("REFUNDED"); });
                   }}
                 >
                   <XCircle size={15} /> Reembolsar
