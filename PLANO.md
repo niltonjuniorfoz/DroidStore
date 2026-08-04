@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 26/26 · **TODAS AS FASES CONCLUÍDAS** 🎉
+**Última atualização:** 2026-08-03 · **Progresso:** 28/29 · **FASES 0–4 concluídas · FASE 5 (repaginação) em andamento**
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -53,6 +53,12 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 
 ---
 
+## FASE 5 — Repaginação premium do admin
+
+- [x] 🟠 **5.1 Design system do painel** — tema próprio carregado só em `/admin` (`admin-theme.css`): fonte Inter self-hosted, tokens de cor/sombra/radius, sidebar escura com grupos **Vendas / Catálogo / Financeiro / Loja / Sistema**, topbar com título da página atual, cards de métrica com hierarquia (destaque escuro, lucro verde, alerta âmbar), tabelas densas com cabeçalho fixo e números tabulares, tabs segmentadas, chips de status com dot, botões/forms/modais novos. Seletores 100% escopados em `.admin-shell` — zero vazamento pra vitrine (verificado). Galeria `/admin-preview` (dev-only, 404 em produção) pra conferir o tema sem login.
+- [x] 🟠 **5.2 Produtos pronto pra 10 mil** — busca digitada vai pro **servidor** (`?q` + `take=500` com debounce); o painel não baixa mais o catálogo inteiro. Somado ao que já existia: visão agrupada por família, 3 modos de visualização, filtros, paginação.
+- [ ] ⚪ **5.3 Ajuste fino por tela** — depois de você navegar no tema novo: refinar tela a tela conforme feedback (espaçamentos específicos, dashboards extras, colunas).
+
 ## Concluídos
 
 | Data | Item | Commit |
@@ -79,6 +85,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 4.2+4.3 Taxa real do MP + exportação contábil XLSX | `ade38c2` |
 | 2026-08-03 | 4.4 Relatórios em tela (`/admin/relatorios`) | `8e4313a` |
 | 2026-08-03 | 3.6 Toast+confirm próprios e tipos extraídos | `68e9788`, `3325787` |
+| 2026-08-03 | 5.1+5.2 Repaginação do admin (design system + 10k-ready) | `c541201` |
 
 ## Descobertos no caminho (triagem pendente)
 
