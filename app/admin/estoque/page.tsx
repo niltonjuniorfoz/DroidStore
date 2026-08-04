@@ -1,23 +1,22 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Fragment, FormEvent, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowDownToLine,
-  ArrowUpDown,
   Boxes,
   CheckSquare,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  CircleDollarSign,
   History,
   PackagePlus,
   RefreshCw,
   Search,
   Square,
-  TrendingUp,
   X,
 } from "lucide-react";
+import { useAdminFeedback } from "../../../src/components/admin/AdminFeedback";
 
 type Variant = {
   id: string;
@@ -33,6 +32,20 @@ type Variant = {
   stockMovements: Array<{ id: string; type: string; quantity: number; note: string | null; createdAt: string }>;
 };
 
+type Group = {
+  key: string;
+  name: string;
+  brand: string;
+  imageUrl: string | null;
+  active: boolean;
+  variants: Variant[];
+  totalStock: number;
+  totalValue: number;
+  totalCost: number;
+  critical: number;
+  stale: boolean;
+};
+
 const movementLabels: Record<string, string> = {
   ENTRY: "Entrada de Lote",
   ADJUSTMENT: "Ajuste Manual",
@@ -40,29 +53,36 @@ const movementLabels: Record<string, string> = {
   RETURN: "Devolução",
 };
 
+const money = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function isStale(item: Variant) {
+  return item.stock > 0 && !item.stockMovements.some((movement) => movement.type === "SALE");
+}
+
 export default function AdminEstoque() {
+  const { toast } = useAdminFeedback();
   const [items, setItems] = useState<Variant[]>([]);
   const [selected, setSelected] = useState<Variant | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
-  const [stockStatusFilter, setStockStatusFilter] = useState<"all" | "outOfStock" | "lowStock" | "inStock">("all");
+  const [stockStatusFilter, setStockStatusFilter] = useState<"all" | "outOfStock" | "lowStock" | "inStock" | "stale">("all");
   const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [conditionFilter, setConditionFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"grouped" | "flat">("grouped");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // BULK ADJUSTMENT MODAL / STATE
   const [bulkAdjustmentModal, setBulkAdjustmentModal] = useState(false);
   const [bulkQuantity, setBulkQuantity] = useState(1);
   const [bulkNote, setBulkNote] = useState("");
 
-  // PAGINAÇÃO E ORDENAÇÃO
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [sortField, setSortField] = useState<"name" | "stock" | "price" | "cost">("stock");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortField, setSortField] = useState<"value" | "stock" | "name" | "critical">("value");
 
   async function load() {
     setLoading(true);
@@ -76,48 +96,99 @@ export default function AdminEstoque() {
   useEffect(() => {
     void load().catch(() => { setError("Falha de conexão. Recarregue a página."); setLoading(false); });
   }, []);
-  useEffect(() => { setPage(1); }, [search, stockStatusFilter, brandFilter, pageSize]);
+  useEffect(() => { setPage(1); }, [search, stockStatusFilter, brandFilter, conditionFilter, pageSize, viewMode]);
 
-  // BRANDS DÁ LOJA
-  const brands = useMemo(() => {
-    return Array.from(new Set(items.map((i) => i.product.brand).filter(Boolean))).sort();
-  }, [items]);
+  const brands = useMemo(
+    () => Array.from(new Set(items.map((item) => item.product.brand).filter(Boolean))).sort(),
+    [items],
+  );
+  const conditions = useMemo(
+    () => Array.from(new Set(items.map((item) => item.condition))).sort(),
+    [items],
+  );
 
-  // FILTRAGEM E ORDENAÇÃO
+  // FILTRO (por variação)
   const filtered = useMemo(() => {
     const term = search.toLowerCase().trim();
     return items.filter((item) => {
-      const matchesSearch = !term || `${item.product.name} ${item.product.brand} ${item.storage} ${item.color}`.toLowerCase().includes(term);
+      const matchesSearch = !term || `${item.product.name} ${item.product.brand} ${item.storage} ${item.color} ${item.condition}`.toLowerCase().includes(term);
       const matchesBrand = brandFilter === "all" || item.product.brand.toLowerCase() === brandFilter.toLowerCase();
+      const matchesCondition = conditionFilter === "all" || item.condition === conditionFilter;
       const matchesStatus =
         stockStatusFilter === "all" ? true :
         stockStatusFilter === "outOfStock" ? item.stock === 0 :
         stockStatusFilter === "lowStock" ? item.stock > 0 && item.stock <= item.lowStockThreshold :
-        stockStatusFilter === "inStock" ? item.stock > item.lowStockThreshold : true;
-
-      return matchesSearch && matchesBrand && matchesStatus;
-    }).sort((a, b) => {
-      const priceA = Number(a.price ?? 0);
-      const priceB = Number(b.price ?? 0);
-      const costA = Number(a.costPrice ?? 0);
-      const costB = Number(b.costPrice ?? 0);
-
-      let comp = 0;
-      if (sortField === "name") comp = a.product.name.localeCompare(b.product.name, "pt-BR");
-      else if (sortField === "stock") comp = a.stock - b.stock;
-      else if (sortField === "price") comp = priceA - priceB;
-      else if (sortField === "cost") comp = costA - costB;
-
-      return sortDirection === "asc" ? comp : -comp;
+        stockStatusFilter === "inStock" ? item.stock > item.lowStockThreshold :
+        stockStatusFilter === "stale" ? isStale(item) : true;
+      return matchesSearch && matchesBrand && matchesCondition && matchesStatus;
     });
-  }, [items, search, stockStatusFilter, brandFilter, sortField, sortDirection]);
+  }, [items, search, stockStatusFilter, brandFilter, conditionFilter]);
 
-  // PAGINAÇÃO
-  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  // AGRUPAMENTO POR PRODUTO (achabilidade: procura o modelo, expande as variações)
+  const groups = useMemo<Group[]>(() => {
+    const map = new Map<string, Group>();
+    for (const item of filtered) {
+      const key = item.product.id;
+      const group = map.get(key) ?? {
+        key,
+        name: item.product.name,
+        brand: item.product.brand,
+        imageUrl: item.product.imageUrl,
+        active: item.product.active,
+        variants: [],
+        totalStock: 0,
+        totalValue: 0,
+        totalCost: 0,
+        critical: 0,
+        stale: false,
+      };
+      group.variants.push(item);
+      group.totalStock += item.stock;
+      group.totalValue += Number(item.price ?? 0) * item.stock;
+      group.totalCost += Number(item.costPrice ?? 0) * item.stock;
+      if (item.stock <= item.lowStockThreshold) group.critical += 1;
+      if (isStale(item)) group.stale = true;
+      map.set(key, group);
+    }
+    const list = [...map.values()];
+    for (const group of list) {
+      group.variants.sort((a, b) => `${a.storage}${a.color}`.localeCompare(`${b.storage}${b.color}`, "pt-BR"));
+    }
+    list.sort((a, b) => {
+      if (sortField === "name") return a.name.localeCompare(b.name, "pt-BR");
+      if (sortField === "stock") return b.totalStock - a.totalStock;
+      if (sortField === "critical") return b.critical - a.critical;
+      return b.totalValue - a.totalValue; // "value": onde o capital está
+    });
+    return list;
+  }, [filtered, sortField]);
+
+  // Lista plana ordenada (modo alternativo)
+  const flatSorted = useMemo(() => {
+    const list = [...filtered];
+    list.sort((a, b) => {
+      if (sortField === "name") return a.product.name.localeCompare(b.product.name, "pt-BR");
+      if (sortField === "stock") return b.stock - a.stock;
+      if (sortField === "critical") return (a.stock <= a.lowStockThreshold ? 0 : 1) - (b.stock <= b.lowStockThreshold ? 0 : 1);
+      return Number(b.price) * b.stock - Number(a.price) * a.stock;
+    });
+    return list;
+  }, [filtered, sortField]);
+
+  // PAGINAÇÃO (sobre grupos no modo agrupado; sobre variações no plano)
+  const totalPages = Math.ceil((viewMode === "grouped" ? groups.length : flatSorted.length) / pageSize) || 1;
   const currentPage = Math.min(page, totalPages);
-  const paginatedItems = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pagedGroups = groups.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pagedFlat = flatSorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // SELEÇÃO EM MASSA
+  function toggleGroup(key: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
   function toggleSelectId(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -126,13 +197,13 @@ export default function AdminEstoque() {
     });
   }
 
-  function toggleSelectAll(pageItems: Variant[]) {
-    const pageIds = pageItems.map((i) => i.id);
-    const allSelected = pageIds.every((id) => selectedIds.has(id));
+  function toggleSelectGroup(group: Group) {
+    const ids = group.variants.map((variant) => variant.id);
+    const allSelected = ids.every((id) => selectedIds.has(id));
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (allSelected) pageIds.forEach((id) => next.delete(id));
-      else pageIds.forEach((id) => next.add(id));
+      if (allSelected) ids.forEach((id) => next.delete(id));
+      else ids.forEach((id) => next.add(id));
       return next;
     });
   }
@@ -142,23 +213,24 @@ export default function AdminEstoque() {
     if (selectedIds.size === 0) return;
     setSaving(true);
     setError("");
-
-    await Promise.all(
+    const responses = await Promise.all(
       Array.from(selectedIds).map((variantId) =>
         fetch("/api/admin/inventory", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ variantId, quantity: bulkQuantity, type: bulkQuantity > 0 ? "ENTRY" : "ADJUSTMENT", note: bulkNote || "Ajuste em lote" }),
-        })
-      )
+        }).catch(() => null),
+      ),
     );
-
+    const failed = responses.filter((response) => !response?.ok).length;
     setSelectedIds(new Set());
     setBulkAdjustmentModal(false);
     setBulkNote("");
     setBulkQuantity(1);
     await load();
     setSaving(false);
+    if (failed) toast(`${failed} item(ns) não puderam ser ajustados (estoque insuficiente?).`, "error");
+    else toast("Movimentação em lote registrada.", "success");
   }
 
   function open(item: Variant) {
@@ -180,303 +252,270 @@ export default function AdminEstoque() {
     });
     const body = await response.json();
     if (!response.ok) setError(body.error ?? "Não foi possível ajustar o estoque.");
-    else { setSelected(null); await load(); }
+    else { setSelected(null); await load(); toast("Movimentação registrada.", "success"); }
     setSaving(false);
   }
 
-  function handleSort(field: "name" | "stock" | "price" | "cost") {
-    if (sortField === field) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-  }
-
-  // MÉTRICAS KPI
+  // MÉTRICAS
   const totalUnits = items.reduce((total, item) => total + item.stock, 0);
   const outOfStockCount = items.filter((item) => item.stock === 0).length;
   const lowItemsCount = items.filter((item) => item.stock > 0 && item.stock <= item.lowStockThreshold).length;
-  const totalInventoryCost = items.reduce((acc, i) => acc + (Number(i.costPrice ?? 0) * i.stock), 0);
-  const totalInventoryRetail = items.reduce((acc, i) => acc + (Number(i.price ?? 0) * i.stock), 0);
-  const totalPotentialProfit = totalInventoryRetail - totalInventoryCost;
+  const staleCount = items.filter(isStale).length;
+  const staleValue = items.filter(isStale).reduce((total, item) => total + Number(item.price ?? 0) * item.stock, 0);
+  const totalInventoryCost = items.reduce((acc, item) => acc + Number(item.costPrice ?? 0) * item.stock, 0);
+  const totalInventoryRetail = items.reduce((acc, item) => acc + Number(item.price ?? 0) * item.stock, 0);
+  const hasCost = items.some((item) => item.costPrice !== undefined);
+
+  const variantTags = (item: Variant) => [item.storage, item.color, item.condition.replaceAll("_", " ")].filter(Boolean) as string[];
+
+  const renderVariantRow = (item: Variant, grouped: boolean) => {
+    const low = item.stock > 0 && item.stock <= item.lowStockThreshold;
+    const zero = item.stock === 0;
+    const isSelected = selectedIds.has(item.id);
+    const value = Number(item.price ?? 0) * item.stock;
+    return (
+      <tr key={item.id} className={`${grouped ? "stock-variant-row" : ""} ${isSelected ? "row-selected" : ""}`}>
+        <td className="cell-chk">
+          <button onClick={() => toggleSelectId(item.id)} className="checkbox-btn" aria-label="Selecionar variação">
+            {isSelected ? <CheckSquare size={15} className="checked-icon" /> : <Square size={15} />}
+          </button>
+        </td>
+        <td>
+          <div className="stock-item-cell">
+            {!grouped && (
+              <span className="mini-thumb">
+                {item.product.imageUrl ? <img src={item.product.imageUrl} alt="" loading="lazy" /> : <Boxes size={14} />}
+              </span>
+            )}
+            <div>
+              {!grouped && <strong className="stock-item-name">{item.product.name}</strong>}
+              <div className="item-subtags">
+                {variantTags(item).map((tag) => <span key={tag} className="tag-storage">{tag}</span>)}
+                {isStale(item) && <span className="tag-stale">sem giro</span>}
+                {!item.product.active && <span className="tag-stale">oculto</span>}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span className={`pill-stock ${zero ? "zero" : low ? "low" : "ok"}`}>
+            {zero ? "Esgotado" : `${item.stock} un.`}
+          </span>
+        </td>
+        <td className="cell-muted">{item.lowStockThreshold}</td>
+        {hasCost && <td className="cell-num">{item.costPrice !== undefined ? money(Number(item.costPrice)) : "—"}</td>}
+        <td className="cell-num">{money(Number(item.price ?? 0))}</td>
+        <td className="cell-num"><strong>{money(value)}</strong></td>
+        <td className="cell-action">
+          <button className="button ghost sm" onClick={() => open(item)} title="Entrada, baixa e histórico">
+            <ArrowDownToLine size={13} /> Movimentar
+          </button>
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className="admin-easy">
       <div className="admin-title">
         <div>
-          <span className="eyebrow">Gestão de Inventário • {items.length} variações registradas</span>
-          <h1>Controle de Estoque Pro</h1>
-          <p>Gerencie entradas de lote, reposição de aparelhos e histórico de movimentações.</p>
+          <span className="eyebrow">Inventário • {items.length} variações · {totalUnits} peças físicas</span>
+          <h1>Estoque</h1>
+          <p>Procure o modelo, expanda as variações, movimente. Entrada oficial de mercadoria com custo é pela tela de Compras.</p>
         </div>
-        <button className="button ghost" onClick={() => void load()} title="Atualizar estoque">
-          <RefreshCw size={16} /> Atualizar
-        </button>
+        <div className="dash-quick-actions">
+          <a href="/admin/compras" className="button primary sm"><PackagePlus size={15} /> Registrar lote (compra)</a>
+          <button className="button ghost sm" onClick={() => void load()} title="Atualizar estoque"><RefreshCw size={15} /></button>
+        </div>
       </div>
 
       {error && !selected && <div className="form-error">{error}</div>}
 
-      {/* --- CARDS DE KPI DE INVENTÁRIO --- */}
-      <section className="catalog-kpi-grid">
-        <div className="kpi-card">
-          <span><PackagePlus size={16} /> Total de Peças Físicas</span>
-          <strong>{totalUnits} un.</strong>
-          <small>Unidades em estoque no momento</small>
-        </div>
-
-        <div className="kpi-card warning">
-          <span><AlertTriangle size={16} /> Reposição Crítica</span>
+      {/* KPIs ENXUTOS */}
+      <section className="metric-grid">
+        <article className="metric-card accent">
+          <span><Boxes /> Capital em estoque</span>
+          <strong>{money(totalInventoryRetail)}</strong>
+          <small>{hasCost ? `custo ${money(totalInventoryCost)} · margem potencial ${money(totalInventoryRetail - totalInventoryCost)}` : `${totalUnits} unidades físicas`}</small>
+        </article>
+        <article className={`metric-card ${outOfStockCount + lowItemsCount > 0 ? "warning" : ""}`}>
+          <span><AlertTriangle /> Reposição crítica</span>
           <strong>{outOfStockCount + lowItemsCount}</strong>
-          <small>{outOfStockCount} zerados • {lowItemsCount} em nível mínimo</small>
-        </div>
-
-        <div className="kpi-card">
-          <span><Boxes size={16} /> Capital em Custo</span>
-          <strong>R$ {totalInventoryCost.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
-          <small>Preço de custo x quantidade</small>
-        </div>
-
-        <div className="kpi-card profit">
-          <span><TrendingUp size={16} /> Lucro Potencial Físico</span>
-          <strong>R$ {totalPotentialProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
-          <small>Soma do valor de venda esperada</small>
-        </div>
-
-        {(() => {
-          // Capital parado: tem estoque, mas nenhuma venda nas últimas movimentações.
-          const stale = items.filter((item) =>
-            item.stock > 0 && !item.stockMovements.some((movement) => movement.type === "SALE"),
-          );
-          const staleValue = stale.reduce((total, item) => total + Number(item.price ?? 0) * item.stock, 0);
-          return (
-            <div className={`kpi-card ${stale.length ? "warning" : ""}`}>
-              <span><Boxes size={16} /> Capital Sem Giro</span>
-              <strong>{stale.length} variações</strong>
-              <small>R$ {staleValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} parados sem venda recente</small>
-            </div>
-          );
-        })()}
+          <small>{outOfStockCount} esgotadas · {lowItemsCount} no nível mínimo</small>
+        </article>
+        <article className={`metric-card ${staleCount > 0 ? "warning" : ""}`}>
+          <span><History /> Sem giro</span>
+          <strong>{staleCount}</strong>
+          <small>{money(staleValue)} parados sem venda recente</small>
+        </article>
+        <article className="metric-card">
+          <span><PackagePlus /> Peças físicas</span>
+          <strong>{totalUnits} un.</strong>
+          <small>em {groups.length || "—"} produto(s) no recorte atual</small>
+        </article>
       </section>
 
-      {/* --- TOOLBAR DE FILTROS DO ESTOQUE --- */}
-      <div className="product-toolbar-pro">
-        <div className="pro-tabs">
-          <button className={`pro-tab ${stockStatusFilter === "all" ? "active" : ""}`} onClick={() => setStockStatusFilter("all")}>
-            Todos ({items.length})
-          </button>
-          <button className={`pro-tab ${stockStatusFilter === "outOfStock" ? "active" : ""}`} onClick={() => setStockStatusFilter("outOfStock")}>
-            <span className="stock-status-dot zero" /> Esgotados ({outOfStockCount})
-          </button>
-          <button className={`pro-tab ${stockStatusFilter === "lowStock" ? "active" : ""}`} onClick={() => setStockStatusFilter("lowStock")}>
-            <span className="stock-status-dot low" /> Estoque Baixo ({lowItemsCount})
-          </button>
-          <button className={`pro-tab ${stockStatusFilter === "inStock" ? "active" : ""}`} onClick={() => setStockStatusFilter("inStock")}>
-            <span className="stock-status-dot ok" /> Estoque OK ({items.length - outOfStockCount - lowItemsCount})
-          </button>
-        </div>
-
-        <div className="pro-filters-bar">
-          <select className="pro-select" value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)}>
-            <option value="all">Todas as marcas</option>
-            {brands.map((b) => <option key={b} value={b}>{b}</option>)}
-          </select>
-
-          <label className="pro-search">
-            <Search size={15} />
+      {/* TOOLBAR ÚNICA: BUSCA GRANDE + STATUS + REFINOS */}
+      <div className="admin-data-card">
+        <div className="admin-toolbar stock-toolbar">
+          <label className="toolbar-search">
+            <Search />
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar aparelho, marca, capacidade (ex: 256GB), cor..."
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar modelo, marca, capacidade (256GB), cor, condição..."
             />
           </label>
+          <div className="pro-tabs">
+            <button className={`pro-tab ${stockStatusFilter === "all" ? "active" : ""}`} onClick={() => setStockStatusFilter("all")}>Todos ({items.length})</button>
+            <button className={`pro-tab ${stockStatusFilter === "outOfStock" ? "active" : ""}`} onClick={() => setStockStatusFilter("outOfStock")}>Esgotados ({outOfStockCount})</button>
+            <button className={`pro-tab ${stockStatusFilter === "lowStock" ? "active" : ""}`} onClick={() => setStockStatusFilter("lowStock")}>Baixo ({lowItemsCount})</button>
+            <button className={`pro-tab ${stockStatusFilter === "stale" ? "active" : ""}`} onClick={() => setStockStatusFilter("stale")}>Sem giro ({staleCount})</button>
+            <button className={`pro-tab ${stockStatusFilter === "inStock" ? "active" : ""}`} onClick={() => setStockStatusFilter("inStock")}>OK ({items.length - outOfStockCount - lowItemsCount})</button>
+          </div>
+          <div className="pro-filters-bar">
+            <select className="pro-select" value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)}>
+              <option value="all">Todas as marcas</option>
+              {brands.map((brand) => <option key={brand} value={brand}>{brand}</option>)}
+            </select>
+            <select className="pro-select" value={conditionFilter} onChange={(event) => setConditionFilter(event.target.value)}>
+              <option value="all">Todas as condições</option>
+              {conditions.map((condition) => <option key={condition} value={condition}>{condition.replaceAll("_", " ")}</option>)}
+            </select>
+            <select className="pro-select" value={sortField} onChange={(event) => setSortField(event.target.value as typeof sortField)}>
+              <option value="value">Ordenar: maior capital</option>
+              <option value="stock">Ordenar: mais estoque</option>
+              <option value="critical">Ordenar: mais críticos</option>
+              <option value="name">Ordenar: nome A-Z</option>
+            </select>
+            <div className="pro-tabs">
+              <button className={`pro-tab ${viewMode === "grouped" ? "active" : ""}`} onClick={() => setViewMode("grouped")}>Agrupado</button>
+              <button className={`pro-tab ${viewMode === "flat" ? "active" : ""}`} onClick={() => setViewMode("flat")}>Lista</button>
+            </div>
+          </div>
+        </div>
+
+        {/* TABELA */}
+        <div className="stock-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th className="cell-chk" />
+                <th>Produto / Variação</th>
+                <th>Estoque</th>
+                <th>Mín.</th>
+                {hasCost && <th className="cell-num">Custo</th>}
+                <th className="cell-num">Venda</th>
+                <th className="cell-num">Valor em estoque</th>
+                <th className="cell-action">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr><td colSpan={hasCost ? 8 : 7}><div className="admin-loading">Carregando estoque...</div></td></tr>
+              )}
+
+              {!loading && viewMode === "grouped" && pagedGroups.map((group) => {
+                const isOpen = expanded.has(group.key);
+                const groupSelected = group.variants.every((variant) => selectedIds.has(variant.id));
+                return (
+                  <Fragment key={group.key}>
+                    <tr className={`stock-group-row ${group.critical > 0 ? "has-critical" : ""}`} onClick={() => toggleGroup(group.key)}>
+                      <td className="cell-chk" onClick={(event) => event.stopPropagation()}>
+                        <button onClick={() => toggleSelectGroup(group)} className="checkbox-btn" aria-label="Selecionar produto inteiro">
+                          {groupSelected ? <CheckSquare size={15} className="checked-icon" /> : <Square size={15} />}
+                        </button>
+                      </td>
+                      <td>
+                        <div className="stock-item-cell">
+                          <ChevronDown size={15} className={`group-caret ${isOpen ? "open" : ""}`} />
+                          <span className="mini-thumb">
+                            {group.imageUrl ? <img src={group.imageUrl} alt="" loading="lazy" /> : <Boxes size={14} />}
+                          </span>
+                          <div>
+                            <strong className="stock-item-name">{group.name}</strong>
+                            <small className="cell-muted">{group.brand} · {group.variants.length} variação(ões){group.critical > 0 ? ` · ${group.critical} crítica(s)` : ""}{group.stale ? " · sem giro" : ""}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`pill-stock ${group.totalStock === 0 ? "zero" : group.critical > 0 ? "low" : "ok"}`}>
+                          {group.totalStock === 0 ? "Esgotado" : `${group.totalStock} un.`}
+                        </span>
+                      </td>
+                      <td className="cell-muted">—</td>
+                      {hasCost && <td className="cell-num cell-muted">{group.totalCost ? money(group.totalCost) : "—"}</td>}
+                      <td className="cell-num cell-muted">—</td>
+                      <td className="cell-num"><strong>{money(group.totalValue)}</strong></td>
+                      <td className="cell-action cell-muted">{isOpen ? "recolher" : "expandir"}</td>
+                    </tr>
+                    {isOpen && group.variants.map((item) => renderVariantRow(item, true))}
+                  </Fragment>
+                );
+              })}
+
+              {!loading && viewMode === "flat" && pagedFlat.map((item) => renderVariantRow(item, false))}
+
+              {!loading && (viewMode === "grouped" ? pagedGroups.length === 0 : pagedFlat.length === 0) && (
+                <tr><td colSpan={hasCost ? 8 : 7}><p className="empty-inline" style={{ padding: "1.2rem" }}>Nada encontrado com esses filtros. Limpe a busca ou troque a aba de status.</p></td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PAGINAÇÃO */}
+        <div className="admin-toolbar stock-pagination">
+          <span className="cell-muted">
+            {viewMode === "grouped"
+              ? `${pagedGroups.length} de ${groups.length} produto(s) · ${filtered.length} variação(ões) no recorte`
+              : `${pagedFlat.length} de ${flatSorted.length} variação(ões)`}
+          </span>
+          <div className="pro-filters-bar">
+            {viewMode === "grouped" && (
+              <button className="button ghost sm" onClick={() => setExpanded(expanded.size ? new Set() : new Set(pagedGroups.map((group) => group.key)))}>
+                {expanded.size ? "Recolher tudo" : "Expandir página"}
+              </button>
+            )}
+            <select className="pro-select" value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}>
+              <option value={25}>25 / página</option>
+              <option value={50}>50 / página</option>
+              <option value={100}>100 / página</option>
+            </select>
+            <div className="page-buttons">
+              <button disabled={currentPage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><ChevronLeft size={15} /> Anterior</button>
+              <span className="cell-muted">{currentPage} / {totalPages}</span>
+              <button disabled={currentPage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Próxima <ChevronRight size={15} /></button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* --- BARRA FLUTUANTE DE AJUSTE EM LOTE --- */}
+      {/* BARRA FLUTUANTE DE LOTE */}
       {selectedIds.size > 0 && (
         <div className="bulk-actions-floating-bar">
-          <span className="bulk-count">
-            <strong>{selectedIds.size}</strong> variação(ões) selecionada(s)
-          </span>
+          <span className="bulk-count"><strong>{selectedIds.size}</strong> variação(ões) selecionada(s)</span>
           <div className="bulk-buttons">
             <button className="bulk-btn" onClick={() => setBulkAdjustmentModal(true)}>
               <PackagePlus size={14} /> Entrada / Baixa em Lote
             </button>
-            <button className="bulk-close" onClick={() => setSelectedIds(new Set())}>
-              <X size={14} />
-            </button>
+            <button className="bulk-close" onClick={() => setSelectedIds(new Set())}><X size={14} /></button>
           </div>
         </div>
       )}
 
-      {/* --- TABELA DENSA DE ESTOQUE PRO --- */}
-      <div className="pro-table-container table-mode-comfortable">
-        <div className="pro-table-header inventory-table-cols">
-          <div className="col-chk">
-            <button onClick={() => toggleSelectAll(paginatedItems)} className="checkbox-btn">
-              {paginatedItems.length > 0 && paginatedItems.every((i) => selectedIds.has(i.id)) ? (
-                <CheckSquare size={16} className="checked-icon" />
-              ) : (
-                <Square size={16} />
-              )}
-            </button>
-          </div>
-          <div className="col-item sortable" onClick={() => handleSort("name")}>
-            <span>Aparelho / Variação</span>
-            <ArrowUpDown size={12} />
-          </div>
-          <div className="col-storage">Capacidade & Cor</div>
-          <div className="col-stock-qty sortable" onClick={() => handleSort("stock")}>
-            <span>Disponível</span>
-            <ArrowUpDown size={12} />
-          </div>
-          <div className="col-threshold">Mínimo</div>
-          <div className="col-prices sortable" onClick={() => handleSort("price")}>
-            <span>Valores (Custo / Venda)</span>
-            <ArrowUpDown size={12} />
-          </div>
-          <div className="col-last-mov">Última Movimentação</div>
-          <div className="col-actions">Ação</div>
-        </div>
-
-        <div className="pro-table-body">
-          {loading ? (
-            <div className="admin-loading">Carregando estoque...</div>
-          ) : (
-            paginatedItems.map((item) => {
-              const low = item.stock <= item.lowStockThreshold;
-              const isSelected = selectedIds.has(item.id);
-              const lastMovement = item.stockMovements[0];
-              const cost = Number(item.costPrice ?? 0);
-              const price = Number(item.price ?? 0);
-
-              return (
-                <div key={item.id} className={`pro-table-row inventory-table-cols ${!item.product.active ? "inactive-row" : ""} ${isSelected ? "row-selected" : ""}`}>
-                  <div className="col-chk">
-                    <button onClick={() => toggleSelectId(item.id)} className="checkbox-btn">
-                      {isSelected ? <CheckSquare size={16} className="checked-icon" /> : <Square size={16} />}
-                    </button>
-                  </div>
-
-                  {/* Aparelho */}
-                  <div className="col-item">
-                    <div className="mini-thumb">
-                      {item.product.imageUrl ? <img src={item.product.imageUrl} alt={item.product.name} /> : <span>Sem foto</span>}
-                    </div>
-                    <div className="item-title-block">
-                      <span className="item-name" title={item.product.name}>{item.product.name}</span>
-                      <small className="tag-brand">{item.product.brand}{!item.product.active ? " (Oculto)" : ""}</small>
-                    </div>
-                  </div>
-
-                  {/* Variação */}
-                  <div className="col-storage">
-                    <div className="item-subtags">
-                      {item.storage && <span className="tag-storage">{item.storage}</span>}
-                      {item.color && <span className="tag-storage">{item.color}</span>}
-                      <span className="tag-condition">{item.condition.replaceAll("_", " ")}</span>
-                    </div>
-                  </div>
-
-                  {/* Disponível */}
-                  <div className="col-stock-qty">
-                    <span className={`pill-stock ${item.stock === 0 ? "zero" : low ? "low" : "ok"}`}>
-                      <span className={`stock-status-dot ${item.stock === 0 ? "zero" : low ? "low" : "ok"}`} />
-                      {item.stock === 0 ? "Esgotado" : `${item.stock} un.`}
-                    </span>
-                  </div>
-
-                  {/* Mínimo */}
-                  <div className="col-threshold">
-                    <small className="text-muted">{item.lowStockThreshold} un.</small>
-                  </div>
-
-                  {/* Valores */}
-                  <div className="col-prices">
-                    <strong className="text-sm">R$ {price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
-                    {cost > 0 && <small className="text-muted">Custo R$ {cost.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</small>}
-                  </div>
-
-                  {/* Última Movimentação */}
-                  <div className="col-last-mov">
-                    {lastMovement ? (
-                      <div className="last-mov-cell">
-                        <strong className={lastMovement.quantity >= 0 ? "positive" : "negative"}>
-                          {movementLabels[lastMovement.type] ?? lastMovement.type} ({lastMovement.quantity > 0 ? "+" : ""}{lastMovement.quantity})
-                        </strong>
-                        <small>{new Date(lastMovement.createdAt).toLocaleDateString("pt-BR")} {new Date(lastMovement.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small>
-                      </div>
-                    ) : (
-                      <small className="text-muted">Sem registro</small>
-                    )}
-                  </div>
-
-                  {/* Ação */}
-                  <div className="col-actions">
-                    <button className="button ghost sm" onClick={() => open(item)} title="Ajustar estoque">
-                      <ArrowDownToLine size={14} /> Movimentar
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-
-          {!loading && paginatedItems.length === 0 && (
-            <div className="empty-table-state">
-              <p>Nenhum item de estoque encontrado com os filtros selecionados.</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* --- PAGINAÇÃO DE ALTA PERFORMANCE --- */}
-      <div className="pro-pagination-bar">
-        <div className="pagination-info">
-          Exibindo <strong>{paginatedItems.length}</strong> de <strong>{filtered.length}</strong> variação(ões)
-          (Total catálogo: {items.length})
-        </div>
-
-        <div className="pagination-controls">
-          <label className="page-size-selector">
-            Exibir por página:
-            <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </label>
-
-          <div className="page-buttons">
-            <button disabled={currentPage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              <ChevronLeft size={16} /> Anterior
-            </button>
-            <span>Página {currentPage} de {totalPages}</span>
-            <button disabled={currentPage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
-              Próxima <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* --- MODAL DE MOVIMENTAÇÃO INDIVIDUAL --- */}
+      {/* MODAL DE MOVIMENTAÇÃO INDIVIDUAL */}
       {selected && (
         <div className="admin-modal">
           <form className="stock-modal" onSubmit={submit}>
             <button type="button" className="modal-close" onClick={() => setSelected(null)}><X /></button>
             <span className="eyebrow">Movimentação de Estoque</span>
             <h2>{selected.product.name}</h2>
-            <p>{selected.storage} • {selected.color} • Estoque atual: <strong>{selected.stock} un.</strong></p>
+            <p>{[selected.storage, selected.color, selected.condition.replaceAll("_", " ")].filter(Boolean).join(" · ")} · Estoque atual: <strong>{selected.stock} un.</strong></p>
 
             <label>
               <span>Quantidade de ajuste</span>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(event) => setQuantity(Number(event.target.value))}
-                required
-              />
-              <small>Use número positivo para dar entrada e negativo para saída/ajuste.</small>
+              <input type="number" value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} required />
+              <small>Positivo dá entrada; negativo dá baixa. Compra de fornecedor com custo entra pela tela de Compras.</small>
             </label>
 
             <label>
@@ -484,7 +523,7 @@ export default function AdminEstoque() {
               <textarea
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
-                placeholder="Ex.: recebimento do fornecedor, correção de contagem, venda presencial..."
+                placeholder="Ex.: correção de contagem, venda presencial, defeito..."
                 required
                 minLength={3}
               />
@@ -493,7 +532,7 @@ export default function AdminEstoque() {
             {error && <div className="form-error">{error}</div>}
 
             <div className="movement-history">
-              <h3><History size={16} /> Histórico recente de movimentações</h3>
+              <h3><History size={16} /> Histórico recente</h3>
               {selected.stockMovements.length ? (
                 selected.stockMovements.map((movement) => (
                   <div key={movement.id}>
@@ -521,33 +560,23 @@ export default function AdminEstoque() {
         </div>
       )}
 
-      {/* --- MODAL DE AJUSTE EM LOTE --- */}
+      {/* MODAL DE AJUSTE EM LOTE */}
       {bulkAdjustmentModal && (
         <div className="admin-modal">
           <form className="stock-modal" onSubmit={submitBulkAdjustment}>
             <button type="button" className="modal-close" onClick={() => setBulkAdjustmentModal(false)}><X /></button>
             <span className="eyebrow">Operação em Lote</span>
-            <h2>Movimentar {selectedIds.size} Variações Selecionadas</h2>
+            <h2>Movimentar {selectedIds.size} variações selecionadas</h2>
 
             <label>
               <span>Quantidade para aplicar a TODOS os selecionados</span>
-              <input
-                type="number"
-                value={bulkQuantity}
-                onChange={(event) => setBulkQuantity(Number(event.target.value))}
-                required
-              />
-              <small>Exemplo: digite 10 para adicionar +10 unidades em cada um dos {selectedIds.size} itens selecionados.</small>
+              <input type="number" value={bulkQuantity} onChange={(event) => setBulkQuantity(Number(event.target.value))} required />
+              <small>Ex.: 10 adiciona +10 unidades em cada um dos {selectedIds.size} itens.</small>
             </label>
 
             <label>
-              <span>Observação / Motivo da remessa</span>
-              <textarea
-                value={bulkNote}
-                onChange={(event) => setBulkNote(event.target.value)}
-                placeholder="Ex.: Recebimento de Lote de Fornecedor #4821"
-                required
-              />
+              <span>Observação / motivo</span>
+              <textarea value={bulkNote} onChange={(event) => setBulkNote(event.target.value)} placeholder="Ex.: contagem geral de inventário" required />
             </label>
 
             <div className="modal-actions">

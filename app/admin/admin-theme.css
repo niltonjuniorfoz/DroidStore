@@ -623,3 +623,65 @@
 .admin-shell .activity-dot { width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--a-accent); box-shadow: 0 0 0 3px var(--a-accent-soft); }
 .admin-shell .activity-row strong { font-size: 0.68rem; font-weight: 650; display: block; line-height: 1.35; }
 .admin-shell .activity-row small { font-size: 0.58rem; color: var(--a-muted); }
+
+/* ---------- ESTOQUE V2: TABELA AGRUPADA POR PRODUTO ---------- */
+.admin-shell .stock-toolbar { flex-direction: column; align-items: stretch; gap: 0.6rem; }
+.admin-shell .stock-toolbar .toolbar-search { min-width: 0; }
+.admin-shell .stock-toolbar .pro-filters-bar { justify-content: flex-start; }
+.admin-shell .stock-table-wrap { overflow-x: auto; }
+.admin-shell .stock-table-wrap table { min-width: 860px; }
+
+.admin-shell .cell-chk { width: 36px; padding-right: 0 !important; }
+.admin-shell .cell-num { text-align: right; white-space: nowrap; }
+.admin-shell th.cell-num { text-align: right; }
+.admin-shell .cell-action { text-align: right; white-space: nowrap; }
+.admin-shell th.cell-action { text-align: right; }
+.admin-shell .cell-muted { color: var(--a-muted); font-size: 0.68rem; }
+
+.admin-shell .checkbox-btn { border: 0; background: transparent; cursor: pointer; color: var(--a-muted); display: grid; place-items: center; padding: 4px; }
+.admin-shell .checkbox-btn:hover { color: var(--a-ink); }
+.admin-shell .checkbox-btn .checked-icon { color: var(--a-accent); }
+.admin-shell tr.row-selected { background: var(--a-accent-soft) !important; }
+
+.admin-shell .stock-group-row { cursor: pointer; background: var(--a-surface-2); }
+.admin-shell .stock-group-row:hover { background: #f4f0e9; }
+.admin-shell .stock-group-row.has-critical td:first-child { box-shadow: inset 3px 0 0 var(--a-warning); }
+.admin-shell .stock-group-row td { border-top: 1px solid var(--a-line); }
+.admin-shell .group-caret { color: var(--a-muted); transition: transform 0.15s; transform: rotate(-90deg); flex-shrink: 0; }
+.admin-shell .group-caret.open { transform: rotate(0deg); }
+
+.admin-shell .stock-variant-row { background: #fdfefd; }
+.admin-shell .stock-variant-row td:nth-child(2) { padding-left: 3.4rem; }
+
+.admin-shell .stock-item-cell { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+.admin-shell .stock-item-cell .mini-thumb {
+  width: 34px; height: 34px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: 8px; background: var(--a-canvas); border: 1px solid var(--a-line);
+  overflow: hidden; color: var(--a-muted);
+}
+.admin-shell .stock-item-cell .mini-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.admin-shell .stock-item-name { font-size: 0.74rem; display: block; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.admin-shell .item-subtags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.admin-shell .tag-storage {
+  display: inline-block; padding: 0.16rem 0.42rem; border-radius: 6px;
+  background: var(--a-canvas); border: 1px solid var(--a-line);
+  font-size: 0.58rem; font-weight: 700; color: var(--a-ink-2);
+}
+.admin-shell .tag-stale {
+  display: inline-block; padding: 0.16rem 0.42rem; border-radius: 6px;
+  background: var(--a-warning-soft); font-size: 0.58rem; font-weight: 750; color: var(--a-warning);
+}
+
+.admin-shell .pill-stock {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.26rem 0.55rem; border-radius: 999px;
+  font-size: 0.62rem; font-weight: 780; font-variant-numeric: tabular-nums;
+}
+.admin-shell .pill-stock::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.admin-shell .pill-stock.ok { background: var(--a-success-soft); color: var(--a-success); }
+.admin-shell .pill-stock.low { background: var(--a-warning-soft); color: var(--a-warning); }
+.admin-shell .pill-stock.zero { background: var(--a-danger-soft); color: var(--a-danger); }
+
+.admin-shell .stock-pagination { border-bottom: 0; border-top: 1px solid var(--a-line); justify-content: space-between; }

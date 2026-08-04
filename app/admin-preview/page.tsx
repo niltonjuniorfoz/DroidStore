@@ -146,6 +146,48 @@ export default function AdminThemePreview() {
             </aside>
           </div>
 
+          <section className="admin-data-card">
+            <div className="stock-table-wrap">
+              <table>
+                <thead>
+                  <tr><th className="cell-chk" /><th>Produto / Variação</th><th>Estoque</th><th>Mín.</th><th className="cell-num">Custo</th><th className="cell-num">Venda</th><th className="cell-num">Valor em estoque</th><th className="cell-action">Ação</th></tr>
+                </thead>
+                <tbody>
+                  <tr className="stock-group-row has-critical">
+                    <td className="cell-chk"><button className="checkbox-btn">☐</button></td>
+                    <td><div className="stock-item-cell"><span className="group-caret open">▾</span><span className="mini-thumb">📱</span><div><strong className="stock-item-name">iPhone 17 Pro Max</strong><small className="cell-muted">Apple · 3 variação(ões) · 1 crítica(s)</small></div></div></td>
+                    <td><span className="pill-stock low">21 un.</span></td>
+                    <td className="cell-muted">—</td>
+                    <td className="cell-num cell-muted">R$ 158.400,00</td>
+                    <td className="cell-num cell-muted">—</td>
+                    <td className="cell-num"><strong>R$ 196.300,00</strong></td>
+                    <td className="cell-action cell-muted">recolher</td>
+                  </tr>
+                  <tr className="stock-variant-row">
+                    <td className="cell-chk"><button className="checkbox-btn">☐</button></td>
+                    <td><div className="stock-item-cell"><div><div className="item-subtags"><span className="tag-storage">256 GB</span><span className="tag-storage">Laranja</span><span className="tag-storage">Excelente</span></div></div></div></td>
+                    <td><span className="pill-stock ok">12 un.</span></td>
+                    <td className="cell-muted">5</td>
+                    <td className="cell-num">R$ 6.900,00</td>
+                    <td className="cell-num">R$ 9.310,00</td>
+                    <td className="cell-num"><strong>R$ 111.720,00</strong></td>
+                    <td className="cell-action"><button className="button ghost sm">Movimentar</button></td>
+                  </tr>
+                  <tr className="stock-variant-row row-selected">
+                    <td className="cell-chk"><button className="checkbox-btn"><span className="checked-icon">☑</span></button></td>
+                    <td><div className="stock-item-cell"><div><div className="item-subtags"><span className="tag-storage">1 TB</span><span className="tag-storage">Titânio</span><span className="tag-stale">sem giro</span></div></div></div></td>
+                    <td><span className="pill-stock zero">Esgotado</span></td>
+                    <td className="cell-muted">5</td>
+                    <td className="cell-num">R$ 8.100,00</td>
+                    <td className="cell-num">R$ 11.200,00</td>
+                    <td className="cell-num"><strong>R$ 0,00</strong></td>
+                    <td className="cell-action"><button className="button ghost sm">Movimentar</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
           <div className="admin-message">Configurações salvas com sucesso.</div>
           <div className="form-error">Falha de conexão. Recarregue a página.</div>
         </div>
