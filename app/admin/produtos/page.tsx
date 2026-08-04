@@ -6,6 +6,7 @@ import {
   ArrowUpDown,
   Box,
   CheckSquare,
+  Copy,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -105,6 +106,8 @@ export default function AdminProdutos() {
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminProduct | null>(null);
+  // Produto usado como molde ao duplicar (cria variação da família sem redigitar).
+  const [template, setTemplate] = useState<AdminProduct | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [storage, setStorage] = useState("128 GB");
@@ -159,7 +162,7 @@ export default function AdminProdutos() {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
   const isNotebook = /notebook|informatica|computador|laptop|macbook/.test(selectedOptionText);
-  const isIPhone = /iphone/.test(`${title} ${editing?.brand ?? ""} ${selectedOptionText}`.toLowerCase());
+  const isIPhone = /iphone/.test(`${title} ${(editing ?? template)?.brand ?? ""} ${selectedOptionText}`.toLowerCase());
   const baseStorageOptions = isNotebook ? NOTEBOOK_STORAGE_OPTIONS : PHONE_STORAGE_OPTIONS;
   const normalizedStorage = normalizeProductStorage(storage);
   const storageOptions = baseStorageOptions.includes(normalizedStorage as never)
@@ -191,6 +194,7 @@ export default function AdminProdutos() {
   function newProduct() {
     setEditorLoading(false);
     setEditing(null);
+    setTemplate(null);
     setTitle("");
     setDescription("");
     setStorage("128 GB");
@@ -235,6 +239,30 @@ export default function AdminProdutos() {
       return;
     }
     populateEditor(await response.json());
+    setTemplate(null);
+    setEditorLoading(false);
+  }
+
+  // Abre o cadastro pré-preenchido com os dados de um produto existente.
+  // Salvar cria um produto NOVO (irmão de família: outra capacidade/cor/condição).
+  async function duplicateProduct(item: AdminProduct) {
+    setOpen(true);
+    setEditorLoading(true);
+    const response = await fetch(`/api/admin/products/${item.id}`, { cache: "no-store" });
+    if (!response.ok) {
+      setOpen(false);
+      setMessage("Não foi possível carregar os dados deste aparelho.");
+      setEditorLoading(false);
+      return;
+    }
+    const full = await response.json() as AdminProduct;
+    populateEditor(full);
+    setEditing(null);
+    // Estoque zera: a variação nova ainda não tem unidade física cadastrada.
+    setTemplate({
+      ...full,
+      variants: full.variants.map((variant, index) => index === 0 ? { ...variant, stock: 0 } : variant),
+    });
     setEditorLoading(false);
   }
 
@@ -324,7 +352,7 @@ export default function AdminProdutos() {
       const selectedBrandOption = selectedBrandGroup?.options.find((option) => option.id === selectedFilters[selectedBrandGroup.id]);
       const payload = {
         ...values,
-        brand: selectedBrandOption?.label ?? editing?.brand ?? "Sem marca",
+        brand: selectedBrandOption?.label ?? (editing ?? template)?.brand ?? "Sem marca",
         description,
         imageUrls: imageUrls.map((url) => url.trim()).filter(Boolean),
         model3dUrl: model3dUrl.trim() || null,
@@ -890,6 +918,9 @@ export default function AdminProdutos() {
                             </div>
 
                             <div className="col-actions">
+                              <button className="row-action-btn edit" onClick={(e) => { e.stopPropagation(); void duplicateProduct(item); }} title="Duplicar como variação (outra capacidade/cor)">
+                                <Copy size={13} />
+                              </button>
                               <button className="row-action-btn edit" onClick={(e) => { e.stopPropagation(); editProduct(item); }}>
                                 <Pencil size={13} />
                               </button>
@@ -1038,6 +1069,9 @@ export default function AdminProdutos() {
                   </div>
 
                   <div className="col-actions">
+                    <button className="row-action-btn edit" onClick={() => void duplicateProduct(item)} title="Duplicar como variação (outra capacidade/cor)">
+                      <Copy size={14} />
+                    </button>
                     <button className="row-action-btn edit" onClick={() => editProduct(item)} title="Editar produto">
                       <Pencil size={14} />
                     </button>
@@ -1081,6 +1115,9 @@ export default function AdminProdutos() {
                   <div className="card-actions-float">
                     <button className={`btn-pill-star ${item.featured ? "on" : ""}`} onClick={() => void toggle(item, "featured")}>
                       <Star size={14} fill={item.featured ? "#FF7900" : "none"} />
+                    </button>
+                    <button className="row-action-btn edit" onClick={() => void duplicateProduct(item)} title="Duplicar como variação">
+                      <Copy size={14} />
                     </button>
                     <button className="row-action-btn edit" onClick={() => editProduct(item)}>
                       <Pencil size={14} />
@@ -1150,10 +1187,10 @@ export default function AdminProdutos() {
             setEditing(null);
           }
         }}>
-          <form className="product-editor-form" key={editing?.id ?? "new"} onSubmit={save} noValidate>
+          <form className="product-editor-form" key={(editing ?? template)?.id ?? "new"} onSubmit={save} noValidate>
             <header className="product-editor-heading">
-              <div><span className="eyebrow">{editing ? "Editar aparelho" : "Novo aparelho"}</span><h2>{editing ? editing.name : "Cadastrar produto"}</h2></div>
-              <button type="button" className="modal-close" onClick={() => { setOpen(false); setEditing(null); }} aria-label="Fechar"><X /></button>
+              <div><span className="eyebrow">{editing ? "Editar aparelho" : template ? "Duplicar como variação" : "Novo aparelho"}</span><h2>{editing ? editing.name : template ? `Variação de: ${template.name}` : "Cadastrar produto"}</h2></div>
+              <button type="button" className="modal-close" onClick={() => { setOpen(false); setEditing(null); setTemplate(null); }} aria-label="Fechar"><X /></button>
             </header>
 
             {editorLoading ? <div className="product-editor-loading"><LoaderCircle className="spin" /><span>Carregando aparelho...</span></div> : <>
@@ -1220,7 +1257,7 @@ export default function AdminProdutos() {
               )}
               <label>
                 Condição
-                <select name="condition" defaultValue={editing?.variants[0]?.condition ?? "NOVO"}>
+                <select name="condition" defaultValue={(editing ?? template)?.variants[0]?.condition ?? "NOVO"}>
                   <option value="NOVO">Novo</option>
                   <option value="EXCELENTE">Excelente</option>
                   <option value="MUITO_BOM">Muito bom</option>
@@ -1228,10 +1265,10 @@ export default function AdminProdutos() {
                   <option value="OUTLET">Outlet</option>
                 </select>
               </label>
-              <label>Preço de Venda (Tabela)<input required name="price" type="number" min="1" step=".01" defaultValue={editing ? Number(editing.variants[0]?.price) : undefined} /></label>
-              {ownerView && <label className="owner-field">Preço de custo (somente administrador)<input required name="costPrice" type="number" min="0" step=".01" defaultValue={editing ? Number(editing.variants[0]?.costPrice ?? 0) : 0} /></label>}
-              <label>Estoque Total<input required name="stock" type="number" min="0" step="1" defaultValue={editing?.variants[0]?.stock ?? 0} /></label>
-              <label>Alerta de estoque mínimo<input required name="lowStockThreshold" type="number" min="0" step="1" defaultValue={editing?.variants[0]?.lowStockThreshold ?? 5} /></label>
+              <label>Preço de Venda (Tabela)<input required name="price" type="number" min="1" step=".01" defaultValue={(editing ?? template) ? Number((editing ?? template)!.variants[0]?.price) : undefined} /></label>
+              {ownerView && <label className="owner-field">Preço de custo (somente administrador)<input required name="costPrice" type="number" min="0" step=".01" defaultValue={(editing ?? template) ? Number((editing ?? template)!.variants[0]?.costPrice ?? 0) : 0} /></label>}
+              <label>Estoque Total<input required name="stock" type="number" min="0" step="1" defaultValue={(editing ?? template)?.variants[0]?.stock ?? 0} /></label>
+              <label>Alerta de estoque mínimo<input required name="lowStockThreshold" type="number" min="0" step="1" defaultValue={(editing ?? template)?.variants[0]?.lowStockThreshold ?? 5} /></label>
 
               <label className="wide">
                 Descrição
@@ -1303,7 +1340,7 @@ export default function AdminProdutos() {
 
               <div className="admin-form-options wide">
                 <label className="featured-checkbox-field">
-                  <input type="checkbox" name="featured" defaultChecked={editing?.featured} />
+                  <input type="checkbox" name="featured" defaultChecked={(editing ?? template)?.featured} />
                   <span><Star size={16} /><b>Destacar na capa</b><small>Até 10 produtos aparecem no topo da loja.</small></span>
                 </label>
               </div>
@@ -1311,7 +1348,7 @@ export default function AdminProdutos() {
 
               {editorError && <p className="form-error product-editor-error" role="alert">{editorError}</p>}
               <div className="modal-actions">
-                <button type="button" className="button secondary" onClick={() => { setOpen(false); setEditing(null); }}>Cancelar</button>
+                <button type="button" className="button secondary" onClick={() => { setOpen(false); setEditing(null); setTemplate(null); }}>Cancelar</button>
                 <button type="submit" disabled={busy} className="button primary">{busy ? "Salvando..." : editing ? "Salvar alterações" : "Cadastrar produto"}</button>
               </div>
             </>}
