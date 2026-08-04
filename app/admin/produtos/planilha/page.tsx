@@ -91,7 +91,7 @@ export default function ProductSpreadsheetPage() {
     if (response.ok) setHistory(await response.json());
   }
 
-  useEffect(() => { void loadHistory(); }, []);
+  useEffect(() => { void loadHistory().catch(() => undefined); }, []);
 
   function chooseFile(event: ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null;

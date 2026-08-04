@@ -87,7 +87,9 @@ export default function AdminDashboard() {
     setLoading(false);
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load().catch(() => { setError("Falha de conexão. Recarregue a página."); setLoading(false); });
+  }, []);
 
   if (loading) return <div className="admin-loading"><RefreshCw className="animate-spin" /> Atualizando indicadores da loja...</div>;
   if (!data) return <div className="form-error">{error}</div>;

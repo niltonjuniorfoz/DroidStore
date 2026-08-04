@@ -156,7 +156,7 @@ export default function AdminConteudo() {
           : DEFAULT_HOME_PRODUCT_SECTIONS.map((section) => ({ ...section })),
         navigation: data.navigation ?? [],
       });
-    });
+    }).catch(() => setMessage("Falha de conexão ao carregar o conteúdo. Recarregue a página."));
   }, []);
 
   function updateMenu(index: number, patch: Partial<MenuItem>) {

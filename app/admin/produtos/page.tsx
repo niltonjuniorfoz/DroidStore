@@ -150,7 +150,9 @@ export default function AdminProdutos() {
     if (filtersResponse.ok) setFilters(await filtersResponse.json());
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load().catch(() => setMessage("Falha de conexão ao carregar os produtos. Recarregue a página."));
+  }, []);
   useEffect(() => { setSearch(searchParams.get("q") ?? ""); }, [searchParams]);
   useEffect(() => { setPage(1); }, [search, statusFilter, stockFilter, brandFilter, conditionFilter, pageSize]);
 

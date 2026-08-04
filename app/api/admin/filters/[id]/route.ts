@@ -3,6 +3,7 @@ import { z } from "zod";
 import prisma from "../../../../../src/lib/prisma";
 import { requireAdmin } from "../../../../../src/lib/admin";
 import { slugify } from "../../../../../src/lib/slug";
+import { isPrismaError } from "../../../../../src/lib/prismaErrors";
 
 const patchSchema = z.object({
   name: z.string().trim().min(2).max(60).optional(),
@@ -25,7 +26,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
     return NextResponse.json(filter);
   } catch (error) {
-    if (error instanceof Error && error.message.includes("Unique constraint")) {
+    if (isPrismaError(error, "P2002")) {
       return NextResponse.json({ error: "Já existe um filtro com este nome." }, { status: 409 });
     }
     throw error;

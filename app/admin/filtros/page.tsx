@@ -56,7 +56,9 @@ export default function AdminFiltros() {
     else setError(body.error ?? "Não foi possível carregar os filtros.");
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load().catch(() => setError("Falha de conexão. Recarregue a página."));
+  }, []);
 
   async function request(url: string, method: string, body?: unknown) {
     setBusy(true);

@@ -56,7 +56,7 @@ export default function AdminConfiguracoes() {
       if (!response.ok) setError(body.error ?? "Não foi possível carregar as configurações.");
       else setData({ ...body, content: { ...body.content, whatsapp: formatBrazilPhone(body.content.whatsapp ?? "") } });
       setLoading(false);
-    });
+    }).catch(() => { setError("Falha de conexão. Recarregue a página."); setLoading(false); });
   }, []);
 
   function update(field: keyof SettingsResponse["content"], value: string | number | boolean) {

@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 18/24 · **FASES 0, 1 e 2 concluídas**
+**Última atualização:** 2026-08-03 · **Progresso:** 21/25 · **FASES 0–3 concluídas** (3.6 é polimento novo, opcional)
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -39,9 +39,10 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 
 - [x] 🟡 **3.1 Paginação/busca no servidor** — dashboard 100% agregado no banco (`$queryRaw` com SUM/GROUP BY, fuso de São Paulo no gráfico diário; queries validadas contra o banco real); pedidos filtram período+busca no servidor (o take de 250 não esconde mais pedido antigo procurado); clientes com busca servidor + take 200; produtos com `?q`/`?take`. Status das tabs de pedidos ficou no client de propósito (mantém as contagens). Índice `Order(status, createdAt)` já criado no 0.4.
 - [x] 🟡 **3.2 Variações sem redigitar** — **decisão de arquitetura:** o catálogo já modela variação como produtos-irmãos agrupados por família (feature "seleção dinâmica" existente); N variantes dentro de um produto brigaria com vitrine/carrinho/checkout. Implementado o que resolve a dor real: botão **"Duplicar como variação"** (ícone de cópia nas 3 visualizações) — abre o cadastro pré-preenchido com fotos, especificações, filtros e preços do produto original; só trocar capacidade/cor e salvar. Estoque nasce zerado de propósito.
-- [ ] ⚪ **3.3 Higiene de UX** — trocar `alert()`/`confirm()` por toast+modal; `.catch` nos fetch; `error.tsx`/`loading.tsx`; quebrar `produtos/page.tsx`.
-- [ ] ⚪ **3.4 Erros Prisma por código** — `P2002` em vez de `message.includes`; tratar FK em DELETE de filtros.
-- [ ] 🟡 **3.5 Testes das rotas admin** — auth (CUSTOMER bloqueado), `costPrice` não vaza p/ MANAGER, máquina de estados, estorno devolve estoque, planilha apply/rollback.
+- [x] ⚪ **3.3 Higiene de UX (essencial)** — `error.tsx` + `loading.tsx` em `/admin`; `.catch` em **todas** as cargas iniciais (rede caiu → mensagem clara, nunca mais "Carregando..." eterno). O que sobrou virou o item 3.6.
+- [x] ⚪ **3.4 Erros Prisma por código** — helper `isPrismaError` (`P2002`/`P2003`/`P2025`) substituindo `message.includes("Unique constraint")` nos filtros. DELETEs de filtro já eram cascade no schema — o 500 de FK previsto na avaliação não se aplicava.
+- [x] 🟡 **3.5 Testes de guarda das rotas admin** — suíte estática: toda rota `/api/admin` chama `requireAdmin`; rotas públicas/libs da vitrine nunca mencionam `costPrice`; rotas sensíveis diferenciam ADMIN/MANAGER e removem custo; cron exige `CRON_SECRET`. Pegam a regressão perigosa sem precisar de banco. Máquina de estados, estorno, lockout e expiração já cobertos pelos testes de unidade das fases anteriores (51 testes no total). Integração HTTP real fica para quando houver harness de banco de teste.
+- [ ] ⚪ **3.6 Polimento visual do admin** — trocar os 11 `alert()`/`confirm()` por toast+modal próprios; quebrar `produtos/page.tsx` (~1.500 linhas) em componentes. Cosmético, sem risco funcional — fazer com o preview aberto.
 
 ## FASE 4 — Financeiro real
 
@@ -73,6 +74,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 2.5 CSS em 8 módulos + 204 linhas mortas removidas | `df83d3a` |
 | 2026-08-03 | 3.1 Dashboard agregado + filtros no servidor | `90e3267` |
 | 2026-08-03 | 3.2 Duplicar produto como variação | `76d96df` |
+| 2026-08-03 | 3.3+3.4+3.5 Higiene, erros por código, testes de guarda | `13d2146` |
 
 ## Descobertos no caminho (triagem pendente)
 

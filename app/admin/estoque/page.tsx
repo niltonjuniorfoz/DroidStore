@@ -73,7 +73,9 @@ export default function AdminEstoque() {
     setLoading(false);
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load().catch(() => { setError("Falha de conexão. Recarregue a página."); setLoading(false); });
+  }, []);
   useEffect(() => { setPage(1); }, [search, stockStatusFilter, brandFilter, pageSize]);
 
   // BRANDS DÁ LOJA
