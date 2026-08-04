@@ -576,3 +576,50 @@
 }
 .admin-shell .sla-badge.late { background: var(--a-danger-soft); color: var(--a-danger); }
 .admin-shell .sla-badge.soon { background: var(--a-warning-soft); color: var(--a-warning); }
+
+/* ---------- DASHBOARD V3: ZONA EDITORIAL ---------- */
+.admin-shell .dash-columns { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1.05rem; align-items: start; }
+.admin-shell .dash-main { display: flex; flex-direction: column; gap: 1.05rem; min-width: 0; }
+.admin-shell .dash-rail { display: flex; flex-direction: column; gap: 1.05rem; min-width: 0; }
+.admin-shell .rail-card > header { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.admin-shell .rail-card h2 { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; }
+.admin-shell .rail-card h2 svg { color: var(--a-accent); }
+.admin-shell .rail-card > header a { font-size: 0.64rem; font-weight: 700; color: var(--a-accent-ink); display: inline-flex; align-items: center; gap: 0.2rem; text-decoration: none; }
+.admin-shell .rail-card > header a svg { width: 12px; height: 12px; }
+@media (max-width: 1100px) { .admin-shell .dash-columns { grid-template-columns: 1fr; } }
+
+/* Meta do mês no card de faturamento */
+.admin-shell .goal-progress { margin-top: 0.4rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.admin-shell .goal-progress-track { height: 6px; border-radius: 999px; background: #ffffff22; overflow: hidden; }
+.admin-shell .goal-progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ffb26b, var(--a-accent)); transition: width 0.4s ease; }
+.admin-shell .goal-progress small { font-size: 0.6rem; color: #c9d0c9; }
+
+/* Barras de participação (share) */
+.admin-shell .share-track { height: 5px; border-radius: 999px; background: #eef0ed; overflow: hidden; margin: 0.28rem 0 0.2rem; }
+.admin-shell .share-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ffb26b, var(--a-accent)); }
+
+/* Ranking de mais vendidos */
+.admin-shell .rank-list { padding: 0.35rem 0; }
+.admin-shell .rank-row { display: grid; grid-template-columns: 30px 1fr auto; gap: 0.75rem; align-items: center; padding: 0.6rem 1.25rem; border-bottom: 1px solid #eff1ee; }
+.admin-shell .rank-row:last-child { border-bottom: 0; }
+.admin-shell .rank-pos { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: var(--a-accent-soft); color: var(--a-accent-ink); font-size: 0.68rem; font-weight: 800; }
+.admin-shell .rank-row:first-child .rank-pos { background: #171d18; color: #ffb26b; }
+.admin-shell .rank-info { min-width: 0; }
+.admin-shell .rank-info strong { font-size: 0.74rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-shell .rank-info small { font-size: 0.62rem; color: var(--a-muted); }
+.admin-shell .rank-row > b { font-size: 0.76rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Métodos de pagamento no trilho */
+.admin-shell .method-list { padding: 0.55rem 1.25rem 0.9rem; display: flex; flex-direction: column; gap: 0.7rem; }
+.admin-shell .method-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; }
+.admin-shell .method-head strong { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.admin-shell .method-head b { font-size: 0.74rem; font-variant-numeric: tabular-nums; }
+.admin-shell .method-row small { font-size: 0.6rem; color: var(--a-muted); }
+
+/* Feed de atividade */
+.admin-shell .activity-feed { padding: 0.4rem 1.25rem 0.9rem; display: flex; flex-direction: column; }
+.admin-shell .activity-row { display: grid; grid-template-columns: 14px 1fr; gap: 0.6rem; padding: 0.5rem 0; border-bottom: 1px solid #eff1ee; position: relative; }
+.admin-shell .activity-row:last-child { border-bottom: 0; }
+.admin-shell .activity-dot { width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--a-accent); box-shadow: 0 0 0 3px var(--a-accent-soft); }
+.admin-shell .activity-row strong { font-size: 0.68rem; font-weight: 650; display: block; line-height: 1.35; }
+.admin-shell .activity-row small { font-size: 0.58rem; color: var(--a-muted); }

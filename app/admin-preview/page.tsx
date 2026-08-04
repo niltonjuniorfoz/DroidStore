@@ -118,6 +118,34 @@ export default function AdminThemePreview() {
             </div>
           </section>
 
+          <div className="dash-columns">
+            <div className="dash-main">
+              <section className="admin-data-card">
+                <header><div><h2>Mais vendidos no mês</h2><p>Participação no faturamento.</p></div></header>
+                <div className="rank-list">
+                  <div className="rank-row"><span className="rank-pos">1</span><div className="rank-info"><strong>iPhone 17 Pro Max — 1 TB</strong><div className="share-track"><div className="share-fill" style={{ width: "92%" }} /></div><small>14 unidade(s)</small></div><b>R$ 130.340,00</b></div>
+                  <div className="rank-row"><span className="rank-pos">2</span><div className="rank-info"><strong>Galaxy S25 Ultra — 512 GB</strong><div className="share-track"><div className="share-fill" style={{ width: "48%" }} /></div><small>8 unidade(s)</small></div><b>R$ 63.120,00</b></div>
+                </div>
+              </section>
+            </div>
+            <aside className="dash-rail">
+              <section className="admin-data-card rail-card">
+                <header><div><h2>Pagamento no mês</h2></div></header>
+                <div className="method-list">
+                  <div className="method-row"><div className="method-head"><strong>PIX</strong><b>R$ 121.400,00</b></div><div className="share-track"><div className="share-fill" style={{ width: "82%" }} /></div><small>139 pedido(s) · 82% do faturamento</small></div>
+                  <div className="method-row"><div className="method-head"><strong>CARTAO</strong><b>R$ 26.920,00</b></div><div className="share-track"><div className="share-fill" style={{ width: "18%" }} /></div><small>25 pedido(s) · 18%</small></div>
+                </div>
+              </section>
+              <section className="admin-data-card rail-card">
+                <header><div><h2>Atividade da equipe</h2></div></header>
+                <div className="activity-feed">
+                  <div className="activity-row"><span className="activity-dot" /><div><strong>Produto atualizado: iPhone 17 Pro (price, stock)</strong><small>wendder2@gmail.com · 03/08 14:22</small></div></div>
+                  <div className="activity-row"><span className="activity-dot" /><div><strong>Pedido #A1B2C3D4: PAID → SHIPPED</strong><small>gerente@auratech.com · 03/08 13:57</small></div></div>
+                </div>
+              </section>
+            </aside>
+          </div>
+
           <div className="admin-message">Configurações salvas com sucesso.</div>
           <div className="form-error">Falha de conexão. Recarregue a página.</div>
         </div>
