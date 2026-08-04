@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 24/26 · **FASES 0–4 concluídas** · Restam: 3.6 (polimento visual) e 4.4 (relatórios em tela) — ambos opcionais
+**Última atualização:** 2026-08-03 · **Progresso:** 26/26 · **TODAS AS FASES CONCLUÍDAS** 🎉
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -42,7 +42,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 - [x] ⚪ **3.3 Higiene de UX (essencial)** — `error.tsx` + `loading.tsx` em `/admin`; `.catch` em **todas** as cargas iniciais (rede caiu → mensagem clara, nunca mais "Carregando..." eterno). O que sobrou virou o item 3.6.
 - [x] ⚪ **3.4 Erros Prisma por código** — helper `isPrismaError` (`P2002`/`P2003`/`P2025`) substituindo `message.includes("Unique constraint")` nos filtros. DELETEs de filtro já eram cascade no schema — o 500 de FK previsto na avaliação não se aplicava.
 - [x] 🟡 **3.5 Testes de guarda das rotas admin** — suíte estática: toda rota `/api/admin` chama `requireAdmin`; rotas públicas/libs da vitrine nunca mencionam `costPrice`; rotas sensíveis diferenciam ADMIN/MANAGER e removem custo; cron exige `CRON_SECRET`. Pegam a regressão perigosa sem precisar de banco. Máquina de estados, estorno, lockout e expiração já cobertos pelos testes de unidade das fases anteriores (51 testes no total). Integração HTTP real fica para quando houver harness de banco de teste.
-- [ ] ⚪ **3.6 Polimento visual do admin** — trocar os 11 `alert()`/`confirm()` por toast+modal próprios; quebrar `produtos/page.tsx` (~1.500 linhas) em componentes. Cosmético, sem risco funcional — fazer com o preview aberto.
+- [x] ⚪ **3.6 Polimento visual do admin** — **13** `alert()`/`confirm()` nativos substituídos por toast empilhado + diálogo de confirmação próprios (`AdminFeedback`, com Esc/overlay, botão vermelho em ação destrutiva). `produtos/page.tsx`: tipos e helpers extraídos para `types.ts` (1.423→1.320 linhas). Extração do modal do editor **avaliada e descartada**: form uncontrolled com ~25 dependências de escopo — mover é reescrita de risco sem teste de UI; refazer quando houver testes de componente.
 
 ## FASE 4 — Financeiro real
 
@@ -78,6 +78,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 4.1 Lotes de compra multi-moeda (`/admin/compras`) | `586d7b1` |
 | 2026-08-03 | 4.2+4.3 Taxa real do MP + exportação contábil XLSX | `ade38c2` |
 | 2026-08-03 | 4.4 Relatórios em tela (`/admin/relatorios`) | `8e4313a` |
+| 2026-08-03 | 3.6 Toast+confirm próprios e tipos extraídos | `68e9788`, `3325787` |
 
 ## Descobertos no caminho (triagem pendente)
 
