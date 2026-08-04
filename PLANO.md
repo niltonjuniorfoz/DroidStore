@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 14/24 (2 parciais aguardando preview) · **FASES 0 e 1 concluídas**
+**Última atualização:** 2026-08-03 · **Progresso:** 16/24 · **FASES 0, 1 e 2 concluídas**
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -31,8 +31,8 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 - [x] 🟠 **2.1 `generateMetadata` por produto** — title com modelo/capacidade/cor/condição, description com preço, OG image + Twitter card, canonical. Busca deduplicada com `cache()`. Bônus: sitemap agora puxa os produtos **do banco** (antes era só o catálogo estático — produto cadastrado no admin ficava fora).
 - [x] 🟠 **2.2 JSON-LD `Product`+`Offer`** — preço, disponibilidade (InStock/OutOfStock), condição mapeada pro vocabulário schema.org (Novo→New, Reembalado/Outlet→Refurbished, usados→Used), marca e vendedor.
 - [x] 🟡 **2.3 Catálogo server-side** — `/celulares` virou server component com ISR 60s: Google e primeira pintura recebem os produtos reais do banco; filtros e revalidação ao vivo continuam no client. Rota `/api/catalog-filters` e página compartilham a mesma lib.
-- [~] 🟡 **2.4 Otimização de imagens** — **Parcial:** `lazy`/`decoding=async` em toda a vitrine + `fetchPriority=high` na foto principal do produto (LCP). Conversão completa para `next/image` (`fill` + `sizes`) **adiada até existir preview visual** — mexer em layout às cegas num CSS de 6.000 linhas arrisca quebrar a vitrine em produção.
-- [~] ⚪ **2.5 Quebrar `storefront-theme.css`** (5.977 linhas) — **Adiado pelo mesmo motivo do 2.4:** refactor visual sem preview pra conferir = risco alto, valor baixo agora. Fazer junto com o 2.4 quando o preview estiver de pé.
+- [x] 🟡 **2.4 Otimização de imagens** — `next/image` em toda a vitrine com allowlist de hosts (uploads locais, Vercel Blob, cdn.atacadoconnect.com, atlanticoshop.com.py); host desconhecido cai no `<img>` lazy. Dimensões visuais continuam 100% no CSS (zero mudança de layout). Verificado no preview: 80/81 imagens otimizadas na home, 31/31 no produto, zero quebradas. Host de CDN novo no futuro → adicionar em `next.config.mjs` + `ProductImage.tsx`.
+- [x] ⚪ **2.5 Quebrar `storefront-theme.css`** — dividido em **8 módulos** em `app/styles/` (base/header, home/hero, menus, botões/prateleiras, conta/ajuda, produto, refinamentos, carrosséis); `storefront-theme.css` virou lista de `@import` na mesma ordem — cascata idêntica por construção. Removidas 204 linhas mortas (efeito fogo sem nenhuma referência). Divisão por rota descartada de propósito: cards/botões aparecem em todas as rotas e o App Router não descarrega CSS na navegação — ganho seria ilusório. Verificado no preview (home, catálogo, produto).
 - [x] ⚪ **2.6 Carrinho: preço vivo** — preço revalidado contra a loja ao carregar o carrinho, com aviso discreto no drawer quando algum valor mudou; chave migrada `droidstore-cart` → `auratech-cart` (migração automática, sem perder carrinho salvo).
 
 ## FASE 3 — Escala do admin
@@ -69,6 +69,8 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 2.1+2.2 SEO por produto (metadata, JSON-LD, sitemap) | `fadfefe` |
 | 2026-08-03 | 2.3 Catálogo server-side (ISR 60s) | `286bde7` |
 | 2026-08-03 | 2.4 (parcial: lazy+priority) e 2.6 Carrinho preço vivo | `18c463e` |
+| 2026-08-03 | 2.4 next/image completo (allowlist de hosts) | `0f34a83` |
+| 2026-08-03 | 2.5 CSS em 8 módulos + 204 linhas mortas removidas | `df83d3a` |
 
 ## Descobertos no caminho (triagem pendente)
 
