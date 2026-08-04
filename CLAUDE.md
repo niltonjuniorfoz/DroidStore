@@ -14,6 +14,11 @@ O arquivo `PLANO.md` é o plano vivo de melhorias. **Sempre que concluir qualque
 
 Isso vale para qualquer sessão, mesmo que o usuário não mencione o plano.
 
+## Regras de sessão (ordem do Wender, 2026-08-03)
+
+- **Nunca parar por compactação de contexto**: quando a janela encher, continuar o trabalho normalmente com o resumo — jamais encerrar ou pedir permissão para continuar por causa disso.
+- Modelo esgotado é assunto do app (fallback automático / seletor de modelo); não interromper o trabalho antecipadamente por previsão de cota.
+
 ## Contexto de negócio
 
 - Compra em USD/USDT (EUA, Paraguai, China), venda no Brasil. `costPrice` em BRL não reflete o custo real — ver Fase 4 do PLANO.
