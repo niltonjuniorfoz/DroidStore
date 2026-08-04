@@ -95,22 +95,30 @@ export default function AdminProdutos() {
   const [pageSize, setPageSize] = useState(25);
 
 
-  async function load() {
+  async function load(query: string = search) {
+    // Busca no servidor + teto de 500: com 10 mil produtos o painel não baixa
+    // o catálogo inteiro — digitou, o banco filtra.
+    const params = new URLSearchParams({ view: "summary", take: "500" });
+    if (query.trim()) params.set("q", query.trim());
     const [response, filtersResponse] = await Promise.all([
-      fetch("/api/admin/products?view=summary", { cache: "no-store" }),
-      fetch("/api/admin/filters", { cache: "no-store" }),
+      fetch(`/api/admin/products?${params}`, { cache: "no-store" }),
+      filters.length ? Promise.resolve(null) : fetch("/api/admin/filters", { cache: "no-store" }),
     ]);
     if (response.ok) {
       const products: AdminProduct[] = await response.json();
       setItems(products);
       setOwnerView(response.headers.get("X-Owner-View") === "true");
     }
-    if (filtersResponse.ok) setFilters(await filtersResponse.json());
+    if (filtersResponse?.ok) setFilters(await filtersResponse.json());
   }
 
   useEffect(() => {
-    void load().catch(() => setMessage("Falha de conexão ao carregar os produtos. Recarregue a página."));
-  }, []);
+    const timer = setTimeout(() => {
+      void load(search).catch(() => setMessage("Falha de conexão ao carregar os produtos. Recarregue a página."));
+    }, search.trim() ? 350 : 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
   useEffect(() => { setSearch(searchParams.get("q") ?? ""); }, [searchParams]);
   useEffect(() => { setPage(1); }, [search, statusFilter, stockFilter, brandFilter, conditionFilter, pageSize]);
 
