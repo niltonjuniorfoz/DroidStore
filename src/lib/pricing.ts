@@ -24,10 +24,32 @@ export function netAfterFee(price: number, feeRate: number): number {
   return round2(price * (1 - feeRate));
 }
 
+/** Taxas efetivamente cobradas nesta loja (vêm das Configurações). */
+export type FeeConfig = {
+  pix: number; // fração, ex.: 0.0099
+  cardBase: number; // crédito à vista
+  cardPerInstallment: number; // acréscimo por parcela extra
+};
+
+export const DEFAULT_FEES: FeeConfig = {
+  pix: GATEWAY_FEES.pix,
+  cardBase: GATEWAY_FEES.cardInstallmentBase,
+  cardPerInstallment: GATEWAY_FEES.cardInstallmentPerMonth,
+};
+
+/** Converte percentuais da configuração (0,99) em frações (0,0099). */
+export function feesFromPercent(pixPct: number, cardPct: number, perInstallmentPct: number): FeeConfig {
+  return {
+    pix: pixPct / 100,
+    cardBase: cardPct / 100,
+    cardPerInstallment: perInstallmentPct / 100,
+  };
+}
+
 /** Taxa efetiva do crédito para N parcelas absorvidas pela loja. */
-export function cardFeeRate(installments: number): number {
-  const extra = Math.max(0, installments - 1) * GATEWAY_FEES.cardInstallmentPerMonth;
-  return GATEWAY_FEES.cardInstallmentBase + extra;
+export function cardFeeRate(installments: number, fees: FeeConfig = DEFAULT_FEES): number {
+  const extra = Math.max(0, installments - 1) * fees.cardPerInstallment;
+  return fees.cardBase + extra;
 }
 
 export type InstallmentRow = {
@@ -43,11 +65,11 @@ export type InstallmentRow = {
  * Escada de parcelas: quanto o cliente paga por parcela e quanto sobra
  * de lucro real em cada opção, já descontada a taxa do cartão.
  */
-export function installmentLadder(price: number, cost: number, maxInstallments: number): InstallmentRow[] {
+export function installmentLadder(price: number, cost: number, maxInstallments: number, fees: FeeConfig = DEFAULT_FEES): InstallmentRow[] {
   const rows: InstallmentRow[] = [];
   const limit = Math.max(1, Math.min(24, maxInstallments));
   for (let n = 1; n <= limit; n++) {
-    const netReceived = netAfterFee(price, cardFeeRate(n));
+    const netReceived = netAfterFee(price, cardFeeRate(n, fees));
     const profit = round2(netReceived - cost);
     rows.push({
       installments: n,

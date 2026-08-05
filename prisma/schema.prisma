@@ -115,6 +115,11 @@ model SiteContent {
   whatsapp                  String?
   pixDiscount               Int      @default(10)
   maxInstallments           Int      @default(12)
+  // Taxas reais cobradas pelo gateway/maquininha (%). Ajustáveis por loja:
+  // o painel calcula margem e lucro com estes valores.
+  pixFeePct                 Decimal  @default(0.99) @db.Decimal(6, 3)
+  cardFeePct                Decimal  @default(4.98) @db.Decimal(6, 3)
+  cardInstallmentFeePct     Decimal  @default(2.08) @db.Decimal(6, 3)
   companyLegalName          String?
   companyTaxId              String?
   companyPhone              String?

@@ -14,6 +14,10 @@ const settingsSchema = z.object({
   instagramUrl: z.string().trim().max(220).optional().nullable(),
   pixDiscount: z.coerce.number().int().min(0).max(30),
   maxInstallments: z.coerce.number().int().min(1).max(24),
+  // Taxas reais da maquininha/gateway (%) — alimentam todo o cálculo de margem.
+  pixFeePct: z.coerce.number().min(0).max(20).optional(),
+  cardFeePct: z.coerce.number().min(0).max(20).optional(),
+  cardInstallmentFeePct: z.coerce.number().min(0).max(10).optional(),
   companyLegalName: z.string().trim().max(120).optional().nullable(),
   companyTaxId: z.string().trim().max(24).optional().nullable(),
   companyPhone: z.string().trim().max(30).optional().nullable(),
@@ -127,6 +131,8 @@ export async function PATCH(req: Request) {
           whatsapp: current.whatsapp,
           pixDiscount: current.pixDiscount,
           maxInstallments: current.maxInstallments,
+          pixFeePct: Number(current.pixFeePct),
+          cardFeePct: Number(current.cardFeePct),
         }
       : undefined,
     after: {
@@ -135,6 +141,8 @@ export async function PATCH(req: Request) {
       whatsapp: content.whatsapp,
       pixDiscount: content.pixDiscount,
       maxInstallments: content.maxInstallments,
+      pixFeePct: Number(content.pixFeePct),
+      cardFeePct: Number(content.cardFeePct),
     },
   });
   return NextResponse.json({ content: withInstagram(content), integrations: integrations(), ownerView: true });

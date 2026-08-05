@@ -3,8 +3,8 @@ import { Prisma } from "@prisma/client";
 import prisma from "../../../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../../../src/lib/admin";
 import {
-  GATEWAY_FEES,
   breakEvenPrice,
+  feesFromPercent,
   installmentLadder,
   marginOf,
   maxPurchasePrice,
@@ -96,8 +96,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           select: { id: true, summary: true, after: true, actorEmail: true, createdAt: true },
         })
       : Promise.resolve([]),
-    prisma.siteContent.findUnique({ where: { id: "main" }, select: { pixDiscount: true, maxInstallments: true } }),
+    prisma.siteContent.findUnique({
+      where: { id: "main" },
+      select: { pixDiscount: true, maxInstallments: true, pixFeePct: true, cardFeePct: true, cardInstallmentFeePct: true },
+    }),
   ]);
+
+  // Série mensal de visitas para cruzar procura x venda no gráfico.
+  const viewMonthly = await prisma.$queryRaw<Array<{ month: string; views: number }>>`
+    SELECT to_char("createdAt" AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM') AS month, COUNT(*)::int AS views
+    FROM "ProductView"
+    WHERE "productId" = ${id} AND "createdAt" >= NOW() - INTERVAL '6 months'
+    GROUP BY 1 ORDER BY 1`;
 
   const sales = salesRows[0] ?? { units: 0, orders: 0, revenue: 0, cost: 0, avgprice: 0, minprice: 0, maxprice: 0, firstsale: null, lastsale: null, fees: 0 };
   const views = viewRows[0] ?? { total: 0, last30: 0, last7: 0 };
@@ -114,11 +124,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const unitsPerMonth = sales.units > 0 ? (sales.units / daysInCatalog) * 30 : 0;
   const daysOfStock = unitsPerMonth > 0 ? Math.round((stock / unitsPerMonth) * 30) : null;
 
-  // Precificação
+  // Precificação com as taxas reais desta loja
+  const feePercents = {
+    pix: Number(content?.pixFeePct ?? 0.99),
+    card: Number(content?.cardFeePct ?? 4.98),
+    perInstallment: Number(content?.cardInstallmentFeePct ?? 2.08),
+  };
+  const fees = feesFromPercent(feePercents.pix, feePercents.card, feePercents.perInstallment);
   const pix = pixPrice(price, pixDiscountPct);
-  const pixNet = netAfterFee(pix, GATEWAY_FEES.pix);
-  const cardNet = netAfterFee(price, GATEWAY_FEES.cardOnSight);
-  const ladder = installmentLadder(price, owner ? cost : 0, maxInstallments);
+  const pixNet = netAfterFee(pix, fees.pix);
+  const cardNet = netAfterFee(price, fees.cardBase);
+  const ladder = installmentLadder(price, owner ? cost : 0, maxInstallments, fees);
 
   // Histórico de compra (custo real por lote)
   const lots = lotRows.map((lot) => ({
@@ -175,7 +191,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       favorites: product._count.favorites,
       conversionPct, // visitas que viraram unidade vendida
       daysSinceLastSale,
+      monthly: viewMonthly,
     },
+    fees: feePercents,
     sales: {
       units: sales.units,
       orders: sales.orders,
@@ -212,17 +230,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
             table,
             pix: pixMargin,
             card: cardMargin,
-            breakEvenPix: breakEvenPrice(cost, GATEWAY_FEES.pix),
-            breakEvenCard: breakEvenPrice(cost, GATEWAY_FEES.cardOnSight),
+            breakEvenPix: breakEvenPrice(cost, fees.pix),
+            breakEvenCard: breakEvenPrice(cost, fees.cardBase),
           },
           guidance: {
             // Quanto pagar no próximo lote para manter a margem alvo
-            maxPurchase30: maxPurchasePrice(pix, 30, GATEWAY_FEES.pix),
-            maxPurchase20: maxPurchasePrice(pix, 20, GATEWAY_FEES.pix),
-            maxPurchase15: maxPurchasePrice(pix, 15, GATEWAY_FEES.pix),
+            maxPurchase30: maxPurchasePrice(pix, 30, fees.pix),
+            maxPurchase20: maxPurchasePrice(pix, 20, fees.pix),
+            maxPurchase15: maxPurchasePrice(pix, 15, fees.pix),
             ...reorder,
             investmentNeeded: purchase?.avgCost ? Math.round(reorder.unitsToBuy * purchase.avgCost * 100) / 100 : null,
-            suggestedPriceForMargin30: cost > 0 ? Math.round((cost / 0.7 / (1 - GATEWAY_FEES.pix) / ((100 - pixDiscountPct) / 100)) * 100) / 100 : null,
+            suggestedPriceForMargin30: cost > 0 ? Math.round((cost / 0.7 / (1 - fees.pix) / ((100 - pixDiscountPct) / 100)) * 100) / 100 : null,
           },
           purchase,
           priceLog,

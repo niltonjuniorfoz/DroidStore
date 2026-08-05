@@ -868,3 +868,71 @@
 .admin-shell .insight-table-wrap tr.highlight-row:hover { background: #ffe9d2; }
 .admin-shell .insight-table-wrap strong.good { color: var(--a-success); }
 .admin-shell .insight-table-wrap strong.bad { color: var(--a-danger); }
+
+/* ---------- EDITOR: SEÇÕES NUMERADAS DA ABA APARELHO ---------- */
+.admin-shell .editor-section-title {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding-top: 0.4rem; margin-top: 0.2rem;
+  border-top: 1px solid var(--a-line);
+}
+.admin-shell .editor-section-title:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+.admin-shell .editor-section-title > span {
+  width: 22px; height: 22px; flex-shrink: 0; display: grid; place-items: center;
+  border-radius: 50%; background: var(--a-accent-soft); color: var(--a-accent-ink);
+  font-size: 0.62rem; font-weight: 800;
+}
+.admin-shell .editor-section-title h3 { font-size: 0.78rem; font-weight: 750; }
+.admin-shell .editor-section-title p { font-size: 0.62rem; color: var(--a-muted); margin-top: 0.05rem; }
+
+/* ---------- MEMÓRIA DA COMPRA (custo travado) ---------- */
+.admin-shell .acquired-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 0.6rem;
+  margin-bottom: 0.9rem;
+}
+.admin-shell .acquired-strip > div {
+  background: #fff; border: 1px solid var(--a-line); border-radius: 10px;
+  padding: 0.55rem 0.7rem; display: flex; flex-direction: column; gap: 0.1rem;
+}
+.admin-shell .acquired-strip span { display: flex; align-items: center; gap: 0.25rem; font-size: 0.55rem; font-weight: 750; letter-spacing: 0.07em; text-transform: uppercase; color: var(--a-muted); }
+.admin-shell .acquired-strip strong { font-size: 1rem; font-weight: 770; font-variant-numeric: tabular-nums; }
+.admin-shell .acquired-strip strong.good { color: var(--a-success); }
+.admin-shell .acquired-strip strong.bad { color: var(--a-danger); }
+.admin-shell .acquired-strip small { font-size: 0.58rem; color: var(--a-ink-2); }
+.admin-shell .acquired-locked { background: #171d18 !important; border-color: #171d18 !important; }
+.admin-shell .acquired-locked span { color: #ffb26b; }
+.admin-shell .acquired-locked strong { color: #fff; }
+.admin-shell .acquired-locked small { color: #b9c1ba; }
+.admin-shell .acquired-warning {
+  grid-column: 1 / -1; display: flex; gap: 0.5rem; align-items: flex-start;
+  background: var(--a-warning-soft) !important; border-color: #f2ddb8 !important;
+  color: var(--a-warning); font-size: 0.66rem; line-height: 1.45;
+}
+.admin-shell .acquired-warning svg { flex-shrink: 0; margin-top: 2px; }
+
+/* ---------- SIMULADOR DE TAXA DA MAQUININHA ---------- */
+.admin-shell .fee-simulator {
+  background: var(--a-surface-2); border: 1px solid var(--a-line);
+  border-radius: 10px; padding: 0.7rem 0.85rem; margin-bottom: 0.7rem;
+}
+.admin-shell .fee-inputs { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: flex-end; }
+.admin-shell .fee-inputs label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.6rem; font-weight: 700; color: var(--a-ink-2); }
+.admin-shell .fee-inputs input { width: 110px; min-height: 34px; }
+.admin-shell .fee-verdict { border-radius: 9px; padding: 0.6rem 0.8rem; font-size: 0.7rem; margin-bottom: 0.6rem; }
+.admin-shell .fee-verdict.good { background: var(--a-success-soft); color: #0b6e2e; }
+.admin-shell .fee-verdict.warn { background: var(--a-warning-soft); color: var(--a-warning); }
+.admin-shell .fee-verdict.bad { background: var(--a-danger-soft); color: var(--a-danger); }
+.admin-shell tr.row-loss { background: #fff6f5; }
+.admin-shell tr.row-loss:hover { background: #ffecea; }
+
+/* ---------- GRÁFICO PROCURA x VENDA ---------- */
+.admin-shell .dual-chart { display: flex; gap: 0.5rem; align-items: flex-end; height: 110px; }
+.admin-shell .dual-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; height: 100%; }
+.admin-shell .dual-bars { flex: 1; width: 100%; display: flex; gap: 3px; align-items: flex-end; justify-content: center; }
+.admin-shell .dual-bar { width: 45%; max-width: 22px; border-radius: 4px 4px 2px 2px; }
+.admin-shell .dual-bar.views { background: #cbd5cf; }
+.admin-shell .dual-bar.units { background: linear-gradient(180deg, #ff9736, var(--a-accent)); }
+.admin-shell .dual-col small { font-size: 0.54rem; color: var(--a-muted); }
+.admin-shell .chart-legend { display: flex; gap: 0.9rem; margin-top: 0.5rem; font-size: 0.6rem; color: var(--a-ink-2); }
+.admin-shell .chart-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 0.25rem; }
+.admin-shell .chart-legend i.views { background: #cbd5cf; }
+.admin-shell .chart-legend i.units { background: var(--a-accent); }

@@ -6,8 +6,10 @@ import {
   ArrowUpDown,
   Box,
   CheckSquare,
+  AlertTriangle,
   CircleDollarSign,
   Copy,
+  Lock,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -48,6 +50,7 @@ import { calculateGrossProfit } from "../../../src/lib/profit";
 import { uploadAdminFile } from "../../../src/lib/uploadClient";
 import { useAdminFeedback } from "../../../src/components/admin/AdminFeedback";
 import ProductInsights from "./ProductInsights";
+import ProductSalesMini from "./ProductSalesMini";
 import {
   emptyImages,
   getBaseModelName,
@@ -82,6 +85,11 @@ export default function AdminProdutos() {
   const [stockInput, setStockInput] = useState<number | "">(0);
   const [pixDiscount, setPixDiscount] = useState(0);
   const [editorTab, setEditorTab] = useState<"dados" | "financeiro" | "inteligencia" | "midia" | "ficha">("dados");
+  // Custo com que o produto foi comprado (valor salvo ao abrir o editor).
+  // Fica travado na tela como referência: mexer no campo de custo não apaga
+  // a memória de "por quanto eu comprei".
+  const [acquiredCost, setAcquiredCost] = useState<number | null>(null);
+  const [acquiredPrice, setAcquiredPrice] = useState<number | null>(null);
   const [specifications, setSpecifications] = useState<Specification[]>([]);
   const [message, setMessage] = useState("");
   const [editorError, setEditorError] = useState("");
@@ -184,6 +192,8 @@ export default function AdminProdutos() {
     setPriceInput("");
     setCostInput(0);
     setStockInput(0);
+    setAcquiredCost(null);
+    setAcquiredPrice(null);
     setTitle("");
     setDescription("");
     setStorage("128 GB");
@@ -210,6 +220,8 @@ export default function AdminProdutos() {
     setPriceInput(item.variants[0]?.price !== undefined ? Number(item.variants[0].price) : "");
     setCostInput(item.variants[0]?.costPrice !== undefined ? Number(item.variants[0].costPrice) : "");
     setStockInput(item.variants[0]?.stock ?? 0);
+    setAcquiredCost(item.variants[0]?.costPrice !== undefined ? Number(item.variants[0].costPrice) : null);
+    setAcquiredPrice(item.variants[0]?.price !== undefined ? Number(item.variants[0].price) : null);
     setSpecifications(item.specifications?.map(({ label, value }) => ({ label, value })) ?? []);
     setSelectedFilters(Object.fromEntries(
       (item.filterSelections ?? []).map((selection) => [selection.option.filterId, selection.option.id]),
@@ -1212,15 +1224,20 @@ export default function AdminProdutos() {
               </nav>
 
               <div className="admin-form-grid" hidden={editorTab !== "dados"}>
+              <div className="editor-section-title wide"><span>1</span><div><h3>Identificação</h3><p>Como o aparelho aparece na loja e nas buscas.</p></div></div>
+
               <label className="wide">
                 Título completo do produto
                 <input required name="name" value={title} onChange={(event) => setTitle(event.target.value)} />
+                <small>Padrão que funciona: Marca - Modelo - Capacidade - Cor - Condição.</small>
               </label>
 
               <div className="ai-helper wide">
-                <div><Sparkles /><span><strong>Pesquisa e preenchimento com IA</strong><small>A IA pesquisa o modelo e cria uma ficha técnica completa para sua revisão.</small></span></div>
+                <div><Sparkles /><span><strong>Pesquisa e preenchimento com IA</strong><small>A IA pesquisa o modelo e preenche descrição e ficha técnica para sua revisão.</small></span></div>
                 <button type="button" onClick={generateWithAI} disabled={aiBusy}>{aiBusy ? "Gerando..." : "Gerar com IA"}</button>
               </div>
+
+              <div className="editor-section-title wide"><span>2</span><div><h3>Classificação</h3><p>Define em quais filtros da loja o aparelho aparece.</p></div></div>
 
               <section className="product-filter-assignment wide">
                 <header><div><h3>Filtros e categorias</h3><p>Associe o produto às opções que serão usadas na busca da loja.</p></div><SlidersHorizontal /></header>
@@ -1229,6 +1246,8 @@ export default function AdminProdutos() {
                   {filter.options.map((option) => <option key={option.id} value={option.id}>{option.label}{!option.active ? " (oculto)" : ""}</option>)}
                 </select></label>)}</div>
               </section>
+              <div className="editor-section-title wide"><span>3</span><div><h3>Variação física</h3><p>Capacidade, cor e estado de conservação deste aparelho.</p></div></div>
+
               <label>Armazenamento<select required name="storage" value={storage} onChange={(event) => setStorage(event.target.value)}>{storageOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
               {isIPhone ? (
                 <fieldset className="iphone-color-picker">
@@ -1287,9 +1306,36 @@ export default function AdminProdutos() {
               <div className="admin-form-grid" hidden={editorTab !== "financeiro"}>
               <section className="product-finance-section wide">
                 <header><div><h3>Comercial &amp; financeiro</h3><p>Preço, custo e estoque — a margem calcula sozinha enquanto você digita.</p></div><CircleDollarSign /></header>
+                {/* Memória da compra: fica travada e não muda quando você edita o custo. */}
+                {ownerView && editing && acquiredCost !== null && (
+                  <div className="acquired-strip">
+                    <div className="acquired-locked">
+                      <span><Lock size={11} /> Comprei por</span>
+                      <strong>{money(acquiredCost)}</strong>
+                      <small>custo registrado deste aparelho</small>
+                    </div>
+                    <div>
+                      <span>Preço de tabela salvo</span>
+                      <strong>{money(acquiredPrice ?? 0)}</strong>
+                      <small>{Number(priceInput) !== acquiredPrice ? `você está alterando para ${money(Number(priceInput) || 0)}` : "sem alteração pendente"}</small>
+                    </div>
+                    <div>
+                      <span>Lucro da compra original</span>
+                      <strong className={(acquiredPrice ?? 0) - acquiredCost >= 0 ? "good" : "bad"}>{money((acquiredPrice ?? 0) - acquiredCost)}</strong>
+                      <small>{acquiredCost > 0 ? `markup ${(((acquiredPrice ?? 0) - acquiredCost) / acquiredCost * 100).toFixed(0)}%` : "custo não informado"}</small>
+                    </div>
+                    {Number(costInput) !== acquiredCost && (
+                      <div className="acquired-warning">
+                        <AlertTriangle size={13} />
+                        <span>Você está mudando o custo de <b>{money(acquiredCost)}</b> para <b>{money(Number(costInput) || 0)}</b>. Isso reescreve o custo médio — para registrar uma compra nova use <b>Compras (lotes)</b>.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="finance-fields">
+                  {ownerView && <label className="owner-field">Preço de custo (o que eu paguei)<input required name="costPrice" type="number" min="0" step=".01" value={costInput} onChange={(event) => setCostInput(event.target.value === "" ? "" : Number(event.target.value))} /></label>}
                   <label>Preço de Venda (Tabela)<input required name="price" type="number" min="1" step=".01" value={priceInput} onChange={(event) => setPriceInput(event.target.value === "" ? "" : Number(event.target.value))} /></label>
-                  {ownerView && <label className="owner-field">Preço de custo (só administrador)<input required name="costPrice" type="number" min="0" step=".01" value={costInput} onChange={(event) => setCostInput(event.target.value === "" ? "" : Number(event.target.value))} /></label>}
                   <label>Estoque Total<input required name="stock" type="number" min="0" step="1" value={stockInput} onChange={(event) => setStockInput(event.target.value === "" ? "" : Number(event.target.value))} /></label>
                   <label>Alerta de estoque mínimo<input required name="lowStockThreshold" type="number" min="0" step="1" defaultValue={(editing ?? template)?.variants[0]?.lowStockThreshold ?? 5} /></label>
                 </div>
@@ -1348,6 +1394,8 @@ export default function AdminProdutos() {
                 })()}
               </section>
 
+              {/* Histórico de venda e giro deste aparelho, dentro da aba financeira. */}
+              {editing && <div className="wide"><ProductSalesMini productId={editing.id} /></div>}
               </div>
 
               {editing && (
@@ -1357,9 +1405,11 @@ export default function AdminProdutos() {
               )}
 
               <div className="admin-form-grid" hidden={editorTab !== "dados"}>
+              <div className="editor-section-title wide"><span>4</span><div><h3>Descrição de venda</h3><p>Texto que o cliente lê na página do produto.</p></div></div>
               <label className="wide">
                 Descrição
                 <textarea required name="description" rows={6} value={description} onChange={(event) => setDescription(event.target.value)} />
+                <small>{description.length} caracteres · descrições completas rankeiam melhor no Google.</small>
               </label>
               </div>
 
@@ -1417,6 +1467,10 @@ export default function AdminProdutos() {
               </div>
 
               <div className="admin-form-grid" hidden={editorTab !== "ficha"}>
+              <div className="ai-helper wide">
+                <div><Sparkles /><span><strong>Preencher ficha técnica com IA</strong><small>A IA pesquisa o modelo e preenche as especificações abaixo (e a descrição na aba Aparelho) para sua revisão.</small></span></div>
+                <button type="button" onClick={generateWithAI} disabled={aiBusy}>{aiBusy ? "Gerando..." : "Gerar com IA"}</button>
+              </div>
               <section className="spec-editor wide">
                 <header>
                   <div><h3>Especificações</h3><p>Edite o que a IA criou ou adicione informações manualmente.</p></div>
