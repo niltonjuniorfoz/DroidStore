@@ -53,29 +53,44 @@
 /* ---------- SIDEBAR ---------- */
 .admin-shell .admin-sidebar {
   width: 252px;
-  background: linear-gradient(180deg, #0d120f 0%, #10160f 60%, #131810 100%);
-  color: #a3aca5;
-  border-right: 1px solid #ffffff0a;
+  background:
+    radial-gradient(420px 220px at 30% -5%, rgba(255, 121, 0, 0.12), transparent 62%),
+    linear-gradient(180deg, #050606 0%, #080a09 52%, #0b0d0c 100%);
+  color: #aeb3b0;
+  border-right: 1px solid rgba(255, 121, 0, 0.16);
+  box-shadow: 12px 0 35px rgba(0, 0, 0, 0.2);
 }
 .admin-shell .admin-sidebar::-webkit-scrollbar { width: 6px; }
 .admin-shell .admin-sidebar::-webkit-scrollbar-thumb { background: #ffffff14; border-radius: 3px; }
 
-.admin-shell .admin-brand { height: 74px; border-bottom: 1px solid #ffffff0d; }
-.admin-shell .admin-brand > a > span {
-  width: 38px; height: 38px; border-radius: 12px;
-  background: linear-gradient(135deg, #ff8d21, #f26800);
-  color: #fff; font-weight: 800; font-size: 1.1rem;
-  box-shadow: 0 6px 18px rgba(242, 104, 0, 0.35), inset 0 1px 0 #ffffff40;
+.admin-shell .admin-brand {
+  height: 82px;
+  padding: 0 1rem;
+  border-bottom: 1px solid rgba(255, 121, 0, 0.14);
+  background: linear-gradient(180deg, rgba(255, 121, 0, 0.045), transparent);
 }
-.admin-shell .admin-brand strong { font-size: 0.95rem; letter-spacing: -0.01em; color: #fff; }
-.admin-shell .admin-brand small { color: #7d867f; font-size: 0.62rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.admin-shell .admin-brand-link {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: 174px;
+  height: 64px;
+}
+.admin-shell .admin-brand-logo {
+  display: block;
+  width: 168px;
+  height: 58px;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 6px 13px rgba(255, 121, 0, 0.18));
+}
 
 .admin-shell .admin-section-label {
   padding: 1.05rem 1.55rem 0.4rem;
   font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.14em;
-  color: #6b746d;
+  color: #686c69;
   text-transform: uppercase;
 }
 
@@ -85,16 +100,19 @@
   border-radius: 9px;
   font-size: 0.76rem;
   font-weight: 550;
-  color: #aab3ab;
+  color: #b2b6b3;
   position: relative;
   transition: background 0.12s, color 0.12s;
 }
-.admin-shell .admin-sidebar nav a:hover { background: #ffffff0a; color: #fff; }
+.admin-shell .admin-sidebar nav a:hover {
+  background: rgba(255, 121, 0, 0.09);
+  color: #fff;
+}
 .admin-shell .admin-sidebar nav a.active {
-  background: linear-gradient(90deg, #ff790024, #ff790010);
-  color: #ffb26b;
-  box-shadow: none;
-  font-weight: 650;
+  background: linear-gradient(90deg, rgba(255, 121, 0, 0.25), rgba(255, 121, 0, 0.08));
+  color: #ff9b3d;
+  box-shadow: inset 0 0 0 1px rgba(255, 121, 0, 0.12);
+  font-weight: 700;
 }
 .admin-shell .admin-sidebar nav a.active::before {
   content: "";
@@ -109,7 +127,7 @@
 .admin-shell .admin-sidebar nav a svg { width: 16px; height: 16px; opacity: 0.85; }
 .admin-shell .admin-sidebar nav a.active svg { opacity: 1; }
 
-.admin-shell .admin-sidebar-bottom { margin-top: auto; padding: 0.7rem; border-top: 1px solid #ffffff0d; }
+.admin-shell .admin-sidebar-bottom { margin-top: auto; padding: 0.7rem; border-top: 1px solid rgba(255, 121, 0, 0.12); }
 .admin-shell .admin-sidebar-bottom a, .admin-shell .admin-sidebar-bottom button {
   height: 38px; border-radius: 9px; font-size: 0.74rem; font-weight: 550; color: #aab3ab;
 }

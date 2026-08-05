@@ -2221,3 +2221,29 @@
 .admin-confirm-box h2{font-size:.95rem}
 .admin-confirm-box p{font-size:.78rem;color:#55605a;line-height:1.55;white-space:pre-line}
 .admin-confirm-actions{display:flex;gap:.5rem;justify-content:flex-end;width:100%;margin-top:.3rem}
+
+/* Produto abre no primeiro clique/toque em qualquer área livre da linha ou card. */
+.product-open-target {
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color .14s ease, border-color .14s ease, box-shadow .14s ease, transform .08s ease;
+}
+.product-open-target:hover {
+  border-color: rgba(255, 121, 0, .36);
+  box-shadow: inset 3px 0 0 #ff7900;
+}
+.grid-product-card.product-open-target:hover {
+  box-shadow: 0 8px 22px rgba(17, 24, 20, .09), inset 0 0 0 1px rgba(255, 121, 0, .24);
+  transform: translateY(-1px);
+}
+.product-open-target:focus-visible {
+  outline: 2px solid #ff7900;
+  outline-offset: 2px;
+}
+.product-open-target button,
+.product-open-target a,
+.product-open-target input,
+.product-open-target select,
+.product-open-target textarea {
+  touch-action: manipulation;
+}

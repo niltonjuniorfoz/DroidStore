@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowUpDown,
@@ -243,46 +243,72 @@ export default function AdminProdutos() {
   }
 
   async function editProduct(item: AdminProduct) {
+    if (editorLoading) return;
+
     setEditing(item);
     setEditorTab("dados");
     setOpen(true);
     setEditorLoading(true);
-    const response = await fetch(`/api/admin/products/${item.id}`, { cache: "no-store" });
-    if (!response.ok) {
+    setEditorError("");
+
+    try {
+      const response = await fetch(`/api/admin/products/${item.id}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Falha ao carregar produto (${response.status})`);
+
+      const fullProduct = await response.json() as AdminProduct;
+      populateEditor(fullProduct);
+      setTemplate(null);
+
+      // O editor abre imediatamente. Os dados auxiliares carregam em paralelo,
+      // sem bloquear o primeiro clique nem exigir que o usuário tente novamente.
+      void fetch(`/api/admin/products/${item.id}/insights`, { cache: "no-store" })
+        .then(async (insightResponse) => (insightResponse.ok ? insightResponse.json() : null))
+        .then((insights) => {
+          if (!insights) return;
+          if (insights.fees) setFeeConfig(insights.fees);
+          const lots = (insights.purchase?.lots ?? []) as Array<{ purchasedAt: string; supplier: string; unitCostBrl: number; quantity: number; currency: string; unitCostFx: number }>;
+          const entries = (insights.movements ?? []) as Array<{ type: string; quantity: number; note: string | null; createdAt: string }>;
+          const history = lots.length
+            ? lots.slice(-5).reverse().map((lot) => ({
+                date: lot.purchasedAt,
+                label: `${lot.supplier} · ${lot.currency} ${lot.unitCostFx.toFixed(2)}`,
+                cost: lot.unitCostBrl,
+                qty: lot.quantity,
+              }))
+            : entries.filter((movement) => movement.quantity > 0).slice(0, 5).map((movement) => ({
+                date: movement.createdAt,
+                label: movement.note ?? "Entrada de estoque",
+                cost: null,
+                qty: movement.quantity,
+              }));
+          setCostHistory(history);
+        })
+        .catch(() => undefined);
+    } catch (error) {
+      console.error("admin product open", error);
       setOpen(false);
       setEditing(null);
-      setMessage("Não foi possível carregar os dados deste aparelho.");
+      setMessage("Não foi possível carregar os dados deste aparelho. Tente novamente.");
+    } finally {
       setEditorLoading(false);
-      return;
     }
-    populateEditor(await response.json());
-    setTemplate(null);
-    setEditorLoading(false);
+  }
 
-    // Últimas entradas de custo deste aparelho (lotes ou ajustes de estoque).
-    fetch(`/api/admin/products/${item.id}/insights`, { cache: "no-store" })
-      .then(async (insightResponse) => (insightResponse.ok ? insightResponse.json() : null))
-      .then((insights) => {
-        if (!insights) return;
-        if (insights.fees) setFeeConfig(insights.fees);
-        const lots = (insights.purchase?.lots ?? []) as Array<{ purchasedAt: string; supplier: string; unitCostBrl: number; quantity: number; currency: string; unitCostFx: number }>;
-        const entries = (insights.movements ?? []) as Array<{ type: string; quantity: number; note: string | null; createdAt: string }>;
-        const history = lots.length
-          ? lots.slice(-5).reverse().map((lot) => ({
-              date: lot.purchasedAt,
-              label: `${lot.supplier} · ${lot.currency} ${lot.unitCostFx.toFixed(2)}`,
-              cost: lot.unitCostBrl,
-              qty: lot.quantity,
-            }))
-          : entries.filter((movement) => movement.quantity > 0).slice(0, 5).map((movement) => ({
-              date: movement.createdAt,
-              label: movement.note ?? "Entrada de estoque",
-              cost: null,
-              qty: movement.quantity,
-            }));
-        setCostHistory(history);
-      })
-      .catch(() => undefined);
+  function clickedInteractiveControl(target: EventTarget | null) {
+    return target instanceof HTMLElement
+      && Boolean(target.closest("button, a, input, select, textarea, label"));
+  }
+
+  function openProductFromRow(event: ReactMouseEvent<HTMLElement>, item: AdminProduct) {
+    if (clickedInteractiveControl(event.target)) return;
+    void editProduct(item);
+  }
+
+  function openProductFromKeyboard(event: ReactKeyboardEvent<HTMLElement>, item: AdminProduct) {
+    if (clickedInteractiveControl(event.target)) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    void editProduct(item);
   }
 
   // Abre o cadastro pré-preenchido com os dados de um produto existente.
@@ -927,7 +953,16 @@ export default function AdminProdutos() {
                         const isSelected = selectedIds.has(item.id);
 
                         return (
-                          <div key={item.id} className={`pro-table-row sub-row ${!item.active ? "inactive-row" : ""}`} style={{ background: "#ffffff", borderBottom: "1px solid #f3f4f6" }}>
+                          <div
+                            key={item.id}
+                            className={`pro-table-row sub-row product-open-target ${!item.active ? "inactive-row" : ""}`}
+                            style={{ background: "#ffffff", borderBottom: "1px solid #f3f4f6" }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Abrir ${item.name}`}
+                            onClick={(event) => openProductFromRow(event, item)}
+                            onKeyDown={(event) => openProductFromKeyboard(event, item)}
+                          >
                             <div className="col-chk">
                               <button onClick={() => toggleSelectId(item.id)} className="checkbox-btn">
                                 {isSelected ? <CheckSquare size={16} className="checked-icon" /> : <Square size={16} />}
@@ -1057,7 +1092,15 @@ export default function AdminProdutos() {
               const isSelected = selectedIds.has(item.id);
 
               return (
-                <div key={item.id} className={`pro-table-row ${!item.active ? "inactive-row" : ""} ${isSelected ? "row-selected" : ""}`}>
+                <div
+                  key={item.id}
+                  className={`pro-table-row product-open-target ${!item.active ? "inactive-row" : ""} ${isSelected ? "row-selected" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Abrir ${item.name}`}
+                  onClick={(event) => openProductFromRow(event, item)}
+                  onKeyDown={(event) => openProductFromKeyboard(event, item)}
+                >
                   <div className="col-chk">
                     <button onClick={() => toggleSelectId(item.id)} className="checkbox-btn">
                       {isSelected ? <CheckSquare size={16} className="checked-icon" /> : <Square size={16} />}
@@ -1163,7 +1206,15 @@ export default function AdminProdutos() {
             const isSelected = selectedIds.has(item.id);
 
             return (
-              <div key={item.id} className={`grid-product-card ${!item.active ? "inactive" : ""} ${isSelected ? "selected" : ""}`}>
+              <div
+                key={item.id}
+                className={`grid-product-card product-open-target ${!item.active ? "inactive" : ""} ${isSelected ? "selected" : ""}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Abrir ${item.name}`}
+                onClick={(event) => openProductFromRow(event, item)}
+                onKeyDown={(event) => openProductFromKeyboard(event, item)}
+              >
                 <div className="card-top">
                   <button onClick={() => toggleSelectId(item.id)} className="checkbox-btn">
                     {isSelected ? <CheckSquare size={16} className="checked-icon" /> : <Square size={16} />}

@@ -81,7 +81,9 @@ export default function AdminSidebar({ open = false, onClose, role }: { open?: b
 
   return <aside className={`admin-sidebar ${open ? "is-open" : ""}`}>
     <div className="admin-brand">
-      <Link href="/admin"><span>A</span><div><strong>Aura Tech</strong><small>Central de gestão</small></div></Link>
+      <Link href="/admin" className="admin-brand-link" aria-label="Aura Tech — Central de gestão">
+        <img src="/aura-tech-logo-admin.png" alt="Aura Tech" className="admin-brand-logo" />
+      </Link>
       {onClose && <button onClick={onClose} aria-label="Fechar menu"><X /></button>}
     </div>
     <div style={{ overflowY: "auto", flex: 1, paddingBottom: "0.8rem" }}>

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type ProductImport } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
 import { audit } from "../../../../../src/lib/audit";
@@ -30,50 +30,64 @@ export async function POST(request: Request) {
     }
     if (!preview.changes.length) return NextResponse.json({ error: "A planilha não possui alterações para salvar." }, { status: 400 });
     const user = session.user as { id?: string; name?: string | null; email?: string | null };
-    const result = await prisma.$transaction(async (tx) => {
-      const updatedProducts = new Set<string>();
-      for (const change of preview.changes) {
-        await tx.variant.update({
-          where: { id: change.variantId },
-          data: {
-            ...(change.fields.includes("price") ? { price: change.after.price } : {}),
-            ...(isOwnerAdmin(session) && change.fields.includes("costPrice") ? { costPrice: change.after.costPrice } : {}),
-            ...(change.fields.includes("stock") ? { stock: change.after.stock } : {}),
-            ...(change.fields.includes("condition") ? { condition: change.after.condition } : {}),
-          },
-        });
-        if (change.fields.includes("stock")) {
-          await tx.stockMovement.create({
-            data: {
-              variantId: change.variantId,
-              type: "ADJUSTMENT",
-              quantity: change.after.stock - change.before.stock,
-              note: `Importação da planilha ${file.name}`,
-              createdById: user.id,
-            },
-          });
-        }
-        if (!updatedProducts.has(change.productId) && change.fields.includes("active")) {
-          await tx.product.update({ where: { id: change.productId }, data: { active: change.after.active } });
-          updatedProducts.add(change.productId);
-        }
-      }
-      return tx.productImport.create({
+    // Usa a transação sequencial do Prisma em vez de uma transação interativa.
+    // A transação interativa expira por padrão em poucos segundos; uma planilha
+    // grande pode ultrapassar esse prazo e causar "Transação não encontrada".
+    // A lista abaixo continua sendo aplicada de forma atômica, sem manter um
+    // callback de transação aberto durante centenas de atualizações.
+    const operations: Prisma.PrismaPromise<unknown>[] = [];
+    const updatedProducts = new Set<string>();
+
+    for (const change of preview.changes) {
+      operations.push(prisma.variant.update({
+        where: { id: change.variantId },
         data: {
-          fileName: file.name.slice(0, 255),
-          totalRows: preview.totalRows,
-          changedRows: preview.changedRows,
-          unchangedRows: preview.unchangedRows,
-          priceChanges: preview.priceChanges,
-          costChanges: preview.costChanges,
-          stockChanges: preview.stockChanges,
-          statusChanges: preview.statusChanges,
-          changes: preview.changes as unknown as Prisma.InputJsonValue,
-          createdById: user.id,
-          createdByName: user.name ?? user.email ?? "Administrador",
+          ...(change.fields.includes("price") ? { price: change.after.price } : {}),
+          ...(isOwnerAdmin(session) && change.fields.includes("costPrice") ? { costPrice: change.after.costPrice } : {}),
+          ...(change.fields.includes("stock") ? { stock: change.after.stock } : {}),
+          ...(change.fields.includes("condition") ? { condition: change.after.condition } : {}),
         },
-      });
-    });
+      }));
+
+      if (change.fields.includes("stock")) {
+        operations.push(prisma.stockMovement.create({
+          data: {
+            variantId: change.variantId,
+            type: "ADJUSTMENT",
+            quantity: change.after.stock - change.before.stock,
+            note: `Importação da planilha ${file.name}`,
+            createdById: user.id,
+          },
+        }));
+      }
+
+      if (!updatedProducts.has(change.productId) && change.fields.includes("active")) {
+        operations.push(prisma.product.update({
+          where: { id: change.productId },
+          data: { active: change.after.active },
+        }));
+        updatedProducts.add(change.productId);
+      }
+    }
+
+    operations.push(prisma.productImport.create({
+      data: {
+        fileName: file.name.slice(0, 255),
+        totalRows: preview.totalRows,
+        changedRows: preview.changedRows,
+        unchangedRows: preview.unchangedRows,
+        priceChanges: preview.priceChanges,
+        costChanges: preview.costChanges,
+        stockChanges: preview.stockChanges,
+        statusChanges: preview.statusChanges,
+        changes: preview.changes as unknown as Prisma.InputJsonValue,
+        createdById: user.id,
+        createdByName: user.name ?? user.email ?? "Administrador",
+      },
+    }));
+
+    const transactionResult = await prisma.$transaction(operations);
+    const result = transactionResult[transactionResult.length - 1] as ProductImport;
     await audit(session, {
       action: "spreadsheet.apply",
       entity: "ProductImport",
