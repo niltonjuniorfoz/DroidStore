@@ -1059,3 +1059,76 @@
   .admin-shell .editor-tabs { margin: 0.7rem 0.9rem 0; }
   .admin-shell .product-editor-heading { padding: 0.9rem 0.9rem 0; }
 }
+
+
+/* ---------- TOPBAR RESPONSIVA E GESTO DA SIDEBAR ---------- */
+@media (max-width: 900px) {
+  .admin-shell .admin-topbar {
+    height: auto;
+    min-height: 62px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "menu title user"
+      "search search search";
+    align-items: center;
+    column-gap: 0.65rem;
+    row-gap: 0.5rem;
+    padding: 0.55rem 0.9rem 0.65rem;
+  }
+
+  .admin-shell .admin-menu-trigger {
+    grid-area: menu;
+    align-self: center;
+  }
+
+  .admin-shell .admin-topbar-title {
+    grid-area: title;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .admin-shell .admin-topbar-title strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-shell .admin-search {
+    grid-area: search;
+    display: flex;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .admin-shell .admin-search input {
+    min-width: 0;
+  }
+
+  .admin-shell .admin-user {
+    grid-area: user;
+    min-width: 0;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-shell .admin-search {
+    display: flex;
+    height: 40px;
+  }
+
+  .admin-shell .admin-search kbd {
+    display: none;
+  }
+
+  .admin-shell .admin-topbar {
+    padding-inline:
+      max(0.75rem, env(safe-area-inset-left))
+      max(0.75rem, env(safe-area-inset-right));
+  }
+}

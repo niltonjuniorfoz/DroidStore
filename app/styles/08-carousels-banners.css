@@ -1110,3 +1110,40 @@
   }
 }
 
+
+
+/* Faixa de categorias: rolagem horizontal nativa e responsiva no celular. */
+@media (max-width: 992px) {
+  .storefront-theme .mobile-category-strip {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    touch-action: manipulation;
+    cursor: grab;
+  }
+
+  .storefront-theme .mobile-category-strip:active {
+    cursor: grabbing;
+  }
+
+  .storefront-theme .mobile-category-strip a {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  .storefront-theme .mobile-category-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .storefront-theme .storefront-header-wrapper.categories-hidden .mobile-category-strip {
+    overflow: hidden !important;
+  }
+}

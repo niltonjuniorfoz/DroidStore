@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, Search } from "lucide-react";
@@ -28,6 +28,89 @@ export default function AdminShell({ children, user, role }: { children: React.R
   const router = useRouter();
   const pathname = usePathname();
   const page = pageTitles.find((entry) => pathname.startsWith(entry.prefix)) ?? { title: "Visão geral", hint: "Aura Tech" };
+
+  useEffect(() => {
+    if (open) return;
+
+    let tracking = false;
+    let startX = 0;
+    let startY = 0;
+
+    const ignoredTargets = [
+      "a",
+      "button",
+      "input",
+      "textarea",
+      "select",
+      "[contenteditable='true']",
+      ".admin-search",
+      ".pro-table-container",
+      ".editor-tabs",
+      ".spreadsheet-changes",
+      ".spreadsheet-errors",
+      ".admin-modal",
+      ".product-editor-modal",
+      "[data-no-admin-swipe]",
+    ].join(",");
+
+    const stopTracking = () => {
+      tracking = false;
+      startX = 0;
+      startY = 0;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest(ignoredTargets)) return;
+
+      const touch = event.touches[0];
+      const viewportWidth = window.innerWidth;
+
+      // A zona começa longe da borda para não acionar o gesto de voltar do navegador.
+      // Ela alcança um pouco além do centro, deixando o menu fácil de abrir com o polegar.
+      const minimumStartX = Math.max(54, viewportWidth * 0.13);
+      const maximumStartX = Math.min(380, viewportWidth * 0.58);
+
+      if (touch.clientX < minimumStartX || touch.clientX > maximumStartX) return;
+
+      tracking = true;
+      startX = touch.clientX;
+      startY = touch.clientY;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!tracking || event.touches.length !== 1) return;
+
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+
+      if (deltaX < -18 || Math.abs(deltaY) > 92) {
+        stopTracking();
+        return;
+      }
+
+      const horizontalGesture = deltaX > 82 && deltaX > Math.abs(deltaY) * 1.35;
+      if (!horizontalGesture) return;
+
+      stopTracking();
+      setOpen(true);
+    };
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    document.addEventListener("touchmove", handleTouchMove, { passive: true });
+    document.addEventListener("touchend", stopTracking, { passive: true });
+    document.addEventListener("touchcancel", stopTracking, { passive: true });
+
+    return () => {
+      document.removeEventListener("touchstart", handleTouchStart);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", stopTracking);
+      document.removeEventListener("touchcancel", stopTracking);
+    };
+  }, [open]);
 
   return <AdminFeedbackProvider><div className="admin-shell">
     <AdminSidebar open={open} onClose={() => setOpen(false)} role={role} />
