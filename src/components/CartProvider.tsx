@@ -121,8 +121,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
+// Stub inofensivo para o pass de prerender do servidor (o Next renderiza
+// client components no SSR antes dos providers hidratarem em alguns passes).
+const serverFallback: CartContextValue = {
+  items: [],
+  count: 0,
+  subtotal: 0,
+  drawerOpen: false,
+  priceNotice: null,
+  dismissPriceNotice() {},
+  add() {},
+  remove() {},
+  setQuantity() {},
+  clear() {},
+  openDrawer() {},
+  closeDrawer() {},
+};
+
 export function useCart() {
   const context = useContext(CartContext);
-  if (!context) throw new Error("useCart precisa estar dentro de CartProvider");
+  if (!context) {
+    if (typeof window === "undefined") return serverFallback;
+    throw new Error("useCart precisa estar dentro de CartProvider");
+  }
   return context;
 }
