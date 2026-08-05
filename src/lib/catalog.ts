@@ -12,6 +12,10 @@ export type CatalogProduct = {
   accent: string;
   imageUrl?: string;
   model3dUrl?: string | null;
+  /** Desconto PIX próprio do produto (%). Ausente = usa o padrão da loja. */
+  pixDiscountPct?: number;
+  /** Tabela de parcelas própria: total por número de parcelas. */
+  installmentPlan?: Array<{ n: number; price: number }>;
   images?: string[];
   specifications?: Array<{ label: string; value: string }>;
   filters?: Array<{

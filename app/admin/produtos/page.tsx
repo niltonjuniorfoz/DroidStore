@@ -51,6 +51,7 @@ import { uploadAdminFile } from "../../../src/lib/uploadClient";
 import { useAdminFeedback } from "../../../src/components/admin/AdminFeedback";
 import ProductInsights from "./ProductInsights";
 import ProductSalesMini from "./ProductSalesMini";
+import InstallmentPlanner from "./InstallmentPlanner";
 import {
   emptyImages,
   getBaseModelName,
@@ -90,6 +91,11 @@ export default function AdminProdutos() {
   // a memória de "por quanto eu comprei".
   const [acquiredCost, setAcquiredCost] = useState<number | null>(null);
   const [acquiredPrice, setAcquiredPrice] = useState<number | null>(null);
+  // Desconto PIX exclusivo do produto (vazio = usa o padrão da loja).
+  const [productPix, setProductPix] = useState<number | "">("");
+  const [installmentPlan, setInstallmentPlan] = useState<Array<{ n: number; price: number }>>([]);
+  const [feeConfig, setFeeConfig] = useState({ pix: 0.99, card: 4.98, perInstallment: 2.08 });
+  const [costHistory, setCostHistory] = useState<Array<{ date: string; label: string; cost: number | null; qty: number | null }>>([]);
   const [specifications, setSpecifications] = useState<Specification[]>([]);
   const [message, setMessage] = useState("");
   const [editorError, setEditorError] = useState("");
@@ -222,6 +228,8 @@ export default function AdminProdutos() {
     setStockInput(item.variants[0]?.stock ?? 0);
     setAcquiredCost(item.variants[0]?.costPrice !== undefined ? Number(item.variants[0].costPrice) : null);
     setAcquiredPrice(item.variants[0]?.price !== undefined ? Number(item.variants[0].price) : null);
+    setProductPix(item.pixDiscountPct ?? "");
+    setInstallmentPlan(Array.isArray(item.installmentPlan) ? item.installmentPlan : []);
     setSpecifications(item.specifications?.map(({ label, value }) => ({ label, value })) ?? []);
     setSelectedFilters(Object.fromEntries(
       (item.filterSelections ?? []).map((selection) => [selection.option.filterId, selection.option.id]),
@@ -246,6 +254,31 @@ export default function AdminProdutos() {
     populateEditor(await response.json());
     setTemplate(null);
     setEditorLoading(false);
+
+    // Últimas entradas de custo deste aparelho (lotes ou ajustes de estoque).
+    fetch(`/api/admin/products/${item.id}/insights`, { cache: "no-store" })
+      .then(async (insightResponse) => (insightResponse.ok ? insightResponse.json() : null))
+      .then((insights) => {
+        if (!insights) return;
+        if (insights.fees) setFeeConfig(insights.fees);
+        const lots = (insights.purchase?.lots ?? []) as Array<{ purchasedAt: string; supplier: string; unitCostBrl: number; quantity: number; currency: string; unitCostFx: number }>;
+        const entries = (insights.movements ?? []) as Array<{ type: string; quantity: number; note: string | null; createdAt: string }>;
+        const history = lots.length
+          ? lots.slice(-5).reverse().map((lot) => ({
+              date: lot.purchasedAt,
+              label: `${lot.supplier} · ${lot.currency} ${lot.unitCostFx.toFixed(2)}`,
+              cost: lot.unitCostBrl,
+              qty: lot.quantity,
+            }))
+          : entries.filter((movement) => movement.quantity > 0).slice(0, 5).map((movement) => ({
+              date: movement.createdAt,
+              label: movement.note ?? "Entrada de estoque",
+              cost: null,
+              qty: movement.quantity,
+            }));
+        setCostHistory(history);
+      })
+      .catch(() => undefined);
   }
 
   // Abre o cadastro pré-preenchido com os dados de um produto existente.
@@ -372,6 +405,11 @@ export default function AdminProdutos() {
         filterOptionIds: Object.values(selectedFilters).filter(Boolean),
         featured: data.get("featured") === "on",
         ...(editing ? { active: editing.active } : { active: true }),
+        // Vazio = herda o desconto PIX da loja; plano vazio = parcela simples.
+        ...(editing ? {
+          pixDiscountPct: productPix === "" ? null : Number(productPix),
+          installmentPlan: installmentPlan.length ? installmentPlan : null,
+        } : {}),
       };
       const response = await fetch(editing ? `/api/admin/products/${editing.id}` : "/api/admin/products", {
         method: editing ? "PATCH" : "POST",
@@ -1313,6 +1351,18 @@ export default function AdminProdutos() {
                       <span><Lock size={11} /> Comprei por</span>
                       <strong>{money(acquiredCost)}</strong>
                       <small>custo registrado deste aparelho</small>
+                      {costHistory.length > 0 && (
+                        <ul className="acquired-history">
+                          {costHistory.map((entry, index) => (
+                            <li key={`${entry.date}-${index}`}>
+                              <b>{new Date(entry.date).toLocaleDateString("pt-BR")}</b>
+                              <span>{entry.cost !== null ? money(entry.cost) : `${entry.qty} un.`}</span>
+                              <em>{entry.label}</em>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {costHistory.length === 0 && <em className="acquired-empty">Sem entradas registradas — use Compras (lotes) para o histórico com data e moeda.</em>}
                     </div>
                     <div>
                       <span>Preço de tabela salvo</span>
@@ -1340,16 +1390,47 @@ export default function AdminProdutos() {
                   <label>Alerta de estoque mínimo<input required name="lowStockThreshold" type="number" min="0" step="1" defaultValue={(editing ?? template)?.variants[0]?.lowStockThreshold ?? 5} /></label>
                 </div>
 
+                {/* Desconto PIX deste produto: mexeu, tudo recalcula. */}
+                <div className="pix-control">
+                  <label>
+                    Desconto PIX deste produto (%)
+                    <input
+                      type="number"
+                      min="0"
+                      max="90"
+                      step="1"
+                      value={productPix}
+                      onChange={(event) => setProductPix(event.target.value === "" ? "" : Number(event.target.value))}
+                      placeholder={`${pixDiscount} (padrão da loja)`}
+                    />
+                    <small>{productPix === "" ? `Usando o padrão da loja: ${pixDiscount}%` : `Exclusivo deste produto — aparece assim na vitrine`}</small>
+                  </label>
+                  <div className="pix-steps">
+                    {[0, 3, 5, 7, 10, 12, 15].map((step) => (
+                      <button
+                        key={step}
+                        type="button"
+                        className={`pro-tab ${Number(productPix === "" ? pixDiscount : productPix) === step ? "active" : ""}`}
+                        onClick={() => setProductPix(step)}
+                      >{step}%</button>
+                    ))}
+                    {productPix !== "" && (
+                      <button type="button" className="pro-tab" onClick={() => setProductPix("")}>usar padrão</button>
+                    )}
+                  </div>
+                </div>
+
                 {(() => {
                   const price = Number(priceInput) || 0;
                   const cost = ownerView ? Number(costInput) || 0 : 0;
                   const stock = Number(stockInput) || 0;
-                  const pixPrice = Math.round(price * (100 - pixDiscount)) / 100;
+                  const effectivePix = productPix === "" ? pixDiscount : Number(productPix);
+                  const pixPrice = Math.round(price * (100 - effectivePix)) / 100;
                   if (!price) return <p className="finance-hint">Informe o preço de venda para ver a simulação financeira.</p>;
                   if (!ownerView) {
                     return (
                       <div className="finance-panel">
-                        <div><span>Cliente paga no PIX (−{pixDiscount}%)</span><strong>{money(pixPrice)}</strong></div>
+                        <div><span>Cliente paga no PIX (−{effectivePix}%)</span><strong>{money(pixPrice)}</strong></div>
                         <div><span>Valor deste estoque</span><strong>{money(price * stock)}</strong></div>
                       </div>
                     );
@@ -1358,7 +1439,7 @@ export default function AdminProdutos() {
                   const margin = price > 0 ? (profit / price) * 100 : 0;
                   const markup = cost > 0 ? (profit / cost) * 100 : null;
                   // PIX: desconto da loja + taxa média do Mercado Pago (~0,99% no PIX).
-                  const pixNet = pixPrice * 0.9901;
+                  const pixNet = pixPrice * (1 - feeConfig.pix / 100);
                   const pixProfit = pixNet - cost;
                   const pixMargin = pixPrice > 0 ? (pixProfit / pixPrice) * 100 : 0;
                   const danger = cost >= price;
@@ -1372,7 +1453,7 @@ export default function AdminProdutos() {
                           <small>margem {margin.toFixed(1)}%{markup !== null ? ` · markup ${markup.toFixed(0)}%` : ""}</small>
                         </div>
                         <div>
-                          <span>Cliente paga no PIX (−{pixDiscount}%)</span>
+                          <span>Cliente paga no PIX (−{effectivePix}%)</span>
                           <strong>{money(pixPrice)}</strong>
                           <small>você recebe ≈ {money(pixNet)} após taxa MP</small>
                         </div>
@@ -1399,7 +1480,24 @@ export default function AdminProdutos() {
               </div>
 
               {editing && (
-                <div hidden={editorTab !== "inteligencia"}>
+                <div hidden={editorTab !== "inteligencia"} className="insights-wrap">
+                  <section className="product-finance-section">
+                    <header>
+                      <div>
+                        <h3>Planejar parcelas deste produto</h3>
+                        <p>Cobre mais de quem parcela mais. Salvo junto com o produto e usado na vitrine.</p>
+                      </div>
+                      <CircleDollarSign />
+                    </header>
+                    <InstallmentPlanner
+                      plan={installmentPlan}
+                      onChange={setInstallmentPlan}
+                      basePrice={Number(priceInput) || 0}
+                      cost={ownerView ? Number(costInput) || 0 : 0}
+                      showMargins={ownerView}
+                      fees={feeConfig}
+                    />
+                  </section>
                   <ProductInsights productId={editing.id} />
                 </div>
               )}

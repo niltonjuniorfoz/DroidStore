@@ -70,7 +70,12 @@ export async function POST(req: Request) {
           data: { stock: { decrement: item.quantity } },
         });
         if (reserved.count !== 1) throw new Error(`OUT_OF_STOCK:${variant.product.name}`);
-        const discountedPrice = Math.round(Number(variant.price) * discountFactor * 100) / 100;
+        // Desconto PIX do produto vence o da loja quando configurado.
+        const productPix = variant.product.pixDiscountPct;
+        const itemFactor = productPix === null || productPix === undefined
+          ? discountFactor
+          : (100 - Math.min(90, Math.max(0, productPix))) / 100;
+        const discountedPrice = Math.round(Number(variant.price) * itemFactor * 100) / 100;
         totalAmount += discountedPrice * item.quantity;
         orderItems.push({
           variantId: variant.id,

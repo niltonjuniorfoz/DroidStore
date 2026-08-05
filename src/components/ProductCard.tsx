@@ -6,11 +6,14 @@ import { useCart } from "./CartProvider";
 import { useAuthGate } from "./AuthGateProvider";
 import ProductImage from "./ProductImage";
 import { money, type CatalogProduct } from "../lib/catalog";
+import { useSiteContent } from "./SiteContentProvider";
 
 export default function ProductCard({ product }: { product: CatalogProduct }) {
   const { add } = useCart();
   const { requireAuth } = useAuthGate();
-  const pixDiscountPercent = 10;
+  const { content } = useSiteContent();
+  // Desconto próprio do produto vence o padrão da loja.
+  const pixDiscountPercent = product.pixDiscountPct ?? content?.pixDiscount ?? 10;
   const pixPrice = product.price * (1 - pixDiscountPercent / 100);
   const installmentNoInterest = product.price > 0 ? product.price / 12 : 0;
   const totalWithInterest = product.price * 1.285;

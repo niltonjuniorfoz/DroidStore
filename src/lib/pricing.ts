@@ -110,6 +110,53 @@ export function marginOf(price: number, cost: number) {
   };
 }
 
+export type PlanRow = { n: number; price: number };
+
+/**
+ * Tabela de parcelamento própria do produto.
+ * Regra do negócio: o total nunca pode cair conforme o número de parcelas
+ * aumenta — quem parcela mais paga igual ou mais, nunca menos.
+ */
+export function validateInstallmentPlan(plan: PlanRow[]): string | null {
+  if (!plan.length) return null;
+  const sorted = [...plan].sort((a, b) => a.n - b.n);
+  for (const row of sorted) {
+    if (!Number.isInteger(row.n) || row.n < 1 || row.n > 25) return "Parcelas válidas: de 1 a 25.";
+    if (!(row.price > 0)) return `Informe o valor total para ${row.n}x.`;
+  }
+  const seen = new Set(sorted.map((row) => row.n));
+  if (seen.size !== sorted.length) return "Há número de parcelas repetido.";
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].price < sorted[i - 1].price) {
+      return `O total de ${sorted[i].n}x (${sorted[i].price.toFixed(2)}) não pode ser menor que o de ${sorted[i - 1].n}x (${sorted[i - 1].price.toFixed(2)}).`;
+    }
+  }
+  return null;
+}
+
+/** Menor total permitido para a faixa seguinte (trava do valor anterior). */
+export function minimumForNextTier(previousPrice: number): number {
+  // Um centavo acima impede repetir a mesma faixa de preço.
+  return round2(previousPrice + 0.01);
+}
+
+/**
+ * Linha do plano com o resultado financeiro real: quanto o cliente paga,
+ * quanto entra após a taxa daquela quantidade de parcelas, e o lucro.
+ */
+export function evaluatePlanRow(row: PlanRow, cost: number, fees: FeeConfig = DEFAULT_FEES): InstallmentRow {
+  const netReceived = netAfterFee(row.price, cardFeeRate(row.n, fees));
+  const profit = round2(netReceived - cost);
+  return {
+    installments: row.n,
+    installmentValue: round2(row.price / row.n),
+    total: round2(row.price),
+    netReceived,
+    profit,
+    marginPct: row.price > 0 ? round2((profit / row.price) * 100) : 0,
+  };
+}
+
 /**
  * Quanto ainda dá para investir neste produto sem encalhar:
  * ritmo de venda × meses de cobertura, menos o que já está em estoque.

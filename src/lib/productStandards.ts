@@ -72,8 +72,12 @@ export function getProductColorHex(value?: string) {
   if (color.includes("cinza") || color.includes("gray") || color.includes("grey") || color.includes("grafite") || color.includes("titanio")) return "#777b80";
   if (color.includes("amarelo") || color.includes("yellow")) return "#f4d35e";
   if (color.includes("roxo") || color.includes("purple") || color.includes("lilas")) return "#9b7ed8";
-  if (color.includes("verde") || color.includes("green") || color.includes("alpine")) return "#79a58c";
+  // Variantes específicas antes do genérico, senão "verde alpino" e "azul
+  // profundo" caem na cor base e ficam idênticas ao tom simples na paleta.
+  if (color.includes("alpino") || color.includes("alpine")) return "#4d7a63";
+  if (color.includes("verde") || color.includes("green")) return "#79a58c";
   if (color.includes("vermelho") || color.includes("red")) return "#d9474f";
+  if (color.includes("profundo") || color.includes("meia noite azul") || color.includes("midnight blue")) return "#2f4a68";
   if (color.includes("azul") || color.includes("blue")) return "#5d83a7";
   if (color.includes("rosa") || color.includes("pink") || color.includes("rose")) return "#e5a6b4";
   if (color.includes("dourado") || color.includes("gold")) return "#d6b36a";

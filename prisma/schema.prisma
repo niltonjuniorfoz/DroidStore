@@ -41,6 +41,11 @@ model Product {
   featured    Boolean  @default(false)
   imageUrl    String?
   model3dUrl  String?
+  // Desconto PIX exclusivo deste produto (%). Nulo = usa o desconto da loja.
+  pixDiscountPct Int?
+  // Tabela de parcelamento própria: [{ n: 3, price: 1499.00 }, ...].
+  // Nulo = parcela simples do preço de tabela.
+  installmentPlan Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

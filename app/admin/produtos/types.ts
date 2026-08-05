@@ -26,6 +26,8 @@ export type AdminProduct = {
   featured: boolean;
   imageUrl?: string;
   model3dUrl?: string | null;
+  pixDiscountPct?: number | null;
+  installmentPlan?: Array<{ n: number; price: number }> | null;
   images?: ProductImage[];
   specifications?: Specification[];
   filterSelections?: Array<{ option: { id: string; filterId: string; label: string; filter: { id: string; name: string; slug: string } } }>;

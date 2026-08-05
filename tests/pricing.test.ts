@@ -3,13 +3,16 @@ import { describe, it } from "node:test";
 import {
   breakEvenPrice,
   cardFeeRate,
+  evaluatePlanRow,
   GATEWAY_FEES,
   installmentLadder,
   marginOf,
   maxPurchasePrice,
+  minimumForNextTier,
   netAfterFee,
   pixPrice,
   reorderSuggestion,
+  validateInstallmentPlan,
 } from "../src/lib/pricing";
 
 describe("pixPrice", () => {
@@ -89,6 +92,52 @@ describe("marginOf", () => {
 
   it("markup é nulo quando não há custo informado", () => {
     assert.equal(marginOf(1000, 0).markupPct, null);
+  });
+});
+
+describe("validateInstallmentPlan", () => {
+  it("aceita escada progressiva", () => {
+    assert.equal(validateInstallmentPlan([{ n: 1, price: 1399 }, { n: 6, price: 1499 }, { n: 12, price: 1699 }]), null);
+  });
+
+  it("aceita plano vazio", () => {
+    assert.equal(validateInstallmentPlan([]), null);
+  });
+
+  it("rejeita total que diminui em faixa maior", () => {
+    const error = validateInstallmentPlan([{ n: 1, price: 1500 }, { n: 6, price: 1400 }]);
+    assert.match(error ?? "", /não pode ser menor/);
+  });
+
+  it("rejeita parcela fora do intervalo 1-25", () => {
+    assert.match(validateInstallmentPlan([{ n: 0, price: 100 }]) ?? "", /1 a 25/);
+    assert.match(validateInstallmentPlan([{ n: 26, price: 100 }]) ?? "", /1 a 25/);
+  });
+
+  it("rejeita valor zerado e parcela repetida", () => {
+    assert.match(validateInstallmentPlan([{ n: 3, price: 0 }]) ?? "", /Informe o valor/);
+    assert.match(validateInstallmentPlan([{ n: 3, price: 100 }, { n: 3, price: 200 }]) ?? "", /repetido/);
+  });
+});
+
+describe("minimumForNextTier", () => {
+  it("exige ao menos um centavo acima da faixa anterior", () => {
+    assert.equal(minimumForNextTier(1399), 1399.01);
+  });
+});
+
+describe("evaluatePlanRow", () => {
+  it("calcula recebimento e lucro da faixa", () => {
+    const row = evaluatePlanRow({ n: 10, price: 1600 }, 890);
+    assert.equal(row.installments, 10);
+    assert.equal(row.installmentValue, 160);
+    assert.ok(row.netReceived < 1600);
+    assert.ok(Math.abs(row.profit - (row.netReceived - 890)) < 0.011);
+  });
+
+  it("acusa prejuízo quando a taxa come a margem", () => {
+    const row = evaluatePlanRow({ n: 24, price: 1000 }, 950);
+    assert.ok(row.profit < 0);
   });
 });
 

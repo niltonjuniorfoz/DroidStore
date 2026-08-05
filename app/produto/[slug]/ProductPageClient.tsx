@@ -61,7 +61,8 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
   const { add } = useCart();
   const { requireAuth } = useAuthGate();
   const { content } = useSiteContent();
-  const pixDiscount = content?.pixDiscount ?? 10;
+  // Desconto próprio do produto vence o padrão da loja (mesma regra do checkout).
+  const pixDiscount = product?.pixDiscountPct ?? content?.pixDiscount ?? 10;
 
   // Mede a procura real pelo aparelho (alimenta a inteligência do admin).
   useEffect(() => {

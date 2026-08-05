@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import prisma from "../../../../../src/lib/prisma";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
 import { audit } from "../../../../../src/lib/audit";
 import { hasFeaturedCapacity, MAX_FEATURED_PRODUCTS } from "../../../../../src/lib/featuredProducts";
+import { validateInstallmentPlan } from "../../../../../src/lib/pricing";
 import {
   isSupportedProductStorage,
   normalizeProductColor,
@@ -44,6 +46,12 @@ const patchSchema = z.object({
   })).max(60).optional(),
   active: z.boolean().optional(),
   featured: z.boolean().optional(),
+  // Desconto PIX próprio (nulo volta ao padrão da loja) e tabela de parcelas.
+  pixDiscountPct: z.coerce.number().int().min(0).max(90).nullable().optional(),
+  installmentPlan: z.array(z.object({
+    n: z.coerce.number().int().min(1).max(25),
+    price: z.coerce.number().positive().max(1_000_000),
+  })).max(25).nullable().optional(),
   storage: z.string().trim().min(2).max(30).transform(normalizeProductStorage).refine(isSupportedProductStorage).optional(),
   color: z.string().trim().min(2).max(40).transform(normalizeProductColor).optional(),
   condition: z.enum(PRODUCT_CONDITIONS).optional(),
@@ -87,8 +95,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const {
     storage, color, condition, price, costPrice, stock, lowStockThreshold,
-    imageUrls, specifications, filterOptionIds, ...productData
+    imageUrls, specifications, filterOptionIds, installmentPlan, ...rest
   } = parsed.data;
+  // Prisma exige JsonNull explícito para limpar um campo JSON.
+  const productData = {
+    ...rest,
+    ...(installmentPlan === undefined
+      ? {}
+      : { installmentPlan: installmentPlan === null ? Prisma.JsonNull : installmentPlan }),
+  };
+  // Escada de parcelamento validada no servidor: total nunca cai quando o
+  // número de parcelas sobe (regra de negócio, não confia no cliente).
+  if (installmentPlan) {
+    const planError = validateInstallmentPlan(installmentPlan);
+    if (planError) return NextResponse.json({ error: planError }, { status: 400 });
+  }
   const currentProduct = await prisma.product.findUnique({ where: { id }, select: { featured: true } });
   if (!currentProduct) return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
   if (productData.featured && !currentProduct.featured && !await hasFeaturedCapacity(id)) {
