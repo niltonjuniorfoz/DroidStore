@@ -783,3 +783,32 @@
 .order-side-block .button { align-self: flex-start; margin-top: 0.2rem; }
 .order-actions-column { display: flex; flex-direction: column; gap: 0.45rem; }
 .order-actions-column .button { width: 100%; justify-content: center; }
+
+/* ---------- EDITOR DE PRODUTO: PAINEL FINANCEIRO VIVO ---------- */
+.admin-shell .product-finance-section {
+  border: 1px solid var(--a-line); border-radius: 12px; background: var(--a-surface-2);
+  padding: 0.9rem 1rem 1rem;
+}
+.admin-shell .product-finance-section > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.8rem; }
+.admin-shell .product-finance-section > header h3 { font-size: 0.8rem; }
+.admin-shell .product-finance-section > header p { font-size: 0.64rem; color: var(--a-muted); margin-top: 0.15rem; }
+.admin-shell .product-finance-section > header svg { width: 18px; height: 18px; color: var(--a-accent); flex-shrink: 0; }
+.admin-shell .finance-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.7rem 0.9rem; }
+.admin-shell .finance-panel {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+.admin-shell .finance-panel > div {
+  background: #fff; border: 1px solid var(--a-line); border-radius: 10px;
+  padding: 0.6rem 0.75rem; display: flex; flex-direction: column; gap: 0.15rem;
+}
+.admin-shell .finance-panel span { font-size: 0.56rem; font-weight: 750; letter-spacing: 0.07em; text-transform: uppercase; color: var(--a-muted); }
+.admin-shell .finance-panel strong { font-size: 0.95rem; font-weight: 760; font-variant-numeric: tabular-nums; }
+.admin-shell .finance-panel strong.good { color: var(--a-success); }
+.admin-shell .finance-panel strong.warn { color: var(--a-warning); }
+.admin-shell .finance-panel strong.bad { color: var(--a-danger); }
+.admin-shell .finance-panel small { font-size: 0.6rem; color: var(--a-ink-2); }
+.admin-shell .finance-hint { margin-top: 0.7rem; font-size: 0.68rem; color: var(--a-muted); }
+.admin-shell .finance-alert { margin-top: 0.6rem; border-radius: 9px; padding: 0.55rem 0.75rem; font-size: 0.66rem; font-weight: 650; }
+.admin-shell .finance-alert.bad { background: var(--a-danger-soft); color: var(--a-danger); }
+.admin-shell .finance-alert.warn { background: var(--a-warning-soft); color: var(--a-warning); }

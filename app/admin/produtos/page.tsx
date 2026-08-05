@@ -6,6 +6,7 @@ import {
   ArrowUpDown,
   Box,
   CheckSquare,
+  CircleDollarSign,
   Copy,
   ChevronDown,
   ChevronLeft,
@@ -55,6 +56,8 @@ import {
   type Specification,
 } from "./types";
 
+const money = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 export default function AdminProdutos() {
   const { confirmDialog } = useAdminFeedback();
   const searchParams = useSearchParams();
@@ -72,6 +75,11 @@ export default function AdminProdutos() {
   const [color, setColor] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>(emptyImages);
   const [model3dUrl, setModel3dUrl] = useState<string>("");
+  // Campos comerciais controlados: alimentam o painel financeiro vivo do editor.
+  const [priceInput, setPriceInput] = useState<number | "">("");
+  const [costInput, setCostInput] = useState<number | "">("");
+  const [stockInput, setStockInput] = useState<number | "">(0);
+  const [pixDiscount, setPixDiscount] = useState(0);
   const [specifications, setSpecifications] = useState<Specification[]>([]);
   const [message, setMessage] = useState("");
   const [editorError, setEditorError] = useState("");
@@ -120,6 +128,13 @@ export default function AdminProdutos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
   useEffect(() => { setSearch(searchParams.get("q") ?? ""); }, [searchParams]);
+  useEffect(() => {
+    // Desconto PIX das configurações alimenta o painel financeiro do editor.
+    fetch("/api/admin/settings", { cache: "no-store" })
+      .then(async (response) => (response.ok ? response.json() : null))
+      .then((body) => { if (body?.content?.pixDiscount !== undefined) setPixDiscount(Number(body.content.pixDiscount)); })
+      .catch(() => undefined);
+  }, []);
   useEffect(() => { setPage(1); }, [search, statusFilter, stockFilter, brandFilter, conditionFilter, pageSize]);
 
   const selectedOptionText = filters.flatMap((filter) => filter.options
@@ -163,6 +178,9 @@ export default function AdminProdutos() {
     setEditorLoading(false);
     setEditing(null);
     setTemplate(null);
+    setPriceInput("");
+    setCostInput(0);
+    setStockInput(0);
     setTitle("");
     setDescription("");
     setStorage("128 GB");
@@ -186,6 +204,9 @@ export default function AdminProdutos() {
     setColor(normalizeProductColor(item.variants[0]?.color ?? ""));
     setImageUrls([...initialImages, "", "", "", ""].slice(0, 4));
     setModel3dUrl(item.model3dUrl ?? "");
+    setPriceInput(item.variants[0]?.price !== undefined ? Number(item.variants[0].price) : "");
+    setCostInput(item.variants[0]?.costPrice !== undefined ? Number(item.variants[0].costPrice) : "");
+    setStockInput(item.variants[0]?.stock ?? 0);
     setSpecifications(item.specifications?.map(({ label, value }) => ({ label, value })) ?? []);
     setSelectedFilters(Object.fromEntries(
       (item.filterSelections ?? []).map((selection) => [selection.option.filterId, selection.option.id]),
@@ -227,6 +248,7 @@ export default function AdminProdutos() {
     populateEditor(full);
     setEditing(null);
     // Estoque zera: a variação nova ainda não tem unidade física cadastrada.
+    setStockInput(0);
     setTemplate({
       ...full,
       variants: full.variants.map((variant, index) => index === 0 ? { ...variant, stock: 0 } : variant),
@@ -1246,10 +1268,68 @@ export default function AdminProdutos() {
                   <option value="OUTLET">Outlet</option>
                 </select>
               </label>
-              <label>Preço de Venda (Tabela)<input required name="price" type="number" min="1" step=".01" defaultValue={(editing ?? template) ? Number((editing ?? template)!.variants[0]?.price) : undefined} /></label>
-              {ownerView && <label className="owner-field">Preço de custo (somente administrador)<input required name="costPrice" type="number" min="0" step=".01" defaultValue={(editing ?? template) ? Number((editing ?? template)!.variants[0]?.costPrice ?? 0) : 0} /></label>}
-              <label>Estoque Total<input required name="stock" type="number" min="0" step="1" defaultValue={(editing ?? template)?.variants[0]?.stock ?? 0} /></label>
-              <label>Alerta de estoque mínimo<input required name="lowStockThreshold" type="number" min="0" step="1" defaultValue={(editing ?? template)?.variants[0]?.lowStockThreshold ?? 5} /></label>
+              <section className="product-finance-section wide">
+                <header><div><h3>Comercial &amp; financeiro</h3><p>Preço, custo e estoque — a margem calcula sozinha enquanto você digita.</p></div><CircleDollarSign /></header>
+                <div className="finance-fields">
+                  <label>Preço de Venda (Tabela)<input required name="price" type="number" min="1" step=".01" value={priceInput} onChange={(event) => setPriceInput(event.target.value === "" ? "" : Number(event.target.value))} /></label>
+                  {ownerView && <label className="owner-field">Preço de custo (só administrador)<input required name="costPrice" type="number" min="0" step=".01" value={costInput} onChange={(event) => setCostInput(event.target.value === "" ? "" : Number(event.target.value))} /></label>}
+                  <label>Estoque Total<input required name="stock" type="number" min="0" step="1" value={stockInput} onChange={(event) => setStockInput(event.target.value === "" ? "" : Number(event.target.value))} /></label>
+                  <label>Alerta de estoque mínimo<input required name="lowStockThreshold" type="number" min="0" step="1" defaultValue={(editing ?? template)?.variants[0]?.lowStockThreshold ?? 5} /></label>
+                </div>
+
+                {(() => {
+                  const price = Number(priceInput) || 0;
+                  const cost = ownerView ? Number(costInput) || 0 : 0;
+                  const stock = Number(stockInput) || 0;
+                  const pixPrice = Math.round(price * (100 - pixDiscount)) / 100;
+                  if (!price) return <p className="finance-hint">Informe o preço de venda para ver a simulação financeira.</p>;
+                  if (!ownerView) {
+                    return (
+                      <div className="finance-panel">
+                        <div><span>Cliente paga no PIX (−{pixDiscount}%)</span><strong>{money(pixPrice)}</strong></div>
+                        <div><span>Valor deste estoque</span><strong>{money(price * stock)}</strong></div>
+                      </div>
+                    );
+                  }
+                  const profit = price - cost;
+                  const margin = price > 0 ? (profit / price) * 100 : 0;
+                  const markup = cost > 0 ? (profit / cost) * 100 : null;
+                  // PIX: desconto da loja + taxa média do Mercado Pago (~0,99% no PIX).
+                  const pixNet = pixPrice * 0.9901;
+                  const pixProfit = pixNet - cost;
+                  const pixMargin = pixPrice > 0 ? (pixProfit / pixPrice) * 100 : 0;
+                  const danger = cost >= price;
+                  const warn = !danger && pixMargin < 10;
+                  return (
+                    <>
+                      <div className="finance-panel">
+                        <div>
+                          <span>Lucro por unidade (tabela)</span>
+                          <strong className={danger ? "bad" : ""}>{money(profit)}</strong>
+                          <small>margem {margin.toFixed(1)}%{markup !== null ? ` · markup ${markup.toFixed(0)}%` : ""}</small>
+                        </div>
+                        <div>
+                          <span>Cliente paga no PIX (−{pixDiscount}%)</span>
+                          <strong>{money(pixPrice)}</strong>
+                          <small>você recebe ≈ {money(pixNet)} após taxa MP</small>
+                        </div>
+                        <div>
+                          <span>Lucro real no PIX</span>
+                          <strong className={danger ? "bad" : warn ? "warn" : "good"}>{money(pixProfit)}</strong>
+                          <small>margem real {pixMargin.toFixed(1)}%</small>
+                        </div>
+                        <div>
+                          <span>Este estoque ({stock} un.)</span>
+                          <strong>{money(price * stock)}</strong>
+                          <small>custo {money(cost * stock)} · lucro potencial {money(profit * stock)}</small>
+                        </div>
+                      </div>
+                      {danger && <p className="finance-alert bad">Custo maior ou igual ao preço — este produto vende no prejuízo.</p>}
+                      {warn && <p className="finance-alert warn">Margem real no PIX abaixo de 10% — confira se o preço cobre frete e despesas.</p>}
+                    </>
+                  );
+                })()}
+              </section>
 
               <label className="wide">
                 Descrição
