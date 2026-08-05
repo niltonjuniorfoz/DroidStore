@@ -47,6 +47,7 @@ import {
 import { calculateGrossProfit } from "../../../src/lib/profit";
 import { uploadAdminFile } from "../../../src/lib/uploadClient";
 import { useAdminFeedback } from "../../../src/components/admin/AdminFeedback";
+import ProductInsights from "./ProductInsights";
 import {
   emptyImages,
   getBaseModelName,
@@ -80,6 +81,7 @@ export default function AdminProdutos() {
   const [costInput, setCostInput] = useState<number | "">("");
   const [stockInput, setStockInput] = useState<number | "">(0);
   const [pixDiscount, setPixDiscount] = useState(0);
+  const [editorTab, setEditorTab] = useState<"dados" | "financeiro" | "inteligencia" | "midia" | "ficha">("dados");
   const [specifications, setSpecifications] = useState<Specification[]>([]);
   const [message, setMessage] = useState("");
   const [editorError, setEditorError] = useState("");
@@ -178,6 +180,7 @@ export default function AdminProdutos() {
     setEditorLoading(false);
     setEditing(null);
     setTemplate(null);
+    setEditorTab("dados");
     setPriceInput("");
     setCostInput(0);
     setStockInput(0);
@@ -217,6 +220,7 @@ export default function AdminProdutos() {
 
   async function editProduct(item: AdminProduct) {
     setEditing(item);
+    setEditorTab("dados");
     setOpen(true);
     setEditorLoading(true);
     const response = await fetch(`/api/admin/products/${item.id}`, { cache: "no-store" });
@@ -1197,7 +1201,17 @@ export default function AdminProdutos() {
             </header>
 
             {editorLoading ? <div className="product-editor-loading"><LoaderCircle className="spin" /><span>Carregando aparelho...</span></div> : <>
-              <div className="admin-form-grid">
+              {/* Abas do editor: painéis ficam no DOM (hidden) para o FormData
+                  continuar enviando todos os campos, independente da aba aberta. */}
+              <nav className="editor-tabs" role="tablist">
+                <button type="button" role="tab" aria-selected={editorTab === "dados"} className={`pro-tab ${editorTab === "dados" ? "active" : ""}`} onClick={() => setEditorTab("dados")}>Aparelho</button>
+                <button type="button" role="tab" aria-selected={editorTab === "financeiro"} className={`pro-tab ${editorTab === "financeiro" ? "active" : ""}`} onClick={() => setEditorTab("financeiro")}>Preço &amp; margem</button>
+                {editing && <button type="button" role="tab" aria-selected={editorTab === "inteligencia"} className={`pro-tab ${editorTab === "inteligencia" ? "active" : ""}`} onClick={() => setEditorTab("inteligencia")}>Inteligência</button>}
+                <button type="button" role="tab" aria-selected={editorTab === "midia"} className={`pro-tab ${editorTab === "midia" ? "active" : ""}`} onClick={() => setEditorTab("midia")}>Mídia</button>
+                <button type="button" role="tab" aria-selected={editorTab === "ficha"} className={`pro-tab ${editorTab === "ficha" ? "active" : ""}`} onClick={() => setEditorTab("ficha")}>Ficha técnica</button>
+              </nav>
+
+              <div className="admin-form-grid" hidden={editorTab !== "dados"}>
               <label className="wide">
                 Título completo do produto
                 <input required name="name" value={title} onChange={(event) => setTitle(event.target.value)} />
@@ -1268,6 +1282,9 @@ export default function AdminProdutos() {
                   <option value="OUTLET">Outlet</option>
                 </select>
               </label>
+              </div>
+
+              <div className="admin-form-grid" hidden={editorTab !== "financeiro"}>
               <section className="product-finance-section wide">
                 <header><div><h3>Comercial &amp; financeiro</h3><p>Preço, custo e estoque — a margem calcula sozinha enquanto você digita.</p></div><CircleDollarSign /></header>
                 <div className="finance-fields">
@@ -1331,11 +1348,22 @@ export default function AdminProdutos() {
                 })()}
               </section>
 
+              </div>
+
+              {editing && (
+                <div hidden={editorTab !== "inteligencia"}>
+                  <ProductInsights productId={editing.id} />
+                </div>
+              )}
+
+              <div className="admin-form-grid" hidden={editorTab !== "dados"}>
               <label className="wide">
                 Descrição
                 <textarea required name="description" rows={6} value={description} onChange={(event) => setDescription(event.target.value)} />
               </label>
+              </div>
 
+              <div className="admin-form-grid" hidden={editorTab !== "midia"}>
               <section className="product-images-editor wide">
                 <header><div><h3>Fotos do produto</h3><p>Cole até quatro links. A prévia aparece automaticamente.</p></div><Link2 /></header>
                 <div className="image-url-grid">
@@ -1386,6 +1414,9 @@ export default function AdminProdutos() {
                 )}
               </section>
 
+              </div>
+
+              <div className="admin-form-grid" hidden={editorTab !== "ficha"}>
               <section className="spec-editor wide">
                 <header>
                   <div><h3>Especificações</h3><p>Edite o que a IA criou ou adicione informações manualmente.</p></div>
@@ -1399,6 +1430,9 @@ export default function AdminProdutos() {
                 </div>)}
               </section>
 
+              </div>
+
+              <div className="admin-form-grid" hidden={editorTab !== "dados"}>
               <div className="admin-form-options wide">
                 <label className="featured-checkbox-field">
                   <input type="checkbox" name="featured" defaultChecked={(editing ?? template)?.featured} />

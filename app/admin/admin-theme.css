@@ -812,3 +812,59 @@
 .admin-shell .finance-alert { margin-top: 0.6rem; border-radius: 9px; padding: 0.55rem 0.75rem; font-size: 0.66rem; font-weight: 650; }
 .admin-shell .finance-alert.bad { background: var(--a-danger-soft); color: var(--a-danger); }
 .admin-shell .finance-alert.warn { background: var(--a-warning-soft); color: var(--a-warning); }
+
+/* ---------- EDITOR EM ABAS + DOSSIÊ DE INTELIGÊNCIA ---------- */
+.admin-shell .editor-tabs {
+  display: flex; gap: 2px; flex-wrap: wrap;
+  background: #eceeeb; border: 1px solid var(--a-line); border-radius: 11px;
+  padding: 3px; margin-bottom: 1rem; position: sticky; top: 0; z-index: 3;
+}
+.admin-shell [hidden] { display: none !important; }
+
+.admin-shell .insights-panel { display: flex; flex-direction: column; gap: 0.9rem; }
+.admin-shell .insight-verdict {
+  display: flex; gap: 0.6rem; align-items: flex-start;
+  border-radius: 11px; padding: 0.8rem 0.95rem;
+  border: 1px solid var(--a-line); background: var(--a-surface-2);
+}
+.admin-shell .insight-verdict svg { flex-shrink: 0; margin-top: 1px; }
+.admin-shell .insight-verdict strong { font-size: 0.76rem; display: block; line-height: 1.45; }
+.admin-shell .insight-verdict small { font-size: 0.66rem; color: var(--a-ink-2); display: block; margin-top: 0.25rem; }
+.admin-shell .insight-verdict.good { border-color: #bfe5cb; background: var(--a-success-soft); }
+.admin-shell .insight-verdict.good svg { color: var(--a-success); }
+.admin-shell .insight-verdict.warn { border-color: #f2ddb8; background: var(--a-warning-soft); }
+.admin-shell .insight-verdict.warn svg { color: var(--a-warning); }
+
+.admin-shell .insight-block {
+  border: 1px solid var(--a-line); border-radius: 12px; background: #fff; padding: 0.9rem 1rem;
+}
+.admin-shell .insight-block h4 {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.7rem; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--a-muted); margin-bottom: 0.7rem;
+}
+.admin-shell .insight-block h4 svg { color: var(--a-accent); }
+.admin-shell .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.6rem; }
+.admin-shell .insight-grid > div {
+  background: var(--a-surface-2); border: 1px solid var(--a-line); border-radius: 10px;
+  padding: 0.55rem 0.7rem; display: flex; flex-direction: column; gap: 0.1rem;
+}
+.admin-shell .insight-grid span { font-size: 0.55rem; font-weight: 750; letter-spacing: 0.07em; text-transform: uppercase; color: var(--a-muted); }
+.admin-shell .insight-grid strong { font-size: 0.98rem; font-weight: 760; font-variant-numeric: tabular-nums; }
+.admin-shell .insight-grid strong.good { color: var(--a-success); }
+.admin-shell .insight-grid strong.bad { color: var(--a-danger); }
+.admin-shell .insight-grid small { font-size: 0.58rem; color: var(--a-ink-2); line-height: 1.4; }
+
+.admin-shell .insight-spark { display: flex; gap: 0.4rem; align-items: flex-end; height: 78px; margin-top: 0.8rem; }
+.admin-shell .insight-spark > div { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 0.25rem; height: 100%; }
+.admin-shell .insight-spark-bar { width: 100%; max-width: 40px; border-radius: 5px 5px 2px 2px; background: linear-gradient(180deg, #ff9736, var(--a-accent)); }
+.admin-shell .insight-spark small { font-size: 0.54rem; color: var(--a-muted); }
+
+.admin-shell .insight-table-wrap { overflow-x: auto; margin-top: 0.7rem; border: 1px solid var(--a-line); border-radius: 10px; }
+.admin-shell .insight-table-wrap table { font-size: 0.7rem; }
+.admin-shell .insight-table-wrap thead th { background: var(--a-surface-2); padding: 0.45rem 0.7rem; font-size: 0.55rem; }
+.admin-shell .insight-table-wrap tbody td { padding: 0.42rem 0.7rem; }
+.admin-shell .insight-table-wrap tr.highlight-row { background: var(--a-accent-soft); }
+.admin-shell .insight-table-wrap tr.highlight-row:hover { background: #ffe9d2; }
+.admin-shell .insight-table-wrap strong.good { color: var(--a-success); }
+.admin-shell .insight-table-wrap strong.bad { color: var(--a-danger); }

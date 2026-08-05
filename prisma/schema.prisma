@@ -49,6 +49,20 @@ model Product {
   specifications   ProductSpecification[]
   favorites        Favorite[]
   filterSelections ProductFilterSelection[]
+  views            ProductView[]
+}
+
+// Visualização da página do produto — mede procura real (cliques) para
+// comparar com vendas e decidir preço, recompra e destaque na vitrine.
+model ProductView {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  visitorId String? // hash anônimo do visitante (sem dado pessoal)
+  createdAt DateTime @default(now())
+
+  @@index([productId, createdAt])
+  @@index([createdAt])
 }
 
 model ProductImage {

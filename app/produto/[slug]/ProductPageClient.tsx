@@ -62,6 +62,11 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
   const { requireAuth } = useAuthGate();
   const { content } = useSiteContent();
   const pixDiscount = content?.pixDiscount ?? 10;
+
+  // Mede a procura real pelo aparelho (alimenta a inteligência do admin).
+  useEffect(() => {
+    void fetch(`/api/products/${encodeURIComponent(slug)}/view`, { method: "POST", keepalive: true }).catch(() => undefined);
+  }, [slug]);
   const maxInstallments = content?.maxInstallments ?? 12;
   const buyButtonRef = useRef<HTMLButtonElement>(null);
 
