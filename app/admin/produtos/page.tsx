@@ -51,7 +51,7 @@ import { uploadAdminFile } from "../../../src/lib/uploadClient";
 import { useAdminFeedback } from "../../../src/components/admin/AdminFeedback";
 import ProductInsights from "./ProductInsights";
 import ProductSalesMini from "./ProductSalesMini";
-import InstallmentPlanner from "./InstallmentPlanner";
+import PaymentTable from "./PaymentTable";
 import {
   emptyImages,
   getBaseModelName,
@@ -85,6 +85,7 @@ export default function AdminProdutos() {
   const [costInput, setCostInput] = useState<number | "">("");
   const [stockInput, setStockInput] = useState<number | "">(0);
   const [pixDiscount, setPixDiscount] = useState(0);
+  const [maxInstallments, setMaxInstallments] = useState(12);
   const [editorTab, setEditorTab] = useState<"dados" | "financeiro" | "inteligencia" | "midia" | "ficha">("dados");
   // Custo com que o produto foi comprado (valor salvo ao abrir o editor).
   // Fica travado na tela como referência: mexer no campo de custo não apaga
@@ -148,7 +149,10 @@ export default function AdminProdutos() {
     // Desconto PIX das configurações alimenta o painel financeiro do editor.
     fetch("/api/admin/settings", { cache: "no-store" })
       .then(async (response) => (response.ok ? response.json() : null))
-      .then((body) => { if (body?.content?.pixDiscount !== undefined) setPixDiscount(Number(body.content.pixDiscount)); })
+      .then((body) => {
+        if (body?.content?.pixDiscount !== undefined) setPixDiscount(Number(body.content.pixDiscount));
+        if (body?.content?.maxInstallments !== undefined) setMaxInstallments(Number(body.content.maxInstallments));
+      })
       .catch(() => undefined);
   }, []);
   useEffect(() => { setPage(1); }, [search, statusFilter, stockFilter, brandFilter, conditionFilter, pageSize]);
@@ -1484,18 +1488,21 @@ export default function AdminProdutos() {
                   <section className="product-finance-section">
                     <header>
                       <div>
-                        <h3>Planejar parcelas deste produto</h3>
-                        <p>Cobre mais de quem parcela mais. Salvo junto com o produto e usado na vitrine.</p>
+                        <h3>Formas de pagamento deste produto</h3>
+                        <p><b>Cliente paga</b> é o que aparece na vitrine · <b>Você recebe</b> é o que entra na conta depois da taxa.</p>
                       </div>
                       <CircleDollarSign />
                     </header>
-                    <InstallmentPlanner
+                    <PaymentTable
                       plan={installmentPlan}
                       onChange={setInstallmentPlan}
                       basePrice={Number(priceInput) || 0}
                       cost={ownerView ? Number(costInput) || 0 : 0}
+                      pixDiscountPct={productPix === "" ? pixDiscount : Number(productPix)}
+                      maxInstallments={maxInstallments}
                       showMargins={ownerView}
                       fees={feeConfig}
+                      onFeesChange={setFeeConfig}
                     />
                   </section>
                   <ProductInsights productId={editing.id} />

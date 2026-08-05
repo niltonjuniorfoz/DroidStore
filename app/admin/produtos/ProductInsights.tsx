@@ -4,16 +4,13 @@ import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   BarChart3,
-  CreditCard,
   Eye,
   History,
   LoaderCircle,
   PackagePlus,
-  Save,
   Target,
   TrendingUp,
 } from "lucide-react";
-import { feesFromPercent, installmentLadder, marginOf, netAfterFee } from "../../../src/lib/pricing";
 
 type Insights = {
   ownerView: boolean;
@@ -67,12 +64,6 @@ export default function ProductInsights({ productId }: { productId: string }) {
   const [data, setData] = useState<Insights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  // Simulador da maquininha: taxas editáveis que recalculam a tabela na hora.
-  const [pixFee, setPixFee] = useState<number | "">("");
-  const [cardFee, setCardFee] = useState<number | "">("");
-  const [perInstallmentFee, setPerInstallmentFee] = useState<number | "">("");
-  const [savingFees, setSavingFees] = useState(false);
-  const [feeSaved, setFeeSaved] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -80,42 +71,11 @@ export default function ProductInsights({ productId }: { productId: string }) {
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) setError(body.error ?? "Não foi possível carregar a inteligência do produto.");
-        else {
-          setData(body);
-          setError("");
-          if (body.fees) {
-            setPixFee(body.fees.pix);
-            setCardFee(body.fees.card);
-            setPerInstallmentFee(body.fees.perInstallment);
-          }
-        }
+        else { setData(body); setError(""); }
       })
       .catch(() => setError("Falha de conexão ao carregar a inteligência."))
       .finally(() => setLoading(false));
   }, [productId]);
-
-  async function saveFees() {
-    setSavingFees(true);
-    setFeeSaved(false);
-    try {
-      const current = await fetch("/api/admin/settings", { cache: "no-store" }).then((response) => response.json());
-      const response = await fetch("/api/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...current.content,
-          pixFeePct: Number(pixFee) || 0,
-          cardFeePct: Number(cardFee) || 0,
-          cardInstallmentFeePct: Number(perInstallmentFee) || 0,
-        }),
-      });
-      if (response.ok) setFeeSaved(true);
-      else setError("Não foi possível salvar as taxas como padrão.");
-    } catch {
-      setError("Falha de conexão ao salvar as taxas.");
-    }
-    setSavingFees(false);
-  }
 
   if (loading) return <div className="product-editor-loading"><LoaderCircle className="spin" /><span>Analisando histórico do aparelho...</span></div>;
   if (error) return <div className="form-error">{error}</div>;
@@ -214,92 +174,6 @@ export default function ProductInsights({ productId }: { productId: string }) {
           )}
         </section>
       )}
-
-      {/* ESCADA DE PAGAMENTO COM SIMULADOR DE TAXA */}
-      {(() => {
-        const simFees = feesFromPercent(Number(pixFee) || 0, Number(cardFee) || 0, Number(perInstallmentFee) || 0);
-        const cost = margins?.cost ?? 0;
-        const simPixNet = netAfterFee(pricing.pixPrice, simFees.pix);
-        const simPixMargin = marginOf(simPixNet, cost);
-        const simLadder = installmentLadder(pricing.price, cost, pricing.maxInstallments, simFees);
-        const changed = Math.abs((Number(pixFee) || 0) - data.fees.pix) > 0.001
-          || Math.abs((Number(cardFee) || 0) - data.fees.card) > 0.001
-          || Math.abs((Number(perInstallmentFee) || 0) - data.fees.perInstallment) > 0.001;
-        const worstRow = simLadder[simLadder.length - 1];
-        return (
-          <section className="insight-block">
-            <h4><CreditCard size={14} /> Como o cliente paga — e quanto sobra</h4>
-
-            {margins && (
-              <div className="fee-simulator">
-                <div className="fee-inputs">
-                  <label>Taxa PIX (%)<input type="number" step="0.01" min="0" max="20" value={pixFee} onChange={(event) => setPixFee(event.target.value === "" ? "" : Number(event.target.value))} /></label>
-                  <label>Taxa cartão à vista (%)<input type="number" step="0.01" min="0" max="20" value={cardFee} onChange={(event) => setCardFee(event.target.value === "" ? "" : Number(event.target.value))} /></label>
-                  <label>Acréscimo por parcela (%)<input type="number" step="0.01" min="0" max="10" value={perInstallmentFee} onChange={(event) => setPerInstallmentFee(event.target.value === "" ? "" : Number(event.target.value))} /></label>
-                  <button type="button" className="button ghost sm" disabled={savingFees || !changed} onClick={() => void saveFees()}>
-                    <Save size={13} /> {savingFees ? "Salvando..." : feeSaved ? "Salvo!" : "Salvar como padrão"}
-                  </button>
-                </div>
-                <small className="finance-hint">
-                  Digite a taxa real da sua maquininha — a tabela recalcula na hora. &quot;Salvar como padrão&quot; aplica em todo o painel.
-                </small>
-              </div>
-            )}
-
-            {margins && (
-              <div className={`fee-verdict ${simPixMargin.profit <= 0 ? "bad" : worstRow.profit <= 0 ? "warn" : "good"}`}>
-                {simPixMargin.profit <= 0
-                  ? <strong>Com essa taxa você PERDE {money(Math.abs(simPixMargin.profit))} por unidade até no PIX. Suba o preço ou renegocie a taxa.</strong>
-                  : worstRow.profit <= 0
-                    ? <strong>Ganha no PIX ({money(simPixMargin.profit)}), mas PERDE em {worstRow.installments}x ({money(worstRow.profit)}). Limite o parcelamento ou repasse a taxa.</strong>
-                    : <strong>Ganha em todas as formas: de {money(worstRow.profit)} ({worstRow.installments}x) até {money(simPixMargin.profit)} no PIX.</strong>}
-              </div>
-            )}
-
-            <div className="insight-table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Forma</th><th className="cell-num">Cliente paga</th><th className="cell-num">Por parcela</th>
-                    {margins && <><th className="cell-num">Taxa</th><th className="cell-num">Você recebe</th><th className="cell-num">Lucro</th><th className="cell-num">Margem</th></>}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="highlight-row">
-                    <td><strong>PIX (−{pricing.pixDiscountPct}%)</strong></td>
-                    <td className="cell-num"><strong>{money(pricing.pixPrice)}</strong></td>
-                    <td className="cell-num">à vista</td>
-                    {margins && <>
-                      <td className="cell-num">{(Number(pixFee) || 0).toFixed(2)}%</td>
-                      <td className="cell-num">{money(simPixNet)}</td>
-                      <td className="cell-num"><strong className={simPixMargin.profit >= 0 ? "good" : "bad"}>{money(simPixMargin.profit)}</strong></td>
-                      <td className="cell-num">{simPixMargin.marginPct}%</td>
-                    </>}
-                  </tr>
-                  {simLadder.map((row) => (
-                    <tr key={row.installments} className={margins && row.profit <= 0 ? "row-loss" : ""}>
-                      <td>{row.installments === 1 ? "Cartão à vista" : `Cartão ${row.installments}x`}</td>
-                      <td className="cell-num">{money(row.total)}</td>
-                      <td className="cell-num">{row.installments}× {money(row.installmentValue)}</td>
-                      {margins && <>
-                        <td className="cell-num">{((simFees.cardBase + Math.max(0, row.installments - 1) * simFees.cardPerInstallment) * 100).toFixed(2)}%</td>
-                        <td className="cell-num">{money(row.netReceived)}</td>
-                        <td className="cell-num"><strong className={row.profit >= 0 ? "good" : "bad"}>{money(row.profit)}</strong></td>
-                        <td className="cell-num">{row.marginPct}%</td>
-                      </>}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {margins && (
-              <p className="finance-hint">
-                Preço mínimo para não sair no prejuízo: <b>{money(margins.breakEvenPix)}</b> no PIX · <b>{money(margins.breakEvenCard)}</b> no cartão à vista.
-              </p>
-            )}
-          </section>
-        );
-      })()}
 
       {/* DASHBOARD: PROCURA x VENDA MÊS A MÊS */}
       {(demand.monthly.length > 0 || sales.monthly.length > 0) && (
