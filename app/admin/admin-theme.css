@@ -974,3 +974,70 @@
 .admin-shell .planner-head small { font-size: 0.62rem; color: var(--a-muted); }
 .admin-shell .planner-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .admin-shell .planner .insight-table-wrap tbody td { padding: 0.35rem 0.6rem; }
+
+/* ============================================================
+   EDITOR DE PRODUTO — LARGURA E ESTRUTURA DAS ABAS
+   ============================================================ */
+
+/* Modal 40% mais largo: 760px -> 1080px. Sobra espaço para 3 colunas
+   de campos sem deixar buraco. */
+.admin-shell .admin-modal form,
+.admin-shell .product-editor-form { width: min(1080px, 100%); }
+.admin-shell .admin-modal .order-modal { width: min(920px, 100%); }
+
+/* CORREÇÃO ESTRUTURAL: .wide precisa valer para qualquer filho da grade
+   (div, section, fieldset), não só para <label>. Sem isso os títulos de
+   seção caíam na coluna da direita e a leitura quebrava. */
+.admin-shell .admin-form-grid > .wide { grid-column: 1 / -1; }
+
+/* Aproveita a largura nova: campos curtos em 3-4 colunas. */
+.admin-shell .product-editor-form .admin-form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.8rem 1rem;
+  padding: 1.15rem 1.35rem;
+}
+.admin-shell .product-editor-form .modal-actions { padding: 0.85rem 1.35rem; }
+.admin-shell .product-editor-heading { padding: 1.15rem 1.35rem 0; }
+.admin-shell .editor-tabs { margin: 0.9rem 1.35rem 0; }
+
+/* --- ABA APARELHO --- */
+/* Filtros e categorias: campos em grade própria, sem sobra à direita. */
+.admin-shell .product-filter-assignment > div {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.7rem 0.9rem;
+}
+/* Paleta de cores compacta e alinhada com os outros campos. */
+.admin-shell .iphone-color-picker { display: flex; flex-direction: column; gap: 0.4rem; }
+.admin-shell .iphone-color-options {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+  gap: 5px; max-width: 100%;
+}
+.admin-shell .iphone-color-options button { width: 30px; height: 30px; padding: 0; border-radius: 50%; }
+.admin-shell .iphone-color-options button small { display: none; }
+.admin-shell .iphone-color-options button > span { width: 26px; height: 26px; border-radius: 50%; display: block; }
+
+/* --- ABA PREÇO & MARGEM --- */
+.admin-shell .product-finance-section { grid-column: 1 / -1; }
+.admin-shell .finance-fields { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.admin-shell .finance-panel { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.admin-shell .acquired-strip { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+/* --- ABA MÍDIA --- */
+.admin-shell .product-images-editor { grid-column: 1 / -1; }
+.admin-shell .image-url-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.8rem;
+}
+
+/* --- ABA FICHA TÉCNICA --- */
+.admin-shell .spec-editor { grid-column: 1 / -1; }
+.admin-shell .spec-editor .spec-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto; gap: 0.5rem; }
+
+/* --- ABA INTELIGÊNCIA --- */
+.admin-shell .insights-wrap { padding: 1.15rem 1.35rem; }
+.admin-shell .insight-grid { grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); }
+
+@media (max-width: 720px) {
+  .admin-shell .product-editor-form .admin-form-grid,
+  .admin-shell .insights-wrap { padding: 0.9rem; }
+  .admin-shell .editor-tabs { margin: 0.7rem 0.9rem 0; }
+  .admin-shell .product-editor-heading { padding: 0.9rem 0.9rem 0; }
+}
