@@ -1293,3 +1293,27 @@
   .storefront-theme .home-promo-banner,
   .storefront-theme .home-promo-copy { min-height: 205px; }
 }
+
+/* ========================================================================== 
+   Aura Tech — banners sempre preenchidos, sem faixas pretas
+   ========================================================================== */
+.storefront-theme .hero-carousel,
+.storefront-theme .catalog-carousel,
+.storefront-theme .home-promo-banner {
+  background: #f3f4f3 !important;
+}
+.storefront-theme .hero-slide-cover,
+.storefront-theme .catalog-slide-cover {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+.storefront-theme .hero-slide-video,
+.storefront-theme .catalog-slide-video,
+.storefront-theme .home-promo-banner > img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  background: transparent !important;
+}

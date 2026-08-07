@@ -30,6 +30,14 @@ export default function AdminShell({ children, user, role }: { children: React.R
   const page = pageTitles.find((entry) => pathname.startsWith(entry.prefix)) ?? { title: "Visão geral", hint: "Aura Tech" };
 
   useEffect(() => {
+    setOpen(false);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.querySelector<HTMLElement>(".admin-main")?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  }, [pathname]);
+
+  useEffect(() => {
     if (open) return;
 
     let tracking = false;
@@ -131,5 +139,6 @@ export default function AdminShell({ children, user, role }: { children: React.R
       </header>
       <main className="admin-main">{children}</main>
     </div>
+    <div id="admin-modal-root" className="admin-modal-root" />
   </div></AdminFeedbackProvider>;
 }

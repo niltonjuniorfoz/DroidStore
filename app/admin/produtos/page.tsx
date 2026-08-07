@@ -2,6 +2,7 @@
 
 import { FormEvent, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { createPortal } from "react-dom";
 import {
   ArrowUpDown,
   Box,
@@ -186,6 +187,11 @@ export default function AdminProdutos() {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    const resetEditorScroll = window.requestAnimationFrame(() => {
+      const editor = document.querySelector<HTMLElement>("#admin-modal-root .product-editor-form");
+      if (editor) editor.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape" && !busy) {
         setOpen(false);
@@ -195,6 +201,7 @@ export default function AdminProdutos() {
 
     window.addEventListener("keydown", closeOnEscape);
     return () => {
+      window.cancelAnimationFrame(resetEditorScroll);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
     };
@@ -1310,7 +1317,7 @@ export default function AdminProdutos() {
       </div>
 
       {/* --- MODAL DE CADASTRO / EDIÇÃO DE PRODUTO --- */}
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <div className="admin-modal product-editor-modal" role="dialog" aria-modal="true" aria-label={editing ? "Editar produto" : "Novo produto"} onMouseDown={(event) => {
           if (event.target === event.currentTarget && !busy) {
             setOpen(false);
@@ -1676,7 +1683,8 @@ export default function AdminProdutos() {
               </div>
             </>}
           </form>
-        </div>
+        </div>,
+        document.getElementById("admin-modal-root") ?? document.body,
       )}
     </div>
   );

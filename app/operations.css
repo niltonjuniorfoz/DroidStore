@@ -2257,3 +2257,19 @@
   background-color: #111 !important;
 }
 .admin-shell .promo-config-preview > img { object-fit: contain !important; background: #111; }
+
+/* Pré-visualizações do painel usam o mesmo enquadramento preenchido da loja. */
+.admin-shell .hero-slide-preview,
+.admin-shell .catalog-banner-preview {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-color: #f3f4f3 !important;
+}
+.admin-shell .promo-config-preview > img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  background: transparent !important;
+}

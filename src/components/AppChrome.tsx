@@ -22,7 +22,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (admin || !window.matchMedia("(pointer: coarse)").matches) return;
+    if (!window.matchMedia("(pointer: coarse)").matches) return;
 
     let touchStartY = 0;
     let lastTouchY = 0;
@@ -120,13 +120,21 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   }, [admin, pathname]);
 
   useEffect(() => {
-    if (admin) return;
-    // Evita que uma página curta herde a posição de rolagem de uma página longa.
-    window.requestAnimationFrame(() => {
-      const maximum = Math.max(0, document.documentElement.scrollHeight - document.documentElement.clientHeight);
-      if (window.scrollY > maximum) window.scrollTo({ top: maximum, left: 0, behavior: "auto" });
-    });
-  }, [admin, pathname]);
+    // Cada rota começa do topo, inclusive conta e painel administrativo.
+    // O segundo passe cobre páginas cujo conteúdo cresce logo após a navegação.
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+    const scrollTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.scrollingElement?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    };
+    scrollTop();
+    const frame = window.requestAnimationFrame(scrollTop);
+    const timer = window.setTimeout(scrollTop, 80);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [pathname]);
 
   const contactLinks = useMemo(() => ({
     email: createMailtoUrl(store.email),

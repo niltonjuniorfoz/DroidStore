@@ -1,20 +1,26 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  CheckCircle2,
+  ChevronDown,
   Eye,
   EyeOff,
   GripVertical,
   ImagePlus,
   Layout,
   Layers,
+  ListFilter,
   Link2,
   Menu,
+  PackageSearch,
+  Pencil,
   Plus,
   Save,
   Sparkles,
+  Tag,
   Trash2,
   Tv,
 } from "lucide-react";
@@ -31,6 +37,20 @@ import {
 import { uploadAdminFile } from "../../../src/lib/uploadClient";
 
 type MenuItem = { id?: string; label: string; href: string; active: boolean };
+type MenuDestinationType = "all" | "category" | "brand" | "condition" | "filter" | "page" | "custom";
+type CatalogFilterOption = { id: string; label: string; slug: string };
+type CatalogFilterGroup = { id: string; name: string; slug: string; options: CatalogFilterOption[] };
+type MenuCatalogProduct = {
+  brand?: string;
+  filters?: Array<{ groupSlug: string; optionLabel: string; optionSlug: string }>;
+};
+type MenuDraft = {
+  label: string;
+  type: MenuDestinationType;
+  option: string;
+  filterGroup: string;
+  customHref: string;
+};
 type CatalogBanner = { eyebrow: string; title: string; description: string; imageUrl: string };
 type Content = {
   storeName: string;
@@ -58,6 +78,35 @@ const blankCatalogSlide = (): CatalogBanner => ({
   imageUrl: "",
 });
 
+const emptyMenuDraft = (): MenuDraft => ({
+  label: "",
+  type: "all",
+  option: "",
+  filterGroup: "",
+  customHref: "",
+});
+
+const conditionMenuOptions = [
+  { value: "Novo", label: "Produtos novos" },
+  { value: "Excelente", label: "Seminovos — excelente" },
+  { value: "Muito Bom", label: "Seminovos — muito bom" },
+  { value: "Bom", label: "Seminovos — bom" },
+  { value: "Outlet", label: "Outlet" },
+];
+
+const pageMenuOptions = [
+  { value: "/", label: "Página inicial" },
+  { value: "/celulares", label: "Todos os produtos" },
+  { value: "/atendimento", label: "Atendimento" },
+  { value: "/conta", label: "Minha conta" },
+  { value: "/conta/pedidos", label: "Meus pedidos" },
+  { value: "/conta/favoritos", label: "Favoritos" },
+];
+
+function normalizeToken(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
 const blankSlide = (): HeroSlide => ({
   eyebrow: "LANÇAMENTO EXCLUSIVO",
   title: "Novo Aparelho",
@@ -84,6 +133,11 @@ export default function AdminConteudo() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
+  const [catalogFilters, setCatalogFilters] = useState<CatalogFilterGroup[]>([]);
+  const [menuCatalogProducts, setMenuCatalogProducts] = useState<MenuCatalogProduct[]>([]);
+  const [menuDraft, setMenuDraft] = useState<MenuDraft>(emptyMenuDraft);
+  const [menuEditingIndex, setMenuEditingIndex] = useState<number | null>(null);
+  const menuBuilderRef = useRef<HTMLDivElement | null>(null);
 
   function changeContent(
     updater: (current: Content) => Content,
@@ -157,6 +211,16 @@ export default function AdminConteudo() {
         navigation: data.navigation ?? [],
       });
     }).catch(() => setMessage("Falha de conexão ao carregar o conteúdo. Recarregue a página."));
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/catalog-filters", { cache: "no-store" }).then((response) => response.ok ? response.json() : []),
+      fetch("/api/products", { cache: "no-store" }).then((response) => response.ok ? response.json() : []),
+    ]).then(([filterData, productData]: [CatalogFilterGroup[], MenuCatalogProduct[]]) => {
+      setCatalogFilters(Array.isArray(filterData) ? filterData : []);
+      setMenuCatalogProducts(Array.isArray(productData) ? productData : []);
+    }).catch(() => undefined);
   }, []);
 
   function updateMenu(index: number, patch: Partial<MenuItem>) {
@@ -290,6 +354,172 @@ export default function AdminConteudo() {
     } finally {
       setBusy(false);
     }
+  }
+
+  const brandMenuOptions = useMemo(() => {
+    const values = new Map<string, string>();
+    const brandFilter = catalogFilters.find((filter) => filter.slug === "marca");
+    for (const option of brandFilter?.options ?? []) values.set(normalizeToken(option.label), option.label);
+    for (const product of menuCatalogProducts) {
+      if (product.brand?.trim()) values.set(normalizeToken(product.brand), product.brand.trim());
+    }
+    return [...values.values()].sort((a, b) => a.localeCompare(b, "pt-BR")).map((label) => ({ value: label, label }));
+  }, [catalogFilters, menuCatalogProducts]);
+
+  const categoryMenuOptions = useMemo(() => {
+    const categoryFilter = catalogFilters.find((filter) => filter.slug === "categoria" || filter.slug === "tipo-de-produto");
+    const values = new Map<string, { value: string; label: string }>();
+    for (const option of categoryFilter?.options ?? []) values.set(normalizeToken(option.slug), { value: option.slug, label: option.label });
+    for (const product of menuCatalogProducts) {
+      for (const option of product.filters ?? []) {
+        if (option.groupSlug !== "categoria" && option.groupSlug !== "tipo-de-produto") continue;
+        values.set(normalizeToken(option.optionSlug), { value: option.optionSlug, label: option.optionLabel });
+      }
+    }
+    return [...values.values()].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  }, [catalogFilters, menuCatalogProducts]);
+
+  const customFilterGroups = useMemo(() => catalogFilters.filter((filter) =>
+    filter.slug !== "marca" && filter.slug !== "categoria" && filter.slug !== "tipo-de-produto" && filter.options.length > 0
+  ), [catalogFilters]);
+
+  const selectedCustomFilter = customFilterGroups.find((filter) => filter.slug === menuDraft.filterGroup) ?? customFilterGroups[0];
+
+  const menuSelectOptions = menuDraft.type === "brand"
+    ? brandMenuOptions
+    : menuDraft.type === "category"
+      ? categoryMenuOptions
+      : menuDraft.type === "condition"
+        ? conditionMenuOptions
+        : menuDraft.type === "page"
+          ? pageMenuOptions
+          : menuDraft.type === "filter"
+            ? (selectedCustomFilter?.options ?? []).map((option) => ({ value: option.slug, label: option.label }))
+            : [];
+
+  const selectedMenuOption = menuSelectOptions.find((option) => option.value === menuDraft.option);
+  const generatedMenuHref = (() => {
+    if (menuDraft.type === "all") return "/celulares";
+    if (menuDraft.type === "brand" && menuDraft.option) return `/celulares?brand=${encodeURIComponent(menuDraft.option)}`;
+    if (menuDraft.type === "category" && menuDraft.option) return `/celulares?categoria=${encodeURIComponent(menuDraft.option)}`;
+    if (menuDraft.type === "condition" && menuDraft.option) return `/celulares?condition=${encodeURIComponent(menuDraft.option)}`;
+    if (menuDraft.type === "filter" && selectedCustomFilter?.slug && menuDraft.option) return `/celulares?${encodeURIComponent(selectedCustomFilter.slug)}=${encodeURIComponent(menuDraft.option)}`;
+    if (menuDraft.type === "page") return menuDraft.option;
+    if (menuDraft.type === "custom") {
+      const value = menuDraft.customHref.trim();
+      return value.startsWith("/") ? value : "";
+    }
+    return "";
+  })();
+
+  const suggestedMenuLabel = (() => {
+    if (menuDraft.type === "all") return "Todos os produtos";
+    if (menuDraft.type === "filter" && selectedCustomFilter && selectedMenuOption) return selectedMenuOption.label;
+    return selectedMenuOption?.label ?? "";
+  })();
+
+  function menuHrefDescription(href: string) {
+    const [path, query = ""] = href.split("?");
+    const params = new URLSearchParams(query);
+    if (path === "/celulares" && !query) return "Página: Todos os produtos";
+    const brand = params.get("brand");
+    if (brand) return `Marca: ${decodeURIComponent(brand)}`;
+    const condition = params.get("condition");
+    if (condition) return `Condição: ${decodeURIComponent(condition)}`;
+    const category = params.get("categoria") ?? params.get("category") ?? params.get("cat");
+    if (category) {
+      const option = categoryMenuOptions.find((item) => normalizeToken(item.value) === normalizeToken(category));
+      return `Categoria: ${option?.label ?? decodeURIComponent(category)}`;
+    }
+    const firstFilter = [...params.entries()][0];
+    if (path === "/celulares" && firstFilter) {
+      const group = catalogFilters.find((filter) => filter.slug === firstFilter[0]);
+      const option = group?.options.find((item) => normalizeToken(item.slug) === normalizeToken(firstFilter[1]));
+      return `${group?.name ?? "Filtro"}: ${option?.label ?? decodeURIComponent(firstFilter[1])}`;
+    }
+    const page = pageMenuOptions.find((item) => item.value === path);
+    return page ? `Página: ${page.label}` : `Link personalizado: ${href}`;
+  }
+
+  function scrollToMenuBuilder() {
+    window.requestAnimationFrame(() => menuBuilderRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  function resetMenuBuilder() {
+    setMenuDraft(emptyMenuDraft());
+    setMenuEditingIndex(null);
+  }
+
+  function beginNewMenuItem() {
+    resetMenuBuilder();
+    scrollToMenuBuilder();
+  }
+
+  function editMenuWithBuilder(index: number) {
+    const item = content.navigation[index];
+    const [path, query = ""] = item.href.split("?");
+    const params = new URLSearchParams(query);
+    let draft: MenuDraft = { ...emptyMenuDraft(), label: item.label };
+
+    if (path === "/celulares" && !query) draft = { ...draft, type: "all" };
+    else if (params.get("brand")) draft = { ...draft, type: "brand", option: params.get("brand") ?? "" };
+    else if (params.get("condition")) draft = { ...draft, type: "condition", option: params.get("condition") ?? "" };
+    else if (params.get("categoria") || params.get("category") || params.get("cat")) {
+      draft = { ...draft, type: "category", option: params.get("categoria") ?? params.get("category") ?? params.get("cat") ?? "" };
+    } else if (path === "/celulares" && [...params.entries()].length) {
+      const [filterGroup, option] = [...params.entries()][0];
+      draft = { ...draft, type: "filter", filterGroup, option };
+    } else if (pageMenuOptions.some((page) => page.value === item.href)) {
+      draft = { ...draft, type: "page", option: item.href };
+    } else {
+      draft = { ...draft, type: "custom", customHref: item.href };
+    }
+
+    setMenuDraft(draft);
+    setMenuEditingIndex(index);
+    scrollToMenuBuilder();
+  }
+
+  function changeMenuDestinationType(type: MenuDestinationType) {
+    setMenuDraft((current) => ({
+      ...current,
+      type,
+      option: type === "page" ? "/" : "",
+      filterGroup: type === "filter" ? (customFilterGroups[0]?.slug ?? "") : "",
+      customHref: type === "custom" ? current.customHref : "",
+    }));
+  }
+
+  function addMenuFromBuilder() {
+    const label = (menuDraft.label.trim() || suggestedMenuLabel).trim();
+    if (!label) {
+      setMessage("Digite o nome que aparecerá no menu.");
+      scrollToMenuBuilder();
+      return;
+    }
+    if (!generatedMenuHref) {
+      setMessage(menuDraft.type === "custom"
+        ? "No link personalizado, informe um endereço começando com /."
+        : "Escolha o destino que este item deve abrir.");
+      scrollToMenuBuilder();
+      return;
+    }
+    if (menuEditingIndex === null && content.navigation.length >= 12) {
+      setMessage("O menu aceita no máximo 12 itens. Remova um item antes de adicionar outro.");
+      return;
+    }
+
+    changeContent((current) => {
+      const nextItem: MenuItem = { label, href: generatedMenuHref, active: true };
+      if (menuEditingIndex === null) return { ...current, navigation: [...current.navigation, nextItem] };
+      return {
+        ...current,
+        navigation: current.navigation.map((item, index) => index === menuEditingIndex ? { ...item, label, href: generatedMenuHref } : item),
+      };
+    }, menuEditingIndex === null
+      ? "Item adicionado ao menu. Clique em Salvar alterações para publicar."
+      : "Item atualizado. Clique em Salvar alterações para publicar.");
+    resetMenuBuilder();
   }
 
   async function save(event: FormEvent) {
@@ -663,13 +893,9 @@ export default function AdminConteudo() {
         <div className="panel-heading">
           <div>
             <h2>Menu Principal de Navegação (Cabeçalho)</h2>
-            <p>Os itens ativos organizam a barra de atalhos e categorias no topo de todas as páginas da loja.</p>
+            <p>Organize os atalhos exibidos no topo da loja. O construtor abaixo cria os links automaticamente.</p>
           </div>
-          <button
-            type="button"
-            className="button ghost"
-            onClick={() => changeContent((current) => ({ ...current, navigation: [...current.navigation, { label: "Novo item", href: "/celulares", active: true }] }))}
-          >
+          <button type="button" className="button ghost" onClick={beginNewMenuItem}>
             <Plus size={15} /> Adicionar item de menu
           </button>
         </div>
@@ -690,16 +916,23 @@ export default function AdminConteudo() {
                   placeholder="Ex.: Celulares"
                 />
               </label>
-              <label className="menu-item-field menu-item-link">
-                <span>Destino do link</span>
-                <input
-                  aria-label="Link do menu"
-                  value={item.href}
-                  onChange={(event) => updateMenu(index, { href: event.target.value })}
-                  placeholder="Ex.: /celulares"
-                />
-              </label>
+              <div className="menu-item-field menu-item-link">
+                <span>O que este item abre</span>
+                <div className="menu-destination-summary"><Link2 size={14} /><strong>{menuHrefDescription(item.href)}</strong></div>
+                <details className="menu-advanced-link">
+                  <summary><ChevronDown size={13} /> Ver link técnico</summary>
+                  <input
+                    aria-label="Link técnico do menu"
+                    value={item.href}
+                    onChange={(event) => updateMenu(index, { href: event.target.value })}
+                    placeholder="Ex.: /celulares"
+                  />
+                </details>
+              </div>
               <div className="menu-item-actions">
+                <button type="button" title="Configurar de forma guiada" className="row-action-btn menu-edit-button" onClick={() => editMenuWithBuilder(index)}>
+                  <Pencil size={14} /><span>Editar</span>
+                </button>
                 <button
                   type="button"
                   title={item.active ? "Ocultar do cabeçalho" : "Exibir no cabeçalho"}
@@ -721,6 +954,97 @@ export default function AdminConteudo() {
               </div>
             </div>
           ))}
+          {!content.navigation.length && <div className="menu-empty-state"><Menu size={20} /><span>Nenhum item configurado. Use o construtor abaixo para criar o primeiro.</span></div>}
+        </div>
+
+        <div className="menu-builder" ref={menuBuilderRef}>
+          <header className="menu-builder-heading">
+            <div><span>{menuEditingIndex === null ? "Adicionar novo item ao menu" : "Editar item do menu"}</span><p>Responda às etapas. O sistema monta o endereço correto sem você precisar saber códigos.</p></div>
+            {menuEditingIndex !== null && <button type="button" onClick={resetMenuBuilder}>Cancelar edição</button>}
+          </header>
+
+          <div className="menu-builder-steps">
+            <label className="menu-builder-step">
+              <span className="menu-step-number">1</span>
+              <strong>Nome do item</strong>
+              <small>É o texto que o cliente verá no cabeçalho.</small>
+              <input
+                value={menuDraft.label}
+                onChange={(event) => setMenuDraft((current) => ({ ...current, label: event.target.value }))}
+                placeholder="Ex.: Ofertas, Perfumes, Samsung..."
+              />
+            </label>
+
+            <label className="menu-builder-step">
+              <span className="menu-step-number">2</span>
+              <strong>O que deve abrir?</strong>
+              <small>Escolha o tipo de destino em palavras simples.</small>
+              <select value={menuDraft.type} onChange={(event) => changeMenuDestinationType(event.target.value as MenuDestinationType)}>
+                <option value="all">Todos os produtos</option>
+                <option value="category">Uma categoria</option>
+                <option value="brand">Uma marca</option>
+                <option value="condition">Uma condição</option>
+                <option value="filter">Um filtro cadastrado</option>
+                <option value="page">Uma página do site</option>
+                <option value="custom">Link personalizado (avançado)</option>
+              </select>
+            </label>
+
+            <div className="menu-builder-step">
+              <span className="menu-step-number">3</span>
+              <strong>Selecione a opção</strong>
+              <small>{menuDraft.type === "filter" ? "Primeiro escolha o filtro e depois uma opção." : "Escolha exatamente o conteúdo que será mostrado."}</small>
+              {menuDraft.type === "filter" && (
+                <select value={menuDraft.filterGroup || selectedCustomFilter?.slug || ""} onChange={(event) => setMenuDraft((current) => ({ ...current, filterGroup: event.target.value, option: "" }))}>
+                  <option value="">Escolha um filtro</option>
+                  {customFilterGroups.map((filter) => <option key={filter.id} value={filter.slug}>{filter.name}</option>)}
+                </select>
+              )}
+              {menuDraft.type === "custom" ? (
+                <input value={menuDraft.customHref} onChange={(event) => setMenuDraft((current) => ({ ...current, customHref: event.target.value }))} placeholder="Ex.: /atendimento" />
+              ) : menuDraft.type === "all" ? (
+                <div className="menu-choice-ready"><CheckCircle2 size={16} /> Tudo certo: abrirá todos os produtos.</div>
+              ) : (
+                <select value={menuDraft.option} onChange={(event) => setMenuDraft((current) => ({ ...current, option: event.target.value }))} disabled={menuDraft.type === "filter" && !selectedCustomFilter}>
+                  <option value="">Selecione uma opção</option>
+                  {menuSelectOptions.map((option) => <option key={`${menuDraft.type}-${option.value}`} value={option.value}>{option.label}</option>)}
+                </select>
+              )}
+              {menuDraft.type !== "all" && menuDraft.type !== "custom" && menuSelectOptions.length === 0 && (
+                <p className="menu-builder-warning">Ainda não há opções cadastradas. Crie-as em “Filtros e categorias”.</p>
+              )}
+            </div>
+
+            <div className="menu-builder-step menu-builder-preview">
+              <span className="menu-step-number">4</span>
+              <strong>Pré-visualização</strong>
+              <small>Confira como o item será entendido pelo sistema.</small>
+              <div className="menu-preview-card">
+                <PackageSearch size={19} />
+                <span><b>{menuDraft.label.trim() || suggestedMenuLabel || "Nome do item"}</b><small>{generatedMenuHref ? menuHrefDescription(generatedMenuHref) : "Escolha o destino na etapa anterior"}</small></span>
+              </div>
+            </div>
+          </div>
+
+          <div className="menu-builder-footer">
+            <p><CheckCircle2 size={15} /> Você não precisa conhecer <b>?brand</b>, <b>?condition</b> ou outras regras. O link é criado automaticamente.</p>
+            <div>
+              {menuEditingIndex !== null && <button type="button" className="button ghost" onClick={resetMenuBuilder}>Cancelar</button>}
+              <button type="button" className="button primary" onClick={addMenuFromBuilder}>
+                {menuEditingIndex === null ? <Plus size={15} /> : <Save size={15} />}
+                {menuEditingIndex === null ? "Adicionar ao menu" : "Atualizar item"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="menu-destination-help">
+          <article><Layout size={18} /><span><b>Todos os produtos</b><small>Abre o catálogo completo.</small></span></article>
+          <article><Layers size={18} /><span><b>Categoria</b><small>Ex.: celulares, medicamentos ou perfumes.</small></span></article>
+          <article><Tag size={18} /><span><b>Marca</b><small>Mostra produtos de uma marca.</small></span></article>
+          <article><Sparkles size={18} /><span><b>Condição</b><small>Ex.: novos, seminovos ou outlet.</small></span></article>
+          <article><ListFilter size={18} /><span><b>Filtro cadastrado</b><small>Usa qualquer filtro criado para sua loja.</small></span></article>
+          <article><Link2 size={18} /><span><b>Link personalizado</b><small>Somente para uma página especial.</small></span></article>
         </div>
       </section>
     </form>
