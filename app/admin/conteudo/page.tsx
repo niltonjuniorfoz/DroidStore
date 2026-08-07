@@ -677,36 +677,48 @@ export default function AdminConteudo() {
         <div className="menu-editor">
           {content.navigation.map((item, index) => (
             <div key={item.id ?? index} className="menu-item-row">
-              <GripVertical className="grab-icon" size={16} />
-              <input
-                aria-label="Nome do menu"
-                value={item.label}
-                onChange={(event) => updateMenu(index, { label: event.target.value })}
-                placeholder="Ex: Celulares"
-              />
-              <input
-                aria-label="Link do menu"
-                value={item.href}
-                onChange={(event) => updateMenu(index, { href: event.target.value })}
-                placeholder="Ex: /celulares"
-              />
-              <button
-                type="button"
-                title={item.active ? "Ocultar do cabeçalho" : "Exibir no cabeçalho"}
-                className={`menu-toggle-btn ${item.active ? "on" : "off"}`}
-                onClick={() => updateMenu(index, { active: !item.active })}
-              >
-                {item.active ? <Eye size={14} /> : <EyeOff size={14} />}
-                <span>{item.active ? "Visível" : "Oculto"}</span>
-              </button>
-              <button
-                type="button"
-                title="Remover item"
-                className="danger-text row-action-btn delete"
-                onClick={() => changeContent((current) => ({ ...current, navigation: current.navigation.filter((_, itemIndex) => itemIndex !== index) }))}
-              >
-                <Trash2 size={14} />
-              </button>
+              <div className="menu-item-order" title={`Posição ${index + 1}`}>
+                <GripVertical className="grab-icon" size={15} />
+                <span>{String(index + 1).padStart(2, "0")}</span>
+              </div>
+              <label className="menu-item-field menu-item-name">
+                <span>Nome exibido</span>
+                <input
+                  aria-label="Nome do menu"
+                  value={item.label}
+                  onChange={(event) => updateMenu(index, { label: event.target.value })}
+                  placeholder="Ex.: Celulares"
+                />
+              </label>
+              <label className="menu-item-field menu-item-link">
+                <span>Destino do link</span>
+                <input
+                  aria-label="Link do menu"
+                  value={item.href}
+                  onChange={(event) => updateMenu(index, { href: event.target.value })}
+                  placeholder="Ex.: /celulares"
+                />
+              </label>
+              <div className="menu-item-actions">
+                <button
+                  type="button"
+                  title={item.active ? "Ocultar do cabeçalho" : "Exibir no cabeçalho"}
+                  className={`menu-toggle-btn ${item.active ? "on" : "off"}`}
+                  onClick={() => updateMenu(index, { active: !item.active })}
+                >
+                  {item.active ? <Eye size={14} /> : <EyeOff size={14} />}
+                  <span>{item.active ? "Visível" : "Oculto"}</span>
+                </button>
+                <button
+                  type="button"
+                  title="Remover item"
+                  aria-label={`Remover ${item.label || `item ${index + 1}`}`}
+                  className="danger-text row-action-btn delete menu-delete-button"
+                  onClick={() => changeContent((current) => ({ ...current, navigation: current.navigation.filter((_, itemIndex) => itemIndex !== index) }))}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
           ))}
         </div>

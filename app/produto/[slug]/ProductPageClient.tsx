@@ -384,13 +384,29 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
                 <div className="variant-label">Capacidade</div>
                 <div className="storage-pill-list">
                   {availableStorages.map((storageVal) => {
+                    const activeColor = selectedColor || product.color;
                     const isActive = (selectedStorage || product.storage) === storageVal;
+                    const exactVariant = familyVariants.find(
+                      (variant) => variant.color?.toLowerCase() === activeColor.toLowerCase()
+                        && variant.storage === storageVal
+                        && variant.condition === selectedCondition,
+                    );
+                    const isCurrentVariant =
+                      activeColor.toLowerCase() === product.color.toLowerCase()
+                      && storageVal === product.storage
+                      && selectedCondition === product.condition;
+                    const hasStock = exactVariant ? exactVariant.stock > 0 : isCurrentVariant && product.stock > 0;
+                    const unavailable = !hasStock;
+
                     return (
                       <button
                         key={storageVal}
                         type="button"
-                        className={`storage-pill-btn ${isActive ? "active" : ""}`}
-                        onClick={() => void selectVariantOption(selectedColor || product.color, storageVal, selectedCondition)}
+                        className={`storage-pill-btn ${isActive ? "active" : ""} ${unavailable ? "out-of-stock" : ""}`}
+                        onClick={() => void selectVariantOption(activeColor, storageVal, selectedCondition)}
+                        disabled={unavailable}
+                        aria-disabled={unavailable}
+                        title={unavailable ? `${storageVal} indisponível nesta cor` : `Selecionar ${storageVal}`}
                       >
                         {storageVal}
                       </button>

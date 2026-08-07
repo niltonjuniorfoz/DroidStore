@@ -62,6 +62,12 @@ import {
 } from "./types";
 
 const money = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const compactMoney = (value: number) => new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  notation: "compact",
+  maximumFractionDigits: 1,
+}).format(value);
 
 export default function AdminProdutos() {
   const { confirmDialog } = useAdminFeedback();
@@ -176,14 +182,22 @@ export default function AdminProdutos() {
     : [...IPHONE_COLOR_OPTIONS];
   useEffect(() => {
     if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape" && !busy) {
         setOpen(false);
         setEditing(null);
       }
     }
+
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
   }, [open, busy]);
 
   function toggleModelExpand(modelKey: string) {
@@ -699,16 +713,14 @@ export default function AdminProdutos() {
 
   return (
     <div className="admin-easy">
-      <header className="admin-title">
-        <div>
-          <h1>
-            Gerenciador de Produtos
-            <span style={{ fontSize: "0.74rem", background: "#dcfce7", color: "#15803d", padding: "3px 10px", borderRadius: "99px", fontWeight: "800" }}>
-              {items.length} PRODUTOS • {groupedModelsList.length} FAMÍLIAS
-            </span>
-          </h1>
+      <header className="admin-title product-manager-title">
+        <div className="product-manager-heading">
+          <h1>Gerenciador de Produtos</h1>
+          <span className="catalog-count-badge">
+            {items.length} produtos <i /> {groupedModelsList.length} famílias
+          </span>
         </div>
-        <button className="button primary" onClick={newProduct} style={{ height: "38px", padding: "0 1rem", fontSize: "0.82rem" }}>
+        <button className="button primary product-new-button" onClick={newProduct}>
           <Plus size={16} /> Novo produto
         </button>
       </header>
@@ -717,26 +729,32 @@ export default function AdminProdutos() {
 
       {/* --- CARDS KPI EXECUTIVOS --- */}
       <section className="catalog-kpi-grid">
-        <div className="kpi-card">
-          <span><Package size={16} /> Total em Catálogo</span>
+        <div className="kpi-card total">
+          <span><Package size={16} /> Total no catálogo</span>
           <strong>{items.length}</strong>
           <small>{groupedModelsList.length} modelos de famílias</small>
         </div>
-        <div className="kpi-card warning">
-          <span><Package size={16} /> Sem Estoque</span>
+        <div className="kpi-card warning stock-alert">
+          <span><Package size={16} /> Sem estoque</span>
           <strong>{outOfStockCount}</strong>
           <small>Aparelhos esgotados</small>
         </div>
-        <div className="kpi-card">
-          <span><Layers size={16} /> Valor em Estoque</span>
-          <strong>R$ {totalStockValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
-          <small>Soma dos preços de venda</small>
+        <div className="kpi-card stock-value">
+          <span><Layers size={16} /> Valor em estoque</span>
+          <strong title={money(totalStockValue)}>
+            <span className="kpi-value-full">{money(totalStockValue)}</span>
+            <span className="kpi-value-compact">{compactMoney(totalStockValue)}</span>
+          </strong>
+          <small>Soma do preço de venda × estoque</small>
         </div>
         {ownerView && (
-          <div className="kpi-card profit">
-            <span><TrendingUp size={16} /> Lucro Potencial</span>
-            <strong>R$ {totalProfitValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
-            <small>Com base no preço de custo</small>
+          <div className="kpi-card profit profit-value">
+            <span><TrendingUp size={16} /> Lucro potencial</span>
+            <strong title={money(totalProfitValue)}>
+              <span className="kpi-value-full">{money(totalProfitValue)}</span>
+              <span className="kpi-value-compact">{compactMoney(totalProfitValue)}</span>
+            </strong>
+            <small>Venda estimada menos custo</small>
           </div>
         )}
         {(() => {
@@ -745,8 +763,8 @@ export default function AdminProdutos() {
           const noDescription = items.filter((item) => item.active && (item.description ?? "").length < 10).length;
           const dirty = noPhoto + noDescription;
           return (
-            <div className={`kpi-card ${dirty > 0 ? "warning" : ""}`}>
-              <span><Package size={16} /> Qualidade do Catálogo</span>
+            <div className={`kpi-card quality ${dirty > 0 ? "warning" : ""}`}>
+              <span><Package size={16} /> Qualidade do catálogo</span>
               <strong>{noPhoto}</strong>
               <small>{noPhoto} sem foto · {noDescription} sem descrição — não vendem bem</small>
             </div>

@@ -3,9 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  ChevronDown,
   ChevronRight,
   Heart,
   Home,
+  LayoutDashboard,
+  LogOut,
   Menu,
   PackageCheck,
   Search,
@@ -16,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { signOut } from "next-auth/react";
 import { useCart } from "./CartProvider";
 import MegaMenu from "./MegaMenu";
 import { useSiteContent } from "./SiteContentProvider";
@@ -77,6 +81,8 @@ export default function Header() {
   const customerLoginEnabled = content?.customerLoginEnabled !== false;
   const [quickBuy, setQuickBuy] = useState<QuickBuyState | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
+  const [sessionRole, setSessionRole] = useState("");
+  const [accountOpen, setAccountOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesHidden, setCategoriesHidden] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -86,6 +92,7 @@ export default function Header() {
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
   const categoriesHiddenRef = useRef(false);
   const searchShellRef = useRef<HTMLDivElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!searchOpen) return;
@@ -122,6 +129,25 @@ export default function Header() {
     return () => window.removeEventListener("pointerdown", closeSearch);
   }, [searchOpen]);
 
+
+  useEffect(() => {
+    if (!accountOpen) return;
+
+    const closeAccountMenu = (event: PointerEvent) => {
+      if (!accountMenuRef.current?.contains(event.target as Node)) setAccountOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAccountOpen(false);
+    };
+
+    window.addEventListener("pointerdown", closeAccountMenu);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("pointerdown", closeAccountMenu);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [accountOpen]);
+
   useEffect(() => {
     const updateQuickBuy = (event: Event) => {
       setQuickBuy((event as CustomEvent<QuickBuyState>).detail);
@@ -137,9 +163,15 @@ export default function Header() {
       try {
         const response = await fetch("/api/auth/session", { cache: "no-store" });
         const session = response.ok ? await response.json() : null;
-        if (!cancelled) setAuthenticated(Boolean(session?.user));
+        if (!cancelled) {
+          setAuthenticated(Boolean(session?.user));
+          setSessionRole(String(session?.user?.role ?? ""));
+        }
       } catch {
-        if (!cancelled) setAuthenticated(false);
+        if (!cancelled) {
+          setAuthenticated(false);
+          setSessionRole("");
+        }
       }
     };
 
@@ -147,6 +179,12 @@ export default function Header() {
       const detail = (event as CustomEvent<{ authenticated?: boolean }>).detail;
       if (typeof detail?.authenticated === "boolean") {
         setAuthenticated(detail.authenticated);
+        if (!detail.authenticated) {
+          setSessionRole("");
+          setAccountOpen(false);
+        } else {
+          void refreshAuthentication();
+        }
         return;
       }
       void refreshAuthentication();
@@ -413,16 +451,79 @@ export default function Header() {
                 <span className="action-label">Carrinho</span>
               </Link>
 
-              {customerLoginEnabled && <Link
-                href="/conta"
-                className="user-login-btn interactive-user-btn"
-                aria-label={authenticated ? "Minha conta" : "Entrar na conta"}
-              >
-                <div className="user-icon-shell">
-                  <UserRound size={20} className="user-icon" />
+              {customerLoginEnabled && (
+                <div className="account-menu-shell" ref={accountMenuRef}>
+                  {authenticated ? (
+                    <button
+                      type="button"
+                      className={`user-login-btn interactive-user-btn account-menu-trigger ${accountOpen ? "is-open" : ""}`}
+                      aria-label="Abrir opções da minha conta"
+                      aria-expanded={accountOpen}
+                      aria-haspopup="menu"
+                      onClick={() => {
+                        setSearchOpen(false);
+                        setAccountOpen((value) => !value);
+                      }}
+                    >
+                      <div className="user-icon-shell">
+                        <UserRound size={20} className="user-icon" />
+                      </div>
+                      <span className="action-label">Minha Conta</span>
+                      <ChevronDown size={14} className="account-menu-chevron" aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="user-login-btn interactive-user-btn"
+                      aria-label="Entrar na conta"
+                    >
+                      <div className="user-icon-shell">
+                        <UserRound size={20} className="user-icon" />
+                      </div>
+                      <span className="action-label">Entrar</span>
+                    </Link>
+                  )}
+
+                  {authenticated && accountOpen && (
+                    <div className="account-menu-dropdown" role="menu" aria-label="Opções da minha conta">
+                      <div className="account-menu-heading">
+                        <strong>Minha conta</strong>
+                        <span>Gerencie suas compras e dados</span>
+                      </div>
+                      <Link href="/conta" role="menuitem" onClick={() => setAccountOpen(false)}>
+                        <UserRound size={17} />
+                        <span><strong>Acessar minha conta</strong><small>Perfil, dados e endereços</small></span>
+                      </Link>
+                      <Link href="/conta/pedidos" role="menuitem" onClick={() => setAccountOpen(false)}>
+                        <PackageCheck size={17} />
+                        <span><strong>Meus pedidos</strong><small>Acompanhar compras e entregas</small></span>
+                      </Link>
+                      <Link href="/conta/favoritos" role="menuitem" onClick={() => setAccountOpen(false)}>
+                        <Heart size={17} />
+                        <span><strong>Favoritos</strong><small>Produtos salvos</small></span>
+                      </Link>
+                      {["ADMIN", "MANAGER"].includes(sessionRole) && (
+                        <Link href="/admin" role="menuitem" className="account-menu-admin" onClick={() => setAccountOpen(false)}>
+                          <LayoutDashboard size={17} />
+                          <span><strong>Acessar área admin</strong><small>Painel de gestão da Aura Tech</small></span>
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        className="account-menu-logout"
+                        role="menuitem"
+                        onClick={() => {
+                          setAccountOpen(false);
+                          void signOut({ callbackUrl: "/" });
+                        }}
+                      >
+                        <LogOut size={17} />
+                        <span><strong>Sair da conta</strong><small>Encerrar sessão neste aparelho</small></span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <span className="action-label">{authenticated ? "Minha Conta" : "Entrar"}</span>
-              </Link>}
+              )}
 
               <button
                 type="button"

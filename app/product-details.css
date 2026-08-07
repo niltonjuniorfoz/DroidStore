@@ -192,3 +192,15 @@
   letter-spacing: 0;
 }
 
+
+/* Capacidade indisponível para a combinação atual de cor e condição. */
+.storage-pill-btn.out-of-stock,
+.storage-pill-btn.out-of-stock:hover,
+.storage-pill-btn.out-of-stock.active {
+  border-color: #ef4444 !important;
+  background: #fff1f2 !important;
+  color: #b91c1c !important;
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, .08) !important;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}

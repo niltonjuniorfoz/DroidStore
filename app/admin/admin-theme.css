@@ -1132,3 +1132,295 @@
       max(0.75rem, env(safe-area-inset-right));
   }
 }
+
+/* ============================================================
+   AURA TECH — refinamento final de densidade e responsividade
+   ============================================================ */
+
+/* Cabeçalho do gerenciador: título e contagem não disputam a mesma linha. */
+.admin-shell .product-manager-heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  flex-wrap: wrap;
+}
+.admin-shell .product-manager-heading h1 { margin: 0; }
+.admin-shell .catalog-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .42rem;
+  min-height: 26px;
+  padding: .3rem .65rem;
+  border: 1px solid #ccefd7;
+  border-radius: 999px;
+  background: #edf9f1;
+  color: #147237;
+  font-size: .62rem;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+}
+.admin-shell .catalog-count-badge i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .45;
+}
+.admin-shell .product-new-button {
+  min-height: 38px;
+  padding: 0 .95rem;
+  border-radius: 9px;
+  font-size: .74rem;
+}
+
+/* KPIs compactos: números legíveis sem estourar o card. */
+.admin-shell .catalog-kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: .7rem;
+  margin-bottom: .1rem;
+}
+.admin-shell .catalog-kpi-grid .kpi-card {
+  min-width: 0;
+  min-height: 108px;
+  padding: .82rem .9rem;
+  gap: .25rem;
+  border-radius: 11px;
+  box-shadow: none;
+}
+.admin-shell .catalog-kpi-grid .kpi-card > span {
+  min-width: 0;
+  font-size: .58rem;
+  line-height: 1.25;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+.admin-shell .catalog-kpi-grid .kpi-card > span svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+}
+.admin-shell .catalog-kpi-grid .kpi-card > strong {
+  min-width: 0;
+  margin-top: .08rem;
+  font-size: 1.15rem;
+  font-weight: 760;
+  line-height: 1.1;
+  letter-spacing: -.025em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.admin-shell .catalog-kpi-grid .kpi-card > small {
+  font-size: .58rem;
+  line-height: 1.35;
+  color: var(--a-ink-2);
+}
+.admin-shell .kpi-value-compact { display: none; }
+
+/* Modal sempre acima da topbar, com o início do formulário completamente visível. */
+.admin-shell .admin-modal,
+.admin-shell .product-editor-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2200 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: rgba(7, 9, 8, .78);
+  backdrop-filter: blur(4px);
+  overscroll-behavior: contain;
+}
+.admin-shell .product-editor-modal {
+  padding: max(.65rem, env(safe-area-inset-top)) .65rem max(.65rem, env(safe-area-inset-bottom));
+  place-items: center;
+  overflow: hidden;
+}
+.admin-shell .product-editor-modal .product-editor-form {
+  width: min(1080px, 100%);
+  max-height: calc(100dvh - 1.3rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--a-line);
+  border-radius: 14px;
+  background: #fff;
+}
+.admin-shell .product-editor-heading {
+  top: 0;
+  z-index: 8;
+  min-height: 68px;
+  padding: .9rem 1.2rem;
+  border-bottom: 1px solid var(--a-line);
+  background: rgba(255,255,255,.97);
+  backdrop-filter: blur(10px);
+}
+.admin-shell .product-editor-heading .eyebrow { margin-bottom: .15rem; }
+.admin-shell .product-editor-heading h2 { margin: 0; font-size: 1.05rem; line-height: 1.2; }
+.admin-shell .editor-tabs {
+  top: 68px;
+  z-index: 7;
+  margin: 0;
+  padding: .55rem 1.2rem;
+  border-bottom: 1px solid var(--a-line);
+  border-radius: 0;
+  background: rgba(255,255,255,.97);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.admin-shell .editor-tabs::-webkit-scrollbar { display: none; }
+.admin-shell .product-editor-form .modal-actions { z-index: 8; }
+
+/* Editor do menu do cabeçalho: uma linha clara no desktop e um card organizado no celular. */
+.admin-shell .menu-editor-panel { padding: 1rem; }
+.admin-shell .menu-editor { gap: .5rem; }
+.admin-shell .menu-item-row {
+  display: grid;
+  grid-template-columns: 52px minmax(150px, .8fr) minmax(210px, 1.25fr) auto;
+  align-items: end;
+  gap: .65rem;
+  padding: .72rem;
+  border: 1px solid var(--a-line);
+  border-radius: 10px;
+  background: #fff;
+}
+.admin-shell .menu-item-order {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .2rem;
+  border: 1px solid var(--a-line);
+  border-radius: 8px;
+  background: var(--a-surface-2);
+  color: var(--a-muted);
+  font-size: .58rem;
+  font-weight: 750;
+}
+.admin-shell .menu-item-order svg { width: 13px; height: 13px; }
+.admin-shell .menu-item-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .28rem;
+}
+.admin-shell .menu-item-field > span {
+  color: var(--a-muted);
+  font-size: .55rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.admin-shell .menu-item-field input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 .7rem;
+  border: 1px solid var(--a-line-strong);
+  border-radius: 8px;
+  background: #fff;
+  font-size: .69rem;
+}
+.admin-shell .menu-item-actions {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.admin-shell .menu-item-actions .menu-toggle-btn { min-height: 38px; }
+.admin-shell .menu-delete-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+}
+
+/* Densidade comum do painel: menos cartões inflados e mais consistência. */
+.admin-shell .admin-panel,
+.admin-shell .product-toolbar-pro,
+.admin-shell .admin-data-card {
+  border-radius: 11px;
+  box-shadow: none;
+}
+.admin-shell .panel-heading h2 { font-size: .92rem; line-height: 1.25; }
+.admin-shell .panel-heading p { font-size: .66rem; line-height: 1.45; }
+
+@media (max-width: 900px) {
+  .admin-shell .admin-main { padding: .85rem .75rem 4rem !important; }
+  .admin-shell .admin-title { gap: .7rem; padding-bottom: .65rem; }
+  .admin-shell .product-manager-title { align-items: stretch; }
+  .admin-shell .product-manager-heading { align-items: flex-start; flex-direction: column; gap: .45rem; }
+  .admin-shell .product-manager-heading h1 { font-size: 1.18rem; line-height: 1.15; }
+  .admin-shell .catalog-count-badge { font-size: .57rem; min-height: 24px; }
+  .admin-shell .product-new-button { width: 100%; min-height: 38px; }
+
+  .admin-shell .catalog-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .55rem;
+  }
+  .admin-shell .catalog-kpi-grid .kpi-card {
+    min-height: 94px;
+    padding: .68rem .7rem;
+  }
+  .admin-shell .catalog-kpi-grid .kpi-card > span { font-size: .52rem; }
+  .admin-shell .catalog-kpi-grid .kpi-card > strong { font-size: 1rem; }
+  .admin-shell .catalog-kpi-grid .kpi-card > small { font-size: .54rem; }
+  .admin-shell .kpi-value-full { display: none; }
+  .admin-shell .kpi-value-compact { display: inline; }
+  .admin-shell .catalog-kpi-grid .quality:nth-last-child(1) { grid-column: span 2; min-height: 82px; }
+
+  /* 16px impede o zoom automático do Safari/iPhone ao focar campos. */
+  .admin-shell .admin-search input,
+  .admin-shell .menu-item-field input,
+  .admin-shell .product-editor-form input,
+  .admin-shell .product-editor-form select,
+  .admin-shell .product-editor-form textarea {
+    font-size: 16px !important;
+  }
+
+  .admin-shell .menu-editor-panel .panel-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .admin-shell .menu-editor-panel .panel-heading .button { width: 100%; min-height: 38px; }
+  .admin-shell .menu-item-row {
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: start;
+    gap: .55rem;
+    padding: .65rem;
+  }
+  .admin-shell .menu-item-order { grid-row: 1 / span 2; min-height: 100%; flex-direction: column; }
+  .admin-shell .menu-item-field { grid-column: 2; }
+  .admin-shell .menu-item-actions {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    padding-top: .15rem;
+  }
+  .admin-shell .menu-item-actions .menu-toggle-btn { flex: 1; justify-content: center; }
+
+  .admin-shell .product-editor-modal {
+    padding: max(.35rem, env(safe-area-inset-top)) .35rem max(.35rem, env(safe-area-inset-bottom));
+    place-items: start center;
+  }
+  .admin-shell .product-editor-modal .product-editor-form {
+    max-height: calc(100dvh - .7rem);
+    border-radius: 11px;
+  }
+  .admin-shell .product-editor-heading { min-height: 62px; padding: .72rem .82rem; }
+  .admin-shell .product-editor-heading h2 { font-size: .94rem; }
+  .admin-shell .editor-tabs { top: 62px; padding: .45rem .72rem; }
+  .admin-shell .editor-tabs .pro-tab { flex: 0 0 auto; white-space: nowrap; }
+  .admin-shell .product-editor-form .admin-form-grid,
+  .admin-shell .insights-wrap { padding: .75rem; }
+  .admin-shell .product-editor-form .modal-actions { padding: .6rem .75rem; }
+}
+
+@media (max-width: 380px) {
+  .admin-shell .catalog-kpi-grid .kpi-card { min-height: 90px; }
+  .admin-shell .catalog-kpi-grid .kpi-card > strong { font-size: .92rem; }
+  .admin-shell .catalog-kpi-grid .kpi-card > small { font-size: .51rem; }
+}
+
+/* Ajustes de precedência sobre regras antigas do painel. */
+.admin-shell .product-editor-modal .product-editor-form { padding: 0 !important; }
+@media (max-width: 900px) {
+  .admin-shell .menu-item-row { grid-template-columns: 42px minmax(0, 1fr) !important; }
+}
