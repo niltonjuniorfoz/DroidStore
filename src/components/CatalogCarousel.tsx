@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import AutoplayVideo from "./AutoplayVideo";
 
 export type CatalogSlide = {
@@ -18,6 +18,7 @@ function isVideoUrl(url?: string): boolean {
 
 export default function CatalogCarousel({ slides }: { slides: CatalogSlide[] }) {
   const [active, setActive] = useState(0);
+  const [mediaRatios, setMediaRatios] = useState<Record<number, string>>({});
   const available = slides.slice(0, 5);
 
   const activeSlide = available[active];
@@ -46,10 +47,18 @@ export default function CatalogCarousel({ slides }: { slides: CatalogSlide[] }) 
     }
   }
 
+  function rememberMediaRatio(index: number, width: number, height: number) {
+    if (!width || !height) return;
+    const ratio = `${width} / ${height}`;
+    setMediaRatios((current) => current[index] === ratio ? current : { ...current, [index]: ratio });
+  }
+
   if (!available.length) return null;
 
+  const adaptiveStyle = { "--adaptive-banner-ratio": mediaRatios[active] ?? "16 / 9" } as CSSProperties;
+
   return (
-    <div className="catalog-carousel" aria-roledescription="carrossel" aria-label="Banners do catálogo">
+    <div className="catalog-carousel adaptive-banner-frame" style={adaptiveStyle} aria-roledescription="carrossel" aria-label="Banners do catálogo">
       {available.map((slide, index) => {
         const hasEyebrow = Boolean(slide.eyebrow?.trim());
         const hasTitle = Boolean(slide.title?.trim());
@@ -70,13 +79,17 @@ export default function CatalogCarousel({ slides }: { slides: CatalogSlide[] }) 
                   active={index === active}
                   loop={false}
                   onEnded={handleVideoEnded}
+                  onLoadedMetadata={(event) => rememberMediaRatio(index, event.currentTarget.videoWidth, event.currentTarget.videoHeight)}
                   className="catalog-slide-video"
                   aria-label={slide.title || `Banner do catálogo ${index + 1}`}
                 />
               ) : (
-                <div
+                <img
                   className="catalog-slide-cover"
-                  style={{ backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` }}
+                  src={slide.imageUrl}
+                  alt=""
+                  decoding="async"
+                  onLoad={(event) => rememberMediaRatio(index, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)}
                 />
               )
             )}

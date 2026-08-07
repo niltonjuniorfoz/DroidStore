@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import AutoplayVideo from "./AutoplayVideo";
 
 export type HeroSlide = {
@@ -22,6 +22,7 @@ function isVideoUrl(url?: string): boolean {
 
 export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   const [active, setActive] = useState(0);
+  const [mediaRatios, setMediaRatios] = useState<Record<number, string>>({});
   const available = slides.slice(0, 5);
 
   const activeSlide = available[active];
@@ -56,8 +57,16 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
     }
   }
 
+  function rememberMediaRatio(index: number, width: number, height: number) {
+    if (!width || !height) return;
+    const ratio = `${width} / ${height}`;
+    setMediaRatios((current) => current[index] === ratio ? current : { ...current, [index]: ratio });
+  }
+
+  const adaptiveStyle = { "--adaptive-banner-ratio": mediaRatios[active] ?? "16 / 9" } as CSSProperties;
+
   return (
-    <section className="hero-carousel" aria-roledescription="carrossel" aria-label="Destaques da loja">
+    <section className="hero-carousel adaptive-banner-frame" style={adaptiveStyle} aria-roledescription="carrossel" aria-label="Destaques da loja">
       {available.map((slide, index) => {
         const hasEyebrow = Boolean(slide.eyebrow?.trim());
         const hasTitle = Boolean(slide.title?.trim());
@@ -79,13 +88,17 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                   active={index === active}
                   loop={false}
                   onEnded={handleVideoEnded}
+                  onLoadedMetadata={(event) => rememberMediaRatio(index, event.currentTarget.videoWidth, event.currentTarget.videoHeight)}
                   className="hero-slide-video"
                   aria-label={slide.title || `Banner ${index + 1}`}
                 />
               ) : (
-                <div
+                <img
                   className="hero-slide-cover"
-                  style={{ backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` }}
+                  src={slide.imageUrl}
+                  alt=""
+                  decoding="async"
+                  onLoad={(event) => rememberMediaRatio(index, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)}
                 />
               )
             )}

@@ -38,6 +38,7 @@ import { uploadAdminFile } from "../../../src/lib/uploadClient";
 
 type MenuItem = { id?: string; label: string; href: string; active: boolean };
 type MenuDestinationType = "all" | "category" | "brand" | "condition" | "filter" | "page" | "custom";
+type GuidedDestinationType = MenuDestinationType | "search" | "none";
 type CatalogFilterOption = { id: string; label: string; slug: string };
 type CatalogFilterGroup = { id: string; name: string; slug: string; options: CatalogFilterOption[] };
 type MenuCatalogProduct = {
@@ -50,6 +51,23 @@ type MenuDraft = {
   option: string;
   filterGroup: string;
   customHref: string;
+};
+type GuidedDestinationDraft = {
+  type: GuidedDestinationType;
+  option: string;
+  filterGroup: string;
+  customHref: string;
+};
+type GuidedLinkFieldProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  brandOptions: Array<{ value: string; label: string }>;
+  categoryOptions: Array<{ value: string; label: string }>;
+  filterGroups: CatalogFilterGroup[];
+  allowEmpty?: boolean;
+  searchSuggestion?: string;
+  className?: string;
 };
 type CatalogBanner = { eyebrow: string; title: string; description: string; imageUrl: string };
 type Content = {
@@ -105,6 +123,203 @@ const pageMenuOptions = [
 
 function normalizeToken(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function emptyGuidedDestination(allowEmpty = false): GuidedDestinationDraft {
+  return { type: allowEmpty ? "none" : "all", option: "", filterGroup: "", customHref: "" };
+}
+
+function parseGuidedDestination(href: string, allowEmpty = false): GuidedDestinationDraft {
+  const value = href.trim();
+  if (!value) return emptyGuidedDestination(allowEmpty);
+
+  const [path, query = ""] = value.split("?");
+  const params = new URLSearchParams(query);
+  if (path === "/celulares" && !query) return { type: "all", option: "", filterGroup: "", customHref: "" };
+
+  const search = params.get("q");
+  if (path === "/celulares" && search) return { type: "search", option: search, filterGroup: "", customHref: "" };
+
+  const brand = params.get("brand");
+  if (path === "/celulares" && brand) return { type: "brand", option: brand, filterGroup: "", customHref: "" };
+
+  const condition = params.get("condition");
+  if (path === "/celulares" && condition) return { type: "condition", option: condition, filterGroup: "", customHref: "" };
+
+  const category = params.get("categoria") ?? params.get("category") ?? params.get("cat");
+  if (path === "/celulares" && category) return { type: "category", option: category, filterGroup: "", customHref: "" };
+
+  if (path === "/celulares") {
+    const firstFilter = [...params.entries()][0];
+    if (firstFilter) return { type: "filter", filterGroup: firstFilter[0], option: firstFilter[1], customHref: "" };
+  }
+
+  if (pageMenuOptions.some((page) => page.value === path)) {
+    return { type: "page", option: path, filterGroup: "", customHref: "" };
+  }
+
+  return { type: "custom", option: "", filterGroup: "", customHref: value };
+}
+
+function buildGuidedHref(draft: GuidedDestinationDraft, filterGroups: CatalogFilterGroup[]) {
+  if (draft.type === "none") return "";
+  if (draft.type === "all") return "/celulares";
+  if (draft.type === "search" && draft.option.trim()) return `/celulares?q=${encodeURIComponent(draft.option.trim())}`;
+  if (draft.type === "brand" && draft.option) return `/celulares?brand=${encodeURIComponent(draft.option)}`;
+  if (draft.type === "category" && draft.option) return `/celulares?categoria=${encodeURIComponent(draft.option)}`;
+  if (draft.type === "condition" && draft.option) return `/celulares?condition=${encodeURIComponent(draft.option)}`;
+  if (draft.type === "filter" && draft.filterGroup && draft.option) {
+    const group = filterGroups.find((item) => item.slug === draft.filterGroup);
+    if (group) return `/celulares?${encodeURIComponent(group.slug)}=${encodeURIComponent(draft.option)}`;
+  }
+  if (draft.type === "page" && draft.option) return draft.option;
+  if (draft.type === "custom") return draft.customHref.trim();
+  return "";
+}
+
+function guidedHrefDescription(
+  href: string,
+  categoryOptions: Array<{ value: string; label: string }>,
+  filterGroups: CatalogFilterGroup[],
+) {
+  if (!href) return "Sem ação ao clicar";
+  const [path, query = ""] = href.split("?");
+  const params = new URLSearchParams(query);
+  if (path === "/celulares" && !query) return "Abre todos os produtos";
+
+  const search = params.get("q");
+  if (search) return `Busca por: ${search}`;
+  const brand = params.get("brand");
+  if (brand) return `Marca: ${brand}`;
+  const condition = params.get("condition");
+  if (condition) return `Condição: ${condition}`;
+  const category = params.get("categoria") ?? params.get("category") ?? params.get("cat");
+  if (category) {
+    const option = categoryOptions.find((item) => normalizeToken(item.value) === normalizeToken(category));
+    return `Categoria: ${option?.label ?? category}`;
+  }
+  const firstFilter = [...params.entries()][0];
+  if (path === "/celulares" && firstFilter) {
+    const group = filterGroups.find((item) => item.slug === firstFilter[0]);
+    const option = group?.options.find((item) => normalizeToken(item.slug) === normalizeToken(firstFilter[1]));
+    return `${group?.name ?? "Filtro"}: ${option?.label ?? firstFilter[1]}`;
+  }
+  const page = pageMenuOptions.find((item) => item.value === path);
+  return page ? `Página: ${page.label}` : "Link personalizado";
+}
+
+function GuidedLinkField({
+  label,
+  value,
+  onChange,
+  brandOptions,
+  categoryOptions,
+  filterGroups,
+  allowEmpty = false,
+  searchSuggestion = "",
+  className = "",
+}: GuidedLinkFieldProps) {
+  const [draft, setDraft] = useState<GuidedDestinationDraft>(() => parseGuidedDestination(value, allowEmpty));
+
+  useEffect(() => {
+    setDraft(parseGuidedDestination(value, allowEmpty));
+  }, [value, allowEmpty]);
+
+  const selectedFilter = filterGroups.find((item) => item.slug === draft.filterGroup) ?? filterGroups[0];
+  const selectedOptions = draft.type === "brand"
+    ? brandOptions
+    : draft.type === "category"
+      ? categoryOptions
+      : draft.type === "condition"
+        ? conditionMenuOptions
+        : draft.type === "page"
+          ? pageMenuOptions
+          : draft.type === "filter"
+            ? (selectedFilter?.options ?? []).map((option) => ({ value: option.slug, label: option.label }))
+            : [];
+
+  function commit(next: GuidedDestinationDraft) {
+    setDraft(next);
+    onChange(buildGuidedHref(next, filterGroups));
+  }
+
+  function changeType(type: GuidedDestinationType) {
+    if (type === "none") return commit({ type, option: "", filterGroup: "", customHref: "" });
+    if (type === "all") return commit({ type, option: "", filterGroup: "", customHref: "" });
+    if (type === "search") return commit({ type, option: searchSuggestion.trim() || "ofertas", filterGroup: "", customHref: "" });
+    if (type === "brand") return commit({ type, option: brandOptions[0]?.value ?? "", filterGroup: "", customHref: "" });
+    if (type === "category") return commit({ type, option: categoryOptions[0]?.value ?? "", filterGroup: "", customHref: "" });
+    if (type === "condition") return commit({ type, option: conditionMenuOptions[0]?.value ?? "", filterGroup: "", customHref: "" });
+    if (type === "filter") {
+      const group = filterGroups[0];
+      return commit({ type, filterGroup: group?.slug ?? "", option: group?.options[0]?.slug ?? "", customHref: "" });
+    }
+    if (type === "page") return commit({ type, option: pageMenuOptions[0]?.value ?? "/", filterGroup: "", customHref: "" });
+    commit({ type: "custom", option: "", filterGroup: "", customHref: draft.customHref || "/pagina-personalizada" });
+  }
+
+  const generatedHref = buildGuidedHref(draft, filterGroups);
+
+  return (
+    <div className={`guided-link-field ${className}`.trim()}>
+      <span className="guided-link-label">{label}</span>
+      <select value={draft.type} onChange={(event) => changeType(event.target.value as GuidedDestinationType)}>
+        {allowEmpty && <option value="none">Não fazer nada ao clicar</option>}
+        <option value="all">Abrir todos os produtos</option>
+        <option value="search">Buscar produtos por nome</option>
+        <option value="category" disabled={!categoryOptions.length}>Abrir uma categoria</option>
+        <option value="brand" disabled={!brandOptions.length}>Abrir uma marca</option>
+        <option value="condition">Abrir uma condição</option>
+        <option value="filter" disabled={!filterGroups.length}>Usar um filtro cadastrado</option>
+        <option value="page">Abrir uma página da loja</option>
+        <option value="custom">Link personalizado (avançado)</option>
+      </select>
+
+      {draft.type === "search" && (
+        <input
+          value={draft.option}
+          onChange={(event) => commit({ ...draft, option: event.target.value })}
+          placeholder="Ex.: Xiaomi, notebook, protetor solar..."
+        />
+      )}
+
+      {draft.type === "filter" && (
+        <select
+          value={selectedFilter?.slug ?? ""}
+          onChange={(event) => {
+            const group = filterGroups.find((item) => item.slug === event.target.value);
+            commit({ ...draft, filterGroup: group?.slug ?? "", option: group?.options[0]?.slug ?? "" });
+          }}
+        >
+          {filterGroups.map((group) => <option key={group.id} value={group.slug}>{group.name}</option>)}
+        </select>
+      )}
+
+      {draft.type !== "none" && draft.type !== "all" && draft.type !== "search" && draft.type !== "custom" && (
+        <select value={draft.option} onChange={(event) => commit({ ...draft, option: event.target.value })}>
+          {selectedOptions.map((option) => <option key={`${draft.type}-${option.value}`} value={option.value}>{option.label}</option>)}
+        </select>
+      )}
+
+      {draft.type === "custom" && (
+        <input
+          value={draft.customHref}
+          onChange={(event) => commit({ ...draft, customHref: event.target.value })}
+          placeholder="Ex.: /atendimento"
+        />
+      )}
+
+      <div className="guided-link-result">
+        <CheckCircle2 size={14} />
+        <span><b>O cliente será levado para:</b> {guidedHrefDescription(generatedHref, categoryOptions, filterGroups)}</span>
+      </div>
+
+      <details className="guided-link-advanced">
+        <summary>Ver endereço técnico</summary>
+        <input value={value} onChange={(event) => onChange(event.target.value)} aria-label={`Endereço técnico de ${label}`} />
+      </details>
+    </div>
+  );
 }
 
 const blankSlide = (): HeroSlide => ({
@@ -684,7 +899,14 @@ export default function AdminConteudo() {
                 <label>Título principal<textarea rows={2} value={slide.title} onChange={(event) => updateSlide(index, { title: event.target.value })} /></label>
                 <label className="wide">Descrição<textarea rows={2} value={slide.description} onChange={(event) => updateSlide(index, { description: event.target.value })} /></label>
                 <label>Texto do botão<input value={slide.buttonLabel} onChange={(event) => updateSlide(index, { buttonLabel: event.target.value })} /></label>
-                <label>Link de destino<input value={slide.buttonHref} onChange={(event) => updateSlide(index, { buttonHref: event.target.value })} /></label>
+                <GuidedLinkField
+                  label="Destino do botão"
+                  value={slide.buttonHref}
+                  onChange={(buttonHref) => updateSlide(index, { buttonHref })}
+                  brandOptions={brandMenuOptions}
+                  categoryOptions={categoryMenuOptions}
+                  filterGroups={customFilterGroups}
+                />
               </div>
 
               <label className="upload-box">
@@ -732,7 +954,14 @@ export default function AdminConteudo() {
                 <label>Título<input value={banner.title} onChange={(event) => updateHomePromo(index, { title: event.target.value })} /></label>
                 <label className="wide">Descrição<input value={banner.description} onChange={(event) => updateHomePromo(index, { description: event.target.value })} /></label>
                 <label>Texto do botão<input value={banner.buttonLabel} onChange={(event) => updateHomePromo(index, { buttonLabel: event.target.value })} /></label>
-                <label>Link do botão<input value={banner.buttonHref} onChange={(event) => updateHomePromo(index, { buttonHref: event.target.value })} /></label>
+                <GuidedLinkField
+                  label="Ao clicar no botão"
+                  value={banner.buttonHref}
+                  onChange={(buttonHref) => updateHomePromo(index, { buttonHref })}
+                  brandOptions={brandMenuOptions}
+                  categoryOptions={categoryMenuOptions}
+                  filterGroups={customFilterGroups}
+                />
                 <label className="compact-upload-button">
                   <ImagePlus size={15} /> Trocar imagem
                   <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void uploadHomePromo(index, event.target.files?.[0])} />
@@ -749,7 +978,15 @@ export default function AdminConteudo() {
               <label>Título<input value={section.title} onChange={(event) => updateHomeSection(index, { title: event.target.value })} /></label>
               <label>Produtos exibidos<input value={section.query} onChange={(event) => updateHomeSection(index, { query: event.target.value })} placeholder="Ex: xiaomi ou notebook, computador" /></label>
               <label>Texto do botão<input value={section.buttonLabel} onChange={(event) => updateHomeSection(index, { buttonLabel: event.target.value })} /></label>
-              <label>Link<input value={section.buttonHref} onChange={(event) => updateHomeSection(index, { buttonHref: event.target.value })} /></label>
+              <GuidedLinkField
+                label="Ao clicar em Ver todos"
+                value={section.buttonHref}
+                onChange={(buttonHref) => updateHomeSection(index, { buttonHref })}
+                brandOptions={brandMenuOptions}
+                categoryOptions={categoryMenuOptions}
+                filterGroups={customFilterGroups}
+                searchSuggestion={section.query.split(",")[0]?.trim() ?? ""}
+              />
             </div>
           ))}
         </div>
@@ -782,14 +1019,15 @@ export default function AdminConteudo() {
                 />
               </label>
 
-              <label>
-                Link ao clicar (opcional)
-                <input
-                  value={content.homeFooterBanner.linkHref}
-                  onChange={(event) => updateHomeFooterBanner({ linkHref: event.target.value })}
-                  placeholder="/celulares"
-                />
-              </label>
+              <GuidedLinkField
+                label="Ao clicar no banner"
+                value={content.homeFooterBanner.linkHref}
+                onChange={(linkHref) => updateHomeFooterBanner({ linkHref })}
+                brandOptions={brandMenuOptions}
+                categoryOptions={categoryMenuOptions}
+                filterGroups={customFilterGroups}
+                allowEmpty
+              />
 
               <label className="footer-banner-toggle">
                 <input

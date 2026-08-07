@@ -2273,3 +2273,80 @@
   object-position: center !important;
   background: transparent !important;
 }
+
+/* ========================================================================== 
+   Aura Tech — destinos guiados para banners e prateleiras
+   ========================================================================== */
+.guided-link-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .28rem;
+  align-self: stretch;
+}
+.guided-link-label {
+  color: var(--a-ink, #17201b);
+  font-size: .6rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.guided-link-field > select,
+.guided-link-field > input,
+.guided-link-advanced input {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: .45rem .55rem;
+  border: 1px solid var(--line, #d9dfdc);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--a-ink, #17201b);
+  font: inherit;
+  font-size: .63rem;
+  outline: none;
+}
+.guided-link-field > select:focus,
+.guided-link-field > input:focus,
+.guided-link-advanced input:focus {
+  border-color: #ff7900;
+  box-shadow: 0 0 0 3px rgba(255,121,0,.11);
+}
+.guided-link-result {
+  min-height: 32px;
+  padding: .42rem .5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .36rem;
+  border: 1px solid #bae6c8;
+  border-radius: 7px;
+  background: #f2fcf5;
+  color: #176936;
+  font-size: .55rem;
+  line-height: 1.35;
+}
+.guided-link-result svg { flex: 0 0 auto; margin-top: 1px; }
+.guided-link-result span { min-width: 0; overflow-wrap: anywhere; }
+.guided-link-result b { font-weight: 800; }
+.guided-link-advanced { margin-top: -.05rem; }
+.guided-link-advanced summary {
+  width: max-content;
+  color: #7b8781;
+  font-size: .52rem;
+  cursor: pointer;
+  user-select: none;
+}
+.guided-link-advanced input { margin-top: .3rem; }
+.hero-slide-fields > .guided-link-field { grid-column: 1 / -1; }
+.promo-config-fields > .guided-link-field { grid-column: 1 / -1; }
+.footer-banner-config-fields > .guided-link-field { width: 100%; }
+
+@media (max-width: 900px) {
+  .guided-link-field > select,
+  .guided-link-field > input,
+  .guided-link-advanced input {
+    min-height: 42px;
+    font-size: 16px !important;
+  }
+  .guided-link-label { font-size: .63rem; }
+  .guided-link-result { font-size: .58rem; }
+}
