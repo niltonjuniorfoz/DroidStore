@@ -1,11 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft,
-  ArrowRight,
   CheckCircle2,
-  ChevronDown,
   Eye,
   EyeOff,
   GripVertical,
@@ -15,14 +12,17 @@ import {
   ListFilter,
   Link2,
   Menu,
+  Monitor,
   PackageSearch,
   Pencil,
   Plus,
   Save,
+  Smartphone,
   Sparkles,
   Tag,
   Trash2,
   Tv,
+  X,
 } from "lucide-react";
 import type { HeroSlide } from "../../../src/components/HeroCarousel";
 import {
@@ -37,6 +37,9 @@ import {
 import { uploadAdminFile } from "../../../src/lib/uploadClient";
 
 type MenuItem = { id?: string; label: string; href: string; active: boolean };
+type ContentTab = "overview" | "banners" | "shelves" | "menu" | "visual";
+type SortableContentKind = "heroSlides" | "catalogSlides" | "homePromoBanners" | "homeProductSections" | "navigation";
+type PreviewDevice = "desktop" | "mobile";
 type MenuDestinationType = "all" | "category" | "brand" | "condition" | "filter" | "page" | "custom";
 type GuidedDestinationType = MenuDestinationType | "search" | "none";
 type CatalogFilterOption = { id: string; label: string; slug: string };
@@ -352,13 +355,20 @@ export default function AdminConteudo() {
   const [menuCatalogProducts, setMenuCatalogProducts] = useState<MenuCatalogProduct[]>([]);
   const [menuDraft, setMenuDraft] = useState<MenuDraft>(emptyMenuDraft);
   const [menuEditingIndex, setMenuEditingIndex] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<ContentTab>("overview");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("desktop");
+  const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
+  const [dirty, setDirty] = useState(false);
   const menuBuilderRef = useRef<HTMLDivElement | null>(null);
+  const pointerSortRef = useRef<{ kind: SortableContentKind; index: number; pointerId: number } | null>(null);
 
   function changeContent(
     updater: (current: Content) => Content,
     notification = "Alteração realizada. Clique em Salvar alterações para publicar.",
   ) {
     setContent(updater);
+    setDirty(true);
     setMessage(notification);
   }
 
@@ -425,6 +435,7 @@ export default function AdminConteudo() {
           : DEFAULT_HOME_PRODUCT_SECTIONS.map((section) => ({ ...section })),
         navigation: data.navigation ?? [],
       });
+      setDirty(false);
     }).catch(() => setMessage("Falha de conexão ao carregar o conteúdo. Recarregue a página."));
   }, []);
 
@@ -437,6 +448,64 @@ export default function AdminConteudo() {
       setMenuCatalogProducts(Array.isArray(productData) ? productData : []);
     }).catch(() => undefined);
   }, []);
+
+  useEffect(() => () => {
+    document.body.classList.remove("admin-content-sorting");
+  }, []);
+
+  function reorderArray<T>(items: T[], from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) return items;
+    const next = [...items];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    return next;
+  }
+
+  function reorderContent(kind: SortableContentKind, from: number, to: number) {
+    if (from === to) return;
+    changeContent((current) => {
+      if (kind === "heroSlides") return { ...current, heroSlides: reorderArray(current.heroSlides, from, to) };
+      if (kind === "catalogSlides") return { ...current, catalogSlides: reorderArray(current.catalogSlides, from, to) };
+      if (kind === "homePromoBanners") return { ...current, homePromoBanners: reorderArray(current.homePromoBanners, from, to) };
+      if (kind === "homeProductSections") return { ...current, homeProductSections: reorderArray(current.homeProductSections, from, to) };
+      return { ...current, navigation: reorderArray(current.navigation, from, to) };
+    }, "Ordem alterada. Confira na prévia e publique quando estiver tudo certo.");
+  }
+
+  function beginPointerSort(kind: SortableContentKind, index: number, event: ReactPointerEvent<HTMLElement>) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    pointerSortRef.current = { kind, index, pointerId: event.pointerId };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    document.body.classList.add("admin-content-sorting");
+  }
+
+  function movePointerSort(event: ReactPointerEvent<HTMLElement>) {
+    const active = pointerSortRef.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>(`[data-sort-kind="${active.kind}"]`);
+    if (!target) return;
+    const nextIndex = Number(target.dataset.sortIndex);
+    if (!Number.isInteger(nextIndex) || nextIndex === active.index) return;
+    reorderContent(active.kind, active.index, nextIndex);
+    pointerSortRef.current = { ...active, index: nextIndex };
+  }
+
+  function endPointerSort(event: ReactPointerEvent<HTMLElement>) {
+    const active = pointerSortRef.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    pointerSortRef.current = null;
+    document.body.classList.remove("admin-content-sorting");
+    try { event.currentTarget.releasePointerCapture(event.pointerId); } catch { /* captura já liberada */ }
+  }
+
+  function sortHandleProps(kind: SortableContentKind, index: number) {
+    return {
+      onPointerDown: (event: ReactPointerEvent<HTMLElement>) => beginPointerSort(kind, index, event),
+      onPointerMove: movePointerSort,
+      onPointerUp: endPointerSort,
+      onPointerCancel: endPointerSort,
+    };
+  }
 
   function updateMenu(index: number, patch: Partial<MenuItem>) {
     changeContent((current) => ({
@@ -737,554 +806,509 @@ export default function AdminConteudo() {
     resetMenuBuilder();
   }
 
-  async function save(event: FormEvent) {
-    event.preventDefault();
+  async function publishContent() {
     setBusy(true);
     setMessage("");
-    const response = await fetch("/api/admin/content", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(content),
-    });
-    const data = await response.json();
-    setMessage(response.ok ? "Vitrine atualizada com sucesso. As mudanças já estão visíveis na loja!" : data.error);
-    setBusy(false);
+    try {
+      const response = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(content),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setMessage(data.error ?? "Não foi possível publicar as alterações.");
+        return false;
+      }
+      setDirty(false);
+      setMessage("Vitrine atualizada com sucesso. As mudanças já estão visíveis na loja!");
+      return true;
+    } catch {
+      setMessage("Falha de conexão ao publicar. Tente novamente.");
+      return false;
+    } finally {
+      setBusy(false);
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+    }
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    await publishContent();
   }
 
   const activeSlide = content.heroSlides[activePreviewIndex] ?? content.heroSlides[0];
+  const previewSlide = content.heroSlides[previewSlideIndex] ?? content.heroSlides[0];
+  const activeNavigation = content.navigation.filter((item) => item.active);
 
   return (
-    <form className="admin-easy" onSubmit={save}>
-      <header className="admin-title">
+    <form className="admin-easy content-studio" onSubmit={save}>
+      <header className="admin-title content-studio-title">
         <div>
           <span className="eyebrow">Editor Visual da Loja</span>
           <h1>Vitrine e Menu Principal</h1>
-          <p>Personalize os banners rotativos da primeira página, carrossel do catálogo e atalhos de navegação.</p>
+          <p>Organize banners, prateleiras e navegação sem precisar escrever códigos ou links técnicos.</p>
+          <div className={`publish-state ${dirty ? "pending" : "saved"}`}>
+            <span />
+            {dirty ? "Há alterações que ainda não foram publicadas" : "Tudo publicado e atualizado"}
+          </div>
         </div>
-        <button className="button primary" disabled={busy}>
-          <Save size={16} /> Salvar alterações
-        </button>
+        <div className="content-studio-actions">
+          <button
+            type="button"
+            className="button ghost preview-button"
+            onClick={() => {
+              setPreviewSlideIndex(0);
+              setPreviewOpen(true);
+            }}
+          >
+            <Eye size={16} /> Pré-visualizar
+          </button>
+          <button className="button primary" disabled={busy || !dirty}>
+            <Save size={16} /> {busy ? "Publicando..." : "Salvar e publicar"}
+          </button>
+        </div>
       </header>
 
       {message && <p className="admin-message" role="status" aria-live="polite">{message}</p>}
 
-      {/* --- KPI CARDS DE CONTEÚDO --- */}
-      <section className="catalog-kpi-grid">
-        <div className="kpi-card">
-          <span><Tv size={16} /> Capas do Carrossel Home</span>
-          <strong>{content.heroSlides.length} / 5</strong>
-          <small>Banners da página inicial</small>
-        </div>
-
-        <div className="kpi-card">
-          <span><Layout size={16} /> Capas do Catálogo</span>
-          <strong>{content.catalogSlides.length} / 5</strong>
-          <small>Banners da página de produtos</small>
-        </div>
-
-        <div className="kpi-card profit">
-          <span><Menu size={16} /> Atalhos no Menu</span>
-          <strong>{content.navigation.filter((n) => n.active).length} ativos</strong>
-          <small>{content.navigation.length} itens totais</small>
-        </div>
-      </section>
-
-      {/* --- SIMULADOR DE PRÉVIA REALISTA EM TEMPO REAL --- */}
-      <section className="admin-panel visual-preview-panel">
-        <div className="panel-heading">
-          <div>
-            <h2><Sparkles className="inline text-green" size={18} /> Simulador em Tempo Real (Prévia da Capa {activePreviewIndex + 1})</h2>
-            <p>Veja como o cliente enxerga este banner na primeira página da loja.</p>
-          </div>
-          <div className="preview-slide-selector">
-            {content.heroSlides.map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className={`prev-tab-btn ${activePreviewIndex === idx ? "active" : ""}`}
-                onClick={() => setActivePreviewIndex(idx)}
-              >
-                Capa {idx + 1}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {activeSlide && (
-          <div className="realtime-banner-mockup">
-            <div className="mockup-background">
-              {activeSlide.imageUrl ? (
-                activeSlide.imageUrl.endsWith(".mp4") || activeSlide.imageUrl.endsWith(".webm") ? (
-                  <video src={activeSlide.imageUrl} autoPlay loop muted playsInline />
-                ) : (
-                  <img src={activeSlide.imageUrl} alt="" />
-                )
-              ) : (
-                <div className="mockup-placeholder-bg">Insira um link ou envie uma foto/vídeo</div>
-              )}
-            </div>
-            
-            <div className="mockup-overlay">
-              {activeSlide.eyebrow && <span className="mockup-eyebrow">{activeSlide.eyebrow}</span>}
-              <h2 className="mockup-title">{activeSlide.title || "Título do Banner"}</h2>
-              {activeSlide.description && <p className="mockup-desc">{activeSlide.description}</p>}
-              {activeSlide.buttonLabel && (
-                <span className="mockup-button">{activeSlide.buttonLabel} →</span>
-              )}
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* CARROSSEL PRINCIPAL DA HOME */}
-      <section className="admin-panel hero-editor-panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Carrossel da Primeira Página (Home)</h2>
-            <p>Edite o texto, imagens, vídeos e links de cada capa. Capas ativas ({content.heroSlides.length}/5).</p>
-          </div>
+      <nav className="content-studio-tabs" aria-label="Áreas da vitrine">
+        {([
+          ["overview", "Visão geral"],
+          ["banners", "Banners"],
+          ["shelves", "Prateleiras"],
+          ["menu", "Menu de navegação"],
+          ["visual", "Configurações visuais"],
+        ] as Array<[ContentTab, string]>).map(([tab, label]) => (
           <button
+            key={tab}
             type="button"
-            className="button ghost"
-            disabled={content.heroSlides.length >= 5}
-            onClick={() => changeContent((current) => ({ ...current, heroSlides: [...current.heroSlides, blankSlide()] }))}
+            className={activeTab === tab ? "active" : ""}
+            onClick={() => setActiveTab(tab)}
           >
-            <Plus size={15} /> Adicionar capa
+            {label}
           </button>
-        </div>
+        ))}
+      </nav>
 
-        <div className="hero-slides-editor">
-          {content.heroSlides.map((slide, index) => (
-            <details className="hero-slide-editor compact-editor-card" key={index}>
-              <summary>
-                <span className="editor-card-thumb" style={slide.imageUrl ? { backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` } : undefined}><ImagePlus size={15} /></span>
-                <span><strong>Capa {index + 1}</strong><small>{slide.title || "Sem título"}</small></span>
-              </summary>
-              <div className="compact-editor-body">
-              <div className="hero-slide-editor-head">
-                <strong>Capa {index + 1}</strong>
-
-                <div className="slide-order-actions">
-                  <button
-                    type="button"
-                    disabled={index === 0}
-                    onClick={() => moveSlide(index, -1)}
-                    title="Mover para esquerda"
-                  >
-                    <ArrowLeft size={14} />
+      {activeTab === "overview" && (
+        <div className="content-overview">
+          <section className="overview-card">
+            <header>
+              <div>
+                <span className="overview-number">1</span>
+                <div><h2>Banners da página inicial</h2><p>Arraste as capas para mudar a ordem em que aparecem.</p></div>
+              </div>
+              <button type="button" className="button ghost sm" onClick={() => setActiveTab("banners")}>Editar banners</button>
+            </header>
+            <div className="sortable-preview-strip banner-sort-strip">
+              {content.heroSlides.map((slide, index) => (
+                <article key={`overview-hero-${index}`} className="sortable-preview-card" data-sort-kind="heroSlides" data-sort-index={index}>
+                  <button type="button" className="drag-handle" aria-label={`Arrastar banner ${index + 1}`} {...sortHandleProps("heroSlides", index)}>
+                    <GripVertical size={16} />
                   </button>
-                  <button
-                    type="button"
-                    disabled={index === content.heroSlides.length - 1}
-                    onClick={() => moveSlide(index, 1)}
-                    title="Mover para direita"
-                  >
-                    <ArrowRight size={14} />
+                  <div className="sortable-media-thumb">
+                    {slide.imageUrl ? <img src={slide.imageUrl} alt="" /> : <ImagePlus size={20} />}
+                  </div>
+                  <div><strong>Banner {index + 1}</strong><small>{slide.title || "Sem título"}</small></div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="overview-card">
+            <header>
+              <div>
+                <span className="overview-number">2</span>
+                <div><h2>Prateleiras de produtos</h2><p>Arraste para definir qual grupo aparece primeiro.</p></div>
+              </div>
+              <button type="button" className="button ghost sm" onClick={() => setActiveTab("shelves")}>Editar prateleiras</button>
+            </header>
+            <div className="sortable-preview-strip shelf-sort-strip">
+              {content.homeProductSections.map((section, index) => (
+                <article key={`overview-shelf-${index}`} className="sortable-preview-card shelf" data-sort-kind="homeProductSections" data-sort-index={index}>
+                  <button type="button" className="drag-handle" aria-label={`Arrastar prateleira ${index + 1}`} {...sortHandleProps("homeProductSections", index)}>
+                    <GripVertical size={16} />
                   </button>
-                  {content.heroSlides.length > 1 && (
-                    <button
-                      type="button"
-                      className="danger-text"
-                      onClick={() => changeContent((current) => ({ ...current, heroSlides: current.heroSlides.filter((_, slideIndex) => slideIndex !== index) }))}
-                      title="Remover capa"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="hero-slide-fields">
-                <label>Texto pequeno (Eyebrow)<input value={slide.eyebrow} onChange={(event) => updateSlide(index, { eyebrow: event.target.value })} /></label>
-                <label>Título principal<textarea rows={2} value={slide.title} onChange={(event) => updateSlide(index, { title: event.target.value })} /></label>
-                <label className="wide">Descrição<textarea rows={2} value={slide.description} onChange={(event) => updateSlide(index, { description: event.target.value })} /></label>
-                <label>Texto do botão<input value={slide.buttonLabel} onChange={(event) => updateSlide(index, { buttonLabel: event.target.value })} /></label>
-                <GuidedLinkField
-                  label="Destino do botão"
-                  value={slide.buttonHref}
-                  onChange={(buttonHref) => updateSlide(index, { buttonHref })}
-                  brandOptions={brandMenuOptions}
-                  categoryOptions={categoryMenuOptions}
-                  filterGroups={customFilterGroups}
-                />
-              </div>
-
-              <label className="upload-box">
-                <ImagePlus size={16} /> {slide.imageUrl ? "Trocar foto ou vídeo desta capa" : "Escolher foto ou vídeo (JPG, PNG, MP4, WebM)"}
-                <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" onChange={(event) => void upload(index, event.target.files?.[0])} />
-              </label>
-
-              {slide.imageUrl && (
-                <div className="hero-slide-preview">
-                  {slide.imageUrl.endsWith(".mp4") || slide.imageUrl.endsWith(".webm") || slide.imageUrl.endsWith(".mov") ? (
-                    <video src={slide.imageUrl} autoPlay loop muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")`, backgroundSize: "cover" }} />
-                  )}
-                </div>
-              )}
-              </div>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      <section className="admin-panel home-layout-editor">
-        <div className="panel-heading">
-          <div>
-            <h2>Banners e prateleiras da página inicial</h2>
-            <p>Edite os dois banners exibidos após os destaques e escolha quais produtos aparecem logo abaixo.</p>
-          </div>
-        </div>
-
-        <label className="compact-setting-field">
-          Título dos produtos destacados
-          <input value={content.homeFeaturedTitle} onChange={(event) => changeContent((current) => ({ ...current, homeFeaturedTitle: event.target.value }))} />
-        </label>
-
-        <div className="promo-config-list">
-          {content.homePromoBanners.map((banner, index) => (
-            <div className="promo-config-row" key={index}>
-              <div className="promo-config-preview">
-                <img src={banner.imageUrl} alt="" />
-                <div><small>{banner.eyebrow}</small><strong>{banner.title}</strong><span>{banner.buttonLabel}</span></div>
-              </div>
-              <div className="promo-config-fields">
-                <label>Chamada pequena<input value={banner.eyebrow} onChange={(event) => updateHomePromo(index, { eyebrow: event.target.value })} /></label>
-                <label>Título<input value={banner.title} onChange={(event) => updateHomePromo(index, { title: event.target.value })} /></label>
-                <label className="wide">Descrição<input value={banner.description} onChange={(event) => updateHomePromo(index, { description: event.target.value })} /></label>
-                <label>Texto do botão<input value={banner.buttonLabel} onChange={(event) => updateHomePromo(index, { buttonLabel: event.target.value })} /></label>
-                <GuidedLinkField
-                  label="Ao clicar no botão"
-                  value={banner.buttonHref}
-                  onChange={(buttonHref) => updateHomePromo(index, { buttonHref })}
-                  brandOptions={brandMenuOptions}
-                  categoryOptions={categoryMenuOptions}
-                  filterGroups={customFilterGroups}
-                />
-                <label className="compact-upload-button">
-                  <ImagePlus size={15} /> Trocar imagem
-                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void uploadHomePromo(index, event.target.files?.[0])} />
-                </label>
-              </div>
+                  <span className="overview-icon"><Layers size={20} /></span>
+                  <div><strong>{section.title || `Prateleira ${index + 1}`}</strong><small>Busca: {section.query || "não configurada"}</small></div>
+                </article>
+              ))}
             </div>
-          ))}
-        </div>
+          </section>
 
-        <div className="home-sections-config">
-          {content.homeProductSections.map((section, index) => (
-            <div className="home-section-config-row" key={index}>
-              <strong>Prateleira {index + 1}</strong>
-              <label>Título<input value={section.title} onChange={(event) => updateHomeSection(index, { title: event.target.value })} /></label>
-              <label>Produtos exibidos<input value={section.query} onChange={(event) => updateHomeSection(index, { query: event.target.value })} placeholder="Ex: xiaomi ou notebook, computador" /></label>
-              <label>Texto do botão<input value={section.buttonLabel} onChange={(event) => updateHomeSection(index, { buttonLabel: event.target.value })} /></label>
-              <GuidedLinkField
-                label="Ao clicar em Ver todos"
-                value={section.buttonHref}
-                onChange={(buttonHref) => updateHomeSection(index, { buttonHref })}
-                brandOptions={brandMenuOptions}
-                categoryOptions={categoryMenuOptions}
-                filterGroups={customFilterGroups}
-                searchSuggestion={section.query.split(",")[0]?.trim() ?? ""}
-              />
+          <section className="overview-card overview-menu-card">
+            <header>
+              <div>
+                <span className="overview-number">3</span>
+                <div><h2>Menu de navegação do cabeçalho</h2><p>Segure o ícone e arraste cada item para a esquerda ou para a direita.</p></div>
+              </div>
+              <button type="button" className="button ghost sm" onClick={() => setActiveTab("menu")}>Editar menu</button>
+            </header>
+            <div className="menu-order-strip" aria-label="Ordem dos itens do menu">
+              {content.navigation.map((item, index) => (
+                <article
+                  key={item.id ?? `overview-menu-${index}`}
+                  className={`menu-order-chip ${item.active ? "" : "inactive"}`}
+                  data-sort-kind="navigation"
+                  data-sort-index={index}
+                >
+                  <button type="button" className="drag-handle" aria-label={`Arrastar ${item.label}`} {...sortHandleProps("navigation", index)}>
+                    <GripVertical size={15} />
+                  </button>
+                  <span>{item.label || `Item ${index + 1}`}</span>
+                  {!item.active && <small>Oculto</small>}
+                </article>
+              ))}
+              {!content.navigation.length && <p className="overview-empty">Nenhum item de menu configurado.</p>}
             </div>
-          ))}
-        </div>
+          </section>
 
-        <div className="footer-banner-config">
-          <div className="panel-heading compact-heading">
+          <section className="overview-publish-card">
             <div>
-              <h3>Banner final da página inicial</h3>
-              <p>Este banner aparece logo depois da prateleira Informática. Você pode trocar a imagem, o link ou ocultá-lo.</p>
+              <Eye size={22} />
+              <span><strong>Confira tudo antes de publicar</strong><small>A prévia é particular: somente você vê as alterações até clicar em “Salvar e publicar”.</small></span>
             </div>
-          </div>
-
-          <div className="footer-banner-config-grid">
-            <div className="footer-banner-admin-preview">
-              <img src={content.homeFooterBanner.imageUrl} alt="Prévia do banner final" />
+            <div>
+              <button type="button" className="button ghost" onClick={() => setPreviewOpen(true)}>Abrir prévia</button>
+              <button type="submit" className="button primary" disabled={busy || !dirty}>Salvar e publicar</button>
             </div>
-
-            <div className="footer-banner-config-fields">
-              <label className="compact-upload-button">
-                <ImagePlus size={15} /> Trocar banner
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  disabled={busy}
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.[0];
-                    event.currentTarget.value = "";
-                    void uploadHomeFooterBanner(file);
-                  }}
-                />
-              </label>
-
-              <GuidedLinkField
-                label="Ao clicar no banner"
-                value={content.homeFooterBanner.linkHref}
-                onChange={(linkHref) => updateHomeFooterBanner({ linkHref })}
-                brandOptions={brandMenuOptions}
-                categoryOptions={categoryMenuOptions}
-                filterGroups={customFilterGroups}
-                allowEmpty
-              />
-
-              <label className="footer-banner-toggle">
-                <input
-                  type="checkbox"
-                  checked={content.homeFooterBanner.active}
-                  onChange={(event) => updateHomeFooterBanner({ active: event.target.checked })}
-                />
-                <span>Exibir banner no final da página inicial</span>
-              </label>
-            </div>
-          </div>
+          </section>
         </div>
-      </section>
+      )}
 
-      {/* CARROSSEL DO CATÁLOGO DE PRODUTOS */}
-      <section className="admin-panel catalog-banner-editor">
-        <div className="panel-heading">
-          <div>
-            <h2>Carrossel do Catálogo de Produtos</h2>
-            <p>Edite até 5 capas/vídeos rotativos exibidos no topo da lista de produtos ({content.catalogSlides.length}/5).</p>
-          </div>
-          <button
-            type="button"
-            className="button ghost"
-            disabled={content.catalogSlides.length >= 5}
-            onClick={() => changeContent((current) => ({ ...current, catalogSlides: [...current.catalogSlides, blankCatalogSlide()] }))}
-          >
-            <Plus size={15} /> Adicionar capa ao catálogo
-          </button>
-        </div>
+      {activeTab === "banners" && (
+        <div className="content-tab-pane">
+          <section className="tab-intro-card">
+            <div><Tv size={22} /><span><strong>Banners e capas</strong><small>Use imagens largas. Arraste as miniaturas para mudar a ordem.</small></span></div>
+            <button type="button" className="button ghost sm" onClick={() => setPreviewOpen(true)}><Eye size={15} /> Ver prévia</button>
+          </section>
 
-        <div className="hero-slides-editor">
-          {content.catalogSlides.map((slide, index) => (
-            <details className="hero-slide-editor compact-editor-card" key={index}>
-              <summary>
-                <span className="editor-card-thumb" style={slide.imageUrl ? { backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` } : undefined}><ImagePlus size={15} /></span>
-                <span><strong>Catálogo {index + 1}</strong><small>{slide.title || "Sem título"}</small></span>
-              </summary>
-              <div className="compact-editor-body">
-              <div className="hero-slide-editor-head">
-                <strong>Capa {index + 1} do Catálogo</strong>
-
-                <div className="slide-order-actions">
-                  <button
-                    type="button"
-                    disabled={index === 0}
-                    onClick={() => moveCatalogSlide(index, -1)}
-                    title="Mover para esquerda"
-                  >
-                    <ArrowLeft size={14} />
+          <section className="admin-panel visual-preview-panel">
+            <div className="panel-heading">
+              <div>
+                <h2><Sparkles className="inline text-green" size={18} /> Prévia rápida do banner principal</h2>
+                <p>Selecione uma capa para conferir texto, enquadramento e botão.</p>
+              </div>
+              <div className="preview-slide-selector">
+                {content.heroSlides.map((_, index) => (
+                  <button key={index} type="button" className={`prev-tab-btn ${activePreviewIndex === index ? "active" : ""}`} onClick={() => setActivePreviewIndex(index)}>
+                    Capa {index + 1}
                   </button>
-                  <button
-                    type="button"
-                    disabled={index === content.catalogSlides.length - 1}
-                    onClick={() => moveCatalogSlide(index, 1)}
-                    title="Mover para direita"
-                  >
-                    <ArrowRight size={14} />
-                  </button>
-                  {content.catalogSlides.length > 1 && (
-                    <button
-                      type="button"
-                      className="danger-text"
-                      onClick={() => changeContent((current) => ({ ...current, catalogSlides: current.catalogSlides.filter((_, slideIndex) => slideIndex !== index) }))}
-                      title="Remover capa"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
+                ))}
+              </div>
+            </div>
+            {activeSlide && (
+              <div className="realtime-banner-mockup">
+                <div className="mockup-background">
+                  {activeSlide.imageUrl ? (
+                    activeSlide.imageUrl.endsWith(".mp4") || activeSlide.imageUrl.endsWith(".webm") ?
+                      <video src={activeSlide.imageUrl} autoPlay loop muted playsInline /> :
+                      <img src={activeSlide.imageUrl} alt="" />
+                  ) : <div className="mockup-placeholder-bg">Escolha uma imagem ou vídeo</div>}
+                </div>
+                <div className="mockup-overlay">
+                  {activeSlide.eyebrow && <span className="mockup-eyebrow">{activeSlide.eyebrow}</span>}
+                  <h2 className="mockup-title">{activeSlide.title || "Título do banner"}</h2>
+                  {activeSlide.description && <p className="mockup-desc">{activeSlide.description}</p>}
+                  {activeSlide.buttonLabel && <span className="mockup-button">{activeSlide.buttonLabel} →</span>}
                 </div>
               </div>
+            )}
+          </section>
 
-              <div className="hero-slide-fields">
-                <label>Texto pequeno<input value={slide.eyebrow} onChange={(event) => updateCatalogSlide(index, { eyebrow: event.target.value })} /></label>
-                <label>Título<input value={slide.title} onChange={(event) => updateCatalogSlide(index, { title: event.target.value })} /></label>
-                <label className="wide">Descrição<textarea rows={2} value={slide.description} onChange={(event) => updateCatalogSlide(index, { description: event.target.value })} /></label>
-              </div>
-
-              <label className="upload-box">
-                <ImagePlus size={16} /> {slide.imageUrl ? "Trocar foto/vídeo do catálogo" : "Escolher foto ou vídeo (JPG, PNG, MP4, WebM)"}
-                <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" onChange={(event) => void uploadCatalogSlide(index, event.target.files?.[0])} />
-              </label>
-
-              {slide.imageUrl && (
-                <div className="hero-slide-preview">
-                  {slide.imageUrl.endsWith(".mp4") || slide.imageUrl.endsWith(".webm") || slide.imageUrl.endsWith(".mov") ? (
-                    <video src={slide.imageUrl} autoPlay loop muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")`, backgroundSize: "cover" }} />
-                  )}
-                </div>
-              )}
-              </div>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      {/* MENU PRINCIPAL DE NAVEGAÇÃO */}
-      <section className="admin-panel menu-editor-panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Menu Principal de Navegação (Cabeçalho)</h2>
-            <p>Organize os atalhos exibidos no topo da loja. O construtor abaixo cria os links automaticamente.</p>
-          </div>
-          <button type="button" className="button ghost" onClick={beginNewMenuItem}>
-            <Plus size={15} /> Adicionar item de menu
-          </button>
-        </div>
-
-        <div className="menu-editor">
-          {content.navigation.map((item, index) => (
-            <div key={item.id ?? index} className="menu-item-row">
-              <div className="menu-item-order" title={`Posição ${index + 1}`}>
-                <GripVertical className="grab-icon" size={15} />
-                <span>{String(index + 1).padStart(2, "0")}</span>
-              </div>
-              <label className="menu-item-field menu-item-name">
-                <span>Nome exibido</span>
-                <input
-                  aria-label="Nome do menu"
-                  value={item.label}
-                  onChange={(event) => updateMenu(index, { label: event.target.value })}
-                  placeholder="Ex.: Celulares"
-                />
-              </label>
-              <div className="menu-item-field menu-item-link">
-                <span>O que este item abre</span>
-                <div className="menu-destination-summary"><Link2 size={14} /><strong>{menuHrefDescription(item.href)}</strong></div>
-                <details className="menu-advanced-link">
-                  <summary><ChevronDown size={13} /> Ver link técnico</summary>
-                  <input
-                    aria-label="Link técnico do menu"
-                    value={item.href}
-                    onChange={(event) => updateMenu(index, { href: event.target.value })}
-                    placeholder="Ex.: /celulares"
-                  />
+          <section className="admin-panel hero-editor-panel">
+            <div className="panel-heading">
+              <div><h2>1. Banners principais da página inicial</h2><p>Arraste as capas abaixo e depois abra cada uma para editar.</p></div>
+              <button type="button" className="button ghost" disabled={content.heroSlides.length >= 5} onClick={() => changeContent((current) => ({ ...current, heroSlides: [...current.heroSlides, blankSlide()] }))}>
+                <Plus size={15} /> Adicionar banner
+              </button>
+            </div>
+            <div className="banner-order-board">
+              {content.heroSlides.map((slide, index) => (
+                <article key={`hero-order-${index}`} data-sort-kind="heroSlides" data-sort-index={index} className="banner-order-card">
+                  <button type="button" className="drag-handle" aria-label={`Arrastar banner ${index + 1}`} {...sortHandleProps("heroSlides", index)}><GripVertical size={16} /></button>
+                  <div>{slide.imageUrl ? <img src={slide.imageUrl} alt="" /> : <ImagePlus size={20} />}</div>
+                  <span><b>{index + 1}</b><small>{slide.title || "Sem título"}</small></span>
+                </article>
+              ))}
+            </div>
+            <div className="hero-slides-editor">
+              {content.heroSlides.map((slide, index) => (
+                <details className="hero-slide-editor compact-editor-card" key={`hero-editor-${index}`}>
+                  <summary>
+                    <span className="editor-card-thumb" style={slide.imageUrl ? { backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` } : undefined}><ImagePlus size={15} /></span>
+                    <span><strong>Banner {index + 1}</strong><small>{slide.title || "Sem título"}</small></span>
+                  </summary>
+                  <div className="compact-editor-body">
+                    <div className="hero-slide-editor-head">
+                      <strong>Editar banner {index + 1}</strong>
+                      {content.heroSlides.length > 1 && <button type="button" className="danger-text" onClick={() => changeContent((current) => ({ ...current, heroSlides: current.heroSlides.filter((_, slideIndex) => slideIndex !== index) }))}><Trash2 size={14} /> Remover</button>}
+                    </div>
+                    <div className="hero-slide-fields">
+                      <label>Chamada pequena<input value={slide.eyebrow} onChange={(event) => updateSlide(index, { eyebrow: event.target.value })} /></label>
+                      <label>Título principal<textarea rows={2} value={slide.title} onChange={(event) => updateSlide(index, { title: event.target.value })} /></label>
+                      <label className="wide">Descrição<textarea rows={2} value={slide.description} onChange={(event) => updateSlide(index, { description: event.target.value })} /></label>
+                      <label>Texto do botão<input value={slide.buttonLabel} onChange={(event) => updateSlide(index, { buttonLabel: event.target.value })} /></label>
+                      <GuidedLinkField label="Ao clicar no botão" value={slide.buttonHref} onChange={(buttonHref) => updateSlide(index, { buttonHref })} brandOptions={brandMenuOptions} categoryOptions={categoryMenuOptions} filterGroups={customFilterGroups} />
+                    </div>
+                    <label className="upload-box"><ImagePlus size={16} /> {slide.imageUrl ? "Trocar imagem ou vídeo" : "Escolher imagem ou vídeo"}<input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" onChange={(event) => void upload(index, event.target.files?.[0])} /></label>
+                    {slide.imageUrl && <div className="hero-slide-preview">{slide.imageUrl.endsWith(".mp4") || slide.imageUrl.endsWith(".webm") || slide.imageUrl.endsWith(".mov") ? <video src={slide.imageUrl} autoPlay loop muted playsInline /> : <img src={slide.imageUrl} alt="" />}</div>}
+                  </div>
                 </details>
-              </div>
-              <div className="menu-item-actions">
-                <button type="button" title="Configurar de forma guiada" className="row-action-btn menu-edit-button" onClick={() => editMenuWithBuilder(index)}>
-                  <Pencil size={14} /><span>Editar</span>
-                </button>
-                <button
-                  type="button"
-                  title={item.active ? "Ocultar do cabeçalho" : "Exibir no cabeçalho"}
-                  className={`menu-toggle-btn ${item.active ? "on" : "off"}`}
-                  onClick={() => updateMenu(index, { active: !item.active })}
-                >
-                  {item.active ? <Eye size={14} /> : <EyeOff size={14} />}
-                  <span>{item.active ? "Visível" : "Oculto"}</span>
-                </button>
-                <button
-                  type="button"
-                  title="Remover item"
-                  aria-label={`Remover ${item.label || `item ${index + 1}`}`}
-                  className="danger-text row-action-btn delete menu-delete-button"
-                  onClick={() => changeContent((current) => ({ ...current, navigation: current.navigation.filter((_, itemIndex) => itemIndex !== index) }))}
-                >
-                  <Trash2 size={14} />
-                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="admin-panel">
+            <div className="panel-heading"><div><h2>2. Banners promocionais</h2><p>Arraste para escolher qual aparece primeiro.</p></div></div>
+            <div className="banner-order-board promo-order-board">
+              {content.homePromoBanners.map((banner, index) => (
+                <article key={`promo-order-${index}`} data-sort-kind="homePromoBanners" data-sort-index={index} className="banner-order-card">
+                  <button type="button" className="drag-handle" aria-label={`Arrastar banner promocional ${index + 1}`} {...sortHandleProps("homePromoBanners", index)}><GripVertical size={16} /></button>
+                  <div>{banner.imageUrl ? <img src={banner.imageUrl} alt="" /> : <ImagePlus size={20} />}</div>
+                  <span><b>{index + 1}</b><small>{banner.title}</small></span>
+                </article>
+              ))}
+            </div>
+            <div className="promo-config-list">
+              {content.homePromoBanners.map((banner, index) => (
+                <details className="promo-config-row compact-editor-card" key={`promo-editor-${index}`}>
+                  <summary><span className="editor-card-thumb">{banner.imageUrl ? <img src={banner.imageUrl} alt="" /> : <ImagePlus size={15} />}</span><span><strong>Banner promocional {index + 1}</strong><small>{banner.title}</small></span></summary>
+                  <div className="promo-config-fields compact-editor-body">
+                    <label>Chamada pequena<input value={banner.eyebrow} onChange={(event) => updateHomePromo(index, { eyebrow: event.target.value })} /></label>
+                    <label>Título<input value={banner.title} onChange={(event) => updateHomePromo(index, { title: event.target.value })} /></label>
+                    <label className="wide">Descrição<input value={banner.description} onChange={(event) => updateHomePromo(index, { description: event.target.value })} /></label>
+                    <label>Texto do botão<input value={banner.buttonLabel} onChange={(event) => updateHomePromo(index, { buttonLabel: event.target.value })} /></label>
+                    <GuidedLinkField label="Ao clicar no botão" value={banner.buttonHref} onChange={(buttonHref) => updateHomePromo(index, { buttonHref })} brandOptions={brandMenuOptions} categoryOptions={categoryMenuOptions} filterGroups={customFilterGroups} />
+                    <label className="compact-upload-button"><ImagePlus size={15} /> Trocar imagem<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void uploadHomePromo(index, event.target.files?.[0])} /></label>
+                  </div>
+                </details>
+              ))}
+            </div>
+          </section>
+
+          <section className="admin-panel catalog-banner-editor">
+            <div className="panel-heading">
+              <div><h2>3. Banners da página de produtos</h2><p>Capas exibidas no topo do catálogo. Arraste para mudar a ordem.</p></div>
+              <button type="button" className="button ghost" disabled={content.catalogSlides.length >= 5} onClick={() => changeContent((current) => ({ ...current, catalogSlides: [...current.catalogSlides, blankCatalogSlide()] }))}><Plus size={15} /> Adicionar banner</button>
+            </div>
+            <div className="banner-order-board">
+              {content.catalogSlides.map((slide, index) => (
+                <article key={`catalog-order-${index}`} data-sort-kind="catalogSlides" data-sort-index={index} className="banner-order-card">
+                  <button type="button" className="drag-handle" aria-label={`Arrastar banner do catálogo ${index + 1}`} {...sortHandleProps("catalogSlides", index)}><GripVertical size={16} /></button>
+                  <div>{slide.imageUrl ? <img src={slide.imageUrl} alt="" /> : <ImagePlus size={20} />}</div>
+                  <span><b>{index + 1}</b><small>{slide.title || "Sem título"}</small></span>
+                </article>
+              ))}
+            </div>
+            <div className="hero-slides-editor">
+              {content.catalogSlides.map((slide, index) => (
+                <details className="hero-slide-editor compact-editor-card" key={`catalog-editor-${index}`}>
+                  <summary><span className="editor-card-thumb" style={slide.imageUrl ? { backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` } : undefined}><ImagePlus size={15} /></span><span><strong>Catálogo {index + 1}</strong><small>{slide.title || "Sem título"}</small></span></summary>
+                  <div className="compact-editor-body">
+                    <div className="hero-slide-editor-head"><strong>Editar capa {index + 1}</strong>{content.catalogSlides.length > 1 && <button type="button" className="danger-text" onClick={() => changeContent((current) => ({ ...current, catalogSlides: current.catalogSlides.filter((_, slideIndex) => slideIndex !== index) }))}><Trash2 size={14} /> Remover</button>}</div>
+                    <div className="hero-slide-fields">
+                      <label>Chamada pequena<input value={slide.eyebrow} onChange={(event) => updateCatalogSlide(index, { eyebrow: event.target.value })} /></label>
+                      <label>Título<input value={slide.title} onChange={(event) => updateCatalogSlide(index, { title: event.target.value })} /></label>
+                      <label className="wide">Descrição<textarea rows={2} value={slide.description} onChange={(event) => updateCatalogSlide(index, { description: event.target.value })} /></label>
+                    </div>
+                    <label className="upload-box"><ImagePlus size={16} /> {slide.imageUrl ? "Trocar imagem ou vídeo" : "Escolher imagem ou vídeo"}<input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" onChange={(event) => void uploadCatalogSlide(index, event.target.files?.[0])} /></label>
+                    {slide.imageUrl && <div className="hero-slide-preview">{slide.imageUrl.endsWith(".mp4") || slide.imageUrl.endsWith(".webm") || slide.imageUrl.endsWith(".mov") ? <video src={slide.imageUrl} autoPlay loop muted playsInline /> : <img src={slide.imageUrl} alt="" />}</div>}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </section>
+
+          <section className="admin-panel footer-banner-config">
+            <div className="panel-heading"><div><h2>4. Banner final da página inicial</h2><p>Aparece depois da última prateleira. A imagem é enquadrada automaticamente.</p></div></div>
+            <div className="footer-banner-config-grid">
+              <div className="footer-banner-admin-preview">{content.homeFooterBanner.imageUrl ? <img src={content.homeFooterBanner.imageUrl} alt="Prévia do banner final" /> : <span>Sem banner</span>}</div>
+              <div className="footer-banner-config-fields">
+                <label className="compact-upload-button"><ImagePlus size={15} /> Trocar banner<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; void uploadHomeFooterBanner(file); }} /></label>
+                <GuidedLinkField label="Ao clicar no banner" value={content.homeFooterBanner.linkHref} onChange={(linkHref) => updateHomeFooterBanner({ linkHref })} brandOptions={brandMenuOptions} categoryOptions={categoryMenuOptions} filterGroups={customFilterGroups} allowEmpty />
+                <label className="footer-banner-toggle"><input type="checkbox" checked={content.homeFooterBanner.active} onChange={(event) => updateHomeFooterBanner({ active: event.target.checked })} /><span>Exibir este banner na loja</span></label>
               </div>
             </div>
-          ))}
-          {!content.navigation.length && <div className="menu-empty-state"><Menu size={20} /><span>Nenhum item configurado. Use o construtor abaixo para criar o primeiro.</span></div>}
+          </section>
         </div>
+      )}
 
-        <div className="menu-builder" ref={menuBuilderRef}>
-          <header className="menu-builder-heading">
-            <div><span>{menuEditingIndex === null ? "Adicionar novo item ao menu" : "Editar item do menu"}</span><p>Responda às etapas. O sistema monta o endereço correto sem você precisar saber códigos.</p></div>
-            {menuEditingIndex !== null && <button type="button" onClick={resetMenuBuilder}>Cancelar edição</button>}
-          </header>
+      {activeTab === "shelves" && (
+        <div className="content-tab-pane">
+          <section className="tab-intro-card">
+            <div><Layers size={22} /><span><strong>Prateleiras da página inicial</strong><small>São grupos de produtos exibidos na home. Arraste para escolher a ordem.</small></span></div>
+            <button type="button" className="button ghost sm" onClick={() => setPreviewOpen(true)}><Eye size={15} /> Ver prévia</button>
+          </section>
+          <section className="admin-panel shelves-editor-panel">
+            <label className="compact-setting-field">Título da área de produtos destacados<input value={content.homeFeaturedTitle} onChange={(event) => changeContent((current) => ({ ...current, homeFeaturedTitle: event.target.value }))} /></label>
+            <div className="shelf-editor-list">
+              {content.homeProductSections.map((section, index) => (
+                <article key={`shelf-editor-${index}`} className="shelf-editor-card" data-sort-kind="homeProductSections" data-sort-index={index}>
+                  <header>
+                    <button type="button" className="drag-handle" aria-label={`Arrastar prateleira ${index + 1}`} {...sortHandleProps("homeProductSections", index)}><GripVertical size={17} /></button>
+                    <span className="shelf-position">{index + 1}</span>
+                    <div><strong>{section.title || `Prateleira ${index + 1}`}</strong><small>Arraste este cartão para mudar a posição.</small></div>
+                  </header>
+                  <div className="shelf-editor-fields">
+                    <label>Título exibido<input value={section.title} onChange={(event) => updateHomeSection(index, { title: event.target.value })} placeholder="Ex.: Informática" /></label>
+                    <label>Quais produtos mostrar?<input value={section.query} onChange={(event) => updateHomeSection(index, { query: event.target.value })} placeholder="Ex.: notebook, computador, gamer" /><small>Digite palavras separadas por vírgula.</small></label>
+                    <label>Texto do botão<input value={section.buttonLabel} onChange={(event) => updateHomeSection(index, { buttonLabel: event.target.value })} /></label>
+                    <GuidedLinkField label="Ao clicar em Ver todos" value={section.buttonHref} onChange={(buttonHref) => updateHomeSection(index, { buttonHref })} brandOptions={brandMenuOptions} categoryOptions={categoryMenuOptions} filterGroups={customFilterGroups} searchSuggestion={section.query.split(",")[0]?.trim() ?? ""} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
-          <div className="menu-builder-steps">
-            <label className="menu-builder-step">
-              <span className="menu-step-number">1</span>
-              <strong>Nome do item</strong>
-              <small>É o texto que o cliente verá no cabeçalho.</small>
-              <input
-                value={menuDraft.label}
-                onChange={(event) => setMenuDraft((current) => ({ ...current, label: event.target.value }))}
-                placeholder="Ex.: Ofertas, Perfumes, Samsung..."
-              />
-            </label>
+      {activeTab === "menu" && (
+        <div className="content-tab-pane">
+          <section className="tab-intro-card">
+            <div><Menu size={22} /><span><strong>Menu de navegação</strong><small>Arraste os itens para a esquerda ou direita. A ordem muda imediatamente na prévia.</small></span></div>
+            <button type="button" className="button ghost sm" onClick={() => setPreviewOpen(true)}><Eye size={15} /> Ver prévia</button>
+          </section>
 
-            <label className="menu-builder-step">
-              <span className="menu-step-number">2</span>
-              <strong>O que deve abrir?</strong>
-              <small>Escolha o tipo de destino em palavras simples.</small>
-              <select value={menuDraft.type} onChange={(event) => changeMenuDestinationType(event.target.value as MenuDestinationType)}>
-                <option value="all">Todos os produtos</option>
-                <option value="category">Uma categoria</option>
-                <option value="brand">Uma marca</option>
-                <option value="condition">Uma condição</option>
-                <option value="filter">Um filtro cadastrado</option>
-                <option value="page">Uma página do site</option>
-                <option value="custom">Link personalizado (avançado)</option>
-              </select>
-            </label>
-
-            <div className="menu-builder-step">
-              <span className="menu-step-number">3</span>
-              <strong>Selecione a opção</strong>
-              <small>{menuDraft.type === "filter" ? "Primeiro escolha o filtro e depois uma opção." : "Escolha exatamente o conteúdo que será mostrado."}</small>
-              {menuDraft.type === "filter" && (
-                <select value={menuDraft.filterGroup || selectedCustomFilter?.slug || ""} onChange={(event) => setMenuDraft((current) => ({ ...current, filterGroup: event.target.value, option: "" }))}>
-                  <option value="">Escolha um filtro</option>
-                  {customFilterGroups.map((filter) => <option key={filter.id} value={filter.slug}>{filter.name}</option>)}
-                </select>
-              )}
-              {menuDraft.type === "custom" ? (
-                <input value={menuDraft.customHref} onChange={(event) => setMenuDraft((current) => ({ ...current, customHref: event.target.value }))} placeholder="Ex.: /atendimento" />
-              ) : menuDraft.type === "all" ? (
-                <div className="menu-choice-ready"><CheckCircle2 size={16} /> Tudo certo: abrirá todos os produtos.</div>
-              ) : (
-                <select value={menuDraft.option} onChange={(event) => setMenuDraft((current) => ({ ...current, option: event.target.value }))} disabled={menuDraft.type === "filter" && !selectedCustomFilter}>
-                  <option value="">Selecione uma opção</option>
-                  {menuSelectOptions.map((option) => <option key={`${menuDraft.type}-${option.value}`} value={option.value}>{option.label}</option>)}
-                </select>
-              )}
-              {menuDraft.type !== "all" && menuDraft.type !== "custom" && menuSelectOptions.length === 0 && (
-                <p className="menu-builder-warning">Ainda não há opções cadastradas. Crie-as em “Filtros e categorias”.</p>
-              )}
+          <section className="admin-panel menu-editor-panel">
+            <div className="panel-heading">
+              <div><h2>1. Escolha a ordem do menu</h2><p>Segure o ícone de seis pontos e arraste o item para a posição desejada.</p></div>
+              <button type="button" className="button ghost" onClick={beginNewMenuItem}><Plus size={15} /> Adicionar item</button>
+            </div>
+            <div className="menu-order-board">
+              {content.navigation.map((item, index) => (
+                <article key={item.id ?? `menu-sort-${index}`} className={`menu-order-chip ${item.active ? "" : "inactive"}`} data-sort-kind="navigation" data-sort-index={index}>
+                  <button type="button" className="drag-handle" aria-label={`Arrastar ${item.label}`} {...sortHandleProps("navigation", index)}><GripVertical size={16} /></button>
+                  <span>{item.label || `Item ${index + 1}`}</span>
+                  <small>{item.active ? String(index + 1).padStart(2, "0") : "Oculto"}</small>
+                </article>
+              ))}
             </div>
 
-            <div className="menu-builder-step menu-builder-preview">
-              <span className="menu-step-number">4</span>
-              <strong>Pré-visualização</strong>
-              <small>Confira como o item será entendido pelo sistema.</small>
-              <div className="menu-preview-card">
-                <PackageSearch size={19} />
-                <span><b>{menuDraft.label.trim() || suggestedMenuLabel || "Nome do item"}</b><small>{generatedMenuHref ? menuHrefDescription(generatedMenuHref) : "Escolha o destino na etapa anterior"}</small></span>
+            <details className="menu-details-editor" open={!content.navigation.length}>
+              <summary>Editar nome, destino ou visibilidade dos itens</summary>
+              <div className="menu-editor">
+                {content.navigation.map((item, index) => (
+                  <div key={item.id ?? `menu-edit-${index}`} className="menu-item-row">
+                    <div className="menu-item-order"><span>{String(index + 1).padStart(2, "0")}</span></div>
+                    <label className="menu-item-field menu-item-name"><span>Nome exibido</span><input value={item.label} onChange={(event) => updateMenu(index, { label: event.target.value })} /></label>
+                    <div className="menu-item-field menu-item-link"><span>O que abre</span><div className="menu-destination-summary"><Link2 size={14} /><strong>{menuHrefDescription(item.href)}</strong></div></div>
+                    <div className="menu-item-actions">
+                      <button type="button" className="row-action-btn menu-edit-button" onClick={() => editMenuWithBuilder(index)}><Pencil size={14} /><span>Editar</span></button>
+                      <button type="button" className={`menu-toggle-btn ${item.active ? "on" : "off"}`} onClick={() => updateMenu(index, { active: !item.active })}>{item.active ? <Eye size={14} /> : <EyeOff size={14} />}<span>{item.active ? "Visível" : "Oculto"}</span></button>
+                      <button type="button" className="danger-text row-action-btn delete" onClick={() => changeContent((current) => ({ ...current, navigation: current.navigation.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 size={14} /></button>
+                    </div>
+                  </div>
+                ))}
+                {!content.navigation.length && <div className="menu-empty-state"><Menu size={20} /><span>Nenhum item configurado. Use o construtor abaixo.</span></div>}
+              </div>
+            </details>
+          </section>
+
+          <section className="admin-panel menu-builder" ref={menuBuilderRef}>
+            <header className="menu-builder-heading">
+              <div><span>{menuEditingIndex === null ? "2. Adicionar novo item" : "Editar item do menu"}</span><p>Responda às etapas. O sistema cria o destino correto automaticamente.</p></div>
+              {menuEditingIndex !== null && <button type="button" onClick={resetMenuBuilder}>Cancelar edição</button>}
+            </header>
+            <div className="menu-builder-steps">
+              <label className="menu-builder-step"><span className="menu-step-number">1</span><strong>Nome do item</strong><small>Texto que o cliente verá.</small><input value={menuDraft.label} onChange={(event) => setMenuDraft((current) => ({ ...current, label: event.target.value }))} placeholder="Ex.: Ofertas, Perfumes, Samsung..." /></label>
+              <label className="menu-builder-step"><span className="menu-step-number">2</span><strong>O que deve abrir?</strong><small>Escolha em palavras simples.</small><select value={menuDraft.type} onChange={(event) => changeMenuDestinationType(event.target.value as MenuDestinationType)}><option value="all">Todos os produtos</option><option value="category">Uma categoria</option><option value="brand">Uma marca</option><option value="condition">Uma condição</option><option value="filter">Um filtro cadastrado</option><option value="page">Uma página do site</option><option value="custom">Link personalizado (avançado)</option></select></label>
+              <div className="menu-builder-step"><span className="menu-step-number">3</span><strong>Selecione a opção</strong><small>{menuDraft.type === "filter" ? "Escolha o filtro e depois uma opção." : "Escolha o conteúdo desejado."}</small>
+                {menuDraft.type === "filter" && <select value={menuDraft.filterGroup || selectedCustomFilter?.slug || ""} onChange={(event) => setMenuDraft((current) => ({ ...current, filterGroup: event.target.value, option: "" }))}><option value="">Escolha um filtro</option>{customFilterGroups.map((filter) => <option key={filter.id} value={filter.slug}>{filter.name}</option>)}</select>}
+                {menuDraft.type === "custom" ? <input value={menuDraft.customHref} onChange={(event) => setMenuDraft((current) => ({ ...current, customHref: event.target.value }))} placeholder="Ex.: /atendimento" /> : menuDraft.type === "all" ? <div className="menu-choice-ready"><CheckCircle2 size={16} /> Abrirá todos os produtos.</div> : <select value={menuDraft.option} onChange={(event) => setMenuDraft((current) => ({ ...current, option: event.target.value }))} disabled={menuDraft.type === "filter" && !selectedCustomFilter}><option value="">Selecione uma opção</option>{menuSelectOptions.map((option) => <option key={`${menuDraft.type}-${option.value}`} value={option.value}>{option.label}</option>)}</select>}
+                {menuDraft.type !== "all" && menuDraft.type !== "custom" && menuSelectOptions.length === 0 && <p className="menu-builder-warning">Não há opções cadastradas. Crie-as em “Filtros e categorias”.</p>}
+              </div>
+              <div className="menu-builder-step menu-builder-preview"><span className="menu-step-number">4</span><strong>Confira</strong><small>Veja como o sistema entendeu.</small><div className="menu-preview-card"><PackageSearch size={19} /><span><b>{menuDraft.label.trim() || suggestedMenuLabel || "Nome do item"}</b><small>{generatedMenuHref ? menuHrefDescription(generatedMenuHref) : "Escolha o destino"}</small></span></div></div>
+            </div>
+            <div className="menu-builder-footer"><p><CheckCircle2 size={15} /> Nenhum código precisa ser digitado.</p><div>{menuEditingIndex !== null && <button type="button" className="button ghost" onClick={resetMenuBuilder}>Cancelar</button>}<button type="button" className="button primary" onClick={addMenuFromBuilder}>{menuEditingIndex === null ? <Plus size={15} /> : <Save size={15} />}{menuEditingIndex === null ? "Adicionar ao menu" : "Atualizar item"}</button></div></div>
+          </section>
+
+          <section className="menu-destination-help">
+            <article><Layout size={18} /><span><b>Todos os produtos</b><small>Abre o catálogo completo.</small></span></article>
+            <article><Layers size={18} /><span><b>Categoria</b><small>Ex.: celulares, medicamentos ou perfumes.</small></span></article>
+            <article><Tag size={18} /><span><b>Marca</b><small>Mostra uma marca específica.</small></span></article>
+            <article><ListFilter size={18} /><span><b>Filtro</b><small>Usa filtros criados na sua loja.</small></span></article>
+          </section>
+        </div>
+      )}
+
+      {activeTab === "visual" && (
+        <div className="content-tab-pane">
+          <section className="tab-intro-card">
+            <div><Layout size={22} /><span><strong>Configurações visuais</strong><small>Informações gerais que aparecem na vitrine e na prévia.</small></span></div>
+            <button type="button" className="button ghost sm" onClick={() => setPreviewOpen(true)}><Eye size={15} /> Ver prévia</button>
+          </section>
+          <section className="admin-panel visual-settings-panel">
+            <div className="visual-settings-grid">
+              <label>Nome da loja<input value={content.storeName} onChange={(event) => changeContent((current) => ({ ...current, storeName: event.target.value }))} /><small>Este nome é usado na identificação principal da loja.</small></label>
+              <label>Título dos produtos destacados<input value={content.homeFeaturedTitle} onChange={(event) => changeContent((current) => ({ ...current, homeFeaturedTitle: event.target.value }))} /><small>Aparece antes da primeira grade de produtos.</small></label>
+            </div>
+            <div className="visual-help-card"><Sparkles size={20} /><span><strong>Alterações seguras</strong><small>Nada fica visível para os clientes antes de você conferir a prévia e clicar em “Salvar e publicar”.</small></span></div>
+          </section>
+        </div>
+      )}
+
+      {previewOpen && (
+        <div className="store-preview-modal" role="dialog" aria-modal="true" aria-label="Prévia da loja">
+          <div className="store-preview-dialog">
+            <header className="store-preview-toolbar">
+              <div><Eye size={18} /><span><strong>Prévia antes de publicar</strong><small>Somente você está vendo estas alterações.</small></span></div>
+              <div className="preview-device-switch">
+                <button type="button" className={previewDevice === "desktop" ? "active" : ""} onClick={() => setPreviewDevice("desktop")}><Monitor size={15} /> Computador</button>
+                <button type="button" className={previewDevice === "mobile" ? "active" : ""} onClick={() => setPreviewDevice("mobile")}><Smartphone size={15} /> Celular</button>
+              </div>
+              <button type="button" className="preview-close" aria-label="Fechar prévia" onClick={() => setPreviewOpen(false)}><X size={20} /></button>
+            </header>
+
+            <div className={`store-preview-stage ${previewDevice}`}>
+              <div className="store-preview-site">
+                <header className="preview-store-header">
+                  <strong>{content.storeName || "Sua loja"}</strong>
+                  <div className="preview-search">O que você procura?</div>
+                  <span className="preview-account">◯</span>
+                </header>
+                <nav className="preview-store-nav">
+                  {activeNavigation.map((item, index) => <span key={item.id ?? `preview-nav-${index}`}>{item.label}</span>)}
+                  {!activeNavigation.length && <span>Menu ainda não configurado</span>}
+                </nav>
+
+                <section className="preview-hero">
+                  {previewSlide?.imageUrl ? (
+                    previewSlide.imageUrl.endsWith(".mp4") || previewSlide.imageUrl.endsWith(".webm") ? <video src={previewSlide.imageUrl} autoPlay loop muted playsInline /> : <img src={previewSlide.imageUrl} alt="" />
+                  ) : <div className="preview-empty-media">Banner sem imagem</div>}
+                  <div className="preview-hero-copy">
+                    {previewSlide?.eyebrow && <small>{previewSlide.eyebrow}</small>}
+                    <h2>{previewSlide?.title || "Título do banner"}</h2>
+                    {previewSlide?.description && <p>{previewSlide.description}</p>}
+                    {previewSlide?.buttonLabel && <span>{previewSlide.buttonLabel}</span>}
+                  </div>
+                  <div className="preview-dots">{content.heroSlides.map((_, index) => <button key={index} type="button" className={previewSlideIndex === index ? "active" : ""} onClick={() => setPreviewSlideIndex(index)} aria-label={`Ver banner ${index + 1}`} />)}</div>
+                </section>
+
+                <section className="preview-promos">
+                  {content.homePromoBanners.map((banner, index) => (
+                    <article key={`preview-promo-${index}`}>{banner.imageUrl && <img src={banner.imageUrl} alt="" />}<div><small>{banner.eyebrow}</small><strong>{banner.title}</strong><span>{banner.buttonLabel}</span></div></article>
+                  ))}
+                </section>
+
+                <section className="preview-featured"><h2>{content.homeFeaturedTitle}</h2><div>{[1, 2, 3, 4].map((item) => <article key={item}><div /><small>Produto em destaque</small><strong>R$ 0,00</strong></article>)}</div></section>
+
+                {content.homeProductSections.map((section, index) => (
+                  <section className="preview-shelf" key={`preview-shelf-${index}`}><header><div><h2>{section.title}</h2><small>Produtos relacionados a: {section.query}</small></div><span>{section.buttonLabel}</span></header><div>{[1, 2, 3, 4].map((item) => <article key={item}><div /><small>Produto da prateleira</small><strong>R$ 0,00</strong></article>)}</div></section>
+                ))}
+
+                {content.homeFooterBanner.active && content.homeFooterBanner.imageUrl && <section className="preview-footer-banner"><img src={content.homeFooterBanner.imageUrl} alt="" /></section>}
               </div>
             </div>
+
+            <footer className="store-preview-footer">
+              <span>{dirty ? "Prévia com alterações ainda não publicadas" : "Esta é a versão já publicada"}</span>
+              <div><button type="button" className="button ghost" onClick={() => setPreviewOpen(false)}>Continuar editando</button><button type="button" className="button primary" disabled={busy || !dirty} onClick={async () => { if (await publishContent()) setPreviewOpen(false); }}><Save size={15} /> Salvar e publicar</button></div>
+            </footer>
           </div>
-
-          <div className="menu-builder-footer">
-            <p><CheckCircle2 size={15} /> Você não precisa conhecer <b>?brand</b>, <b>?condition</b> ou outras regras. O link é criado automaticamente.</p>
-            <div>
-              {menuEditingIndex !== null && <button type="button" className="button ghost" onClick={resetMenuBuilder}>Cancelar</button>}
-              <button type="button" className="button primary" onClick={addMenuFromBuilder}>
-                {menuEditingIndex === null ? <Plus size={15} /> : <Save size={15} />}
-                {menuEditingIndex === null ? "Adicionar ao menu" : "Atualizar item"}
-              </button>
-            </div>
-          </div>
         </div>
-
-        <div className="menu-destination-help">
-          <article><Layout size={18} /><span><b>Todos os produtos</b><small>Abre o catálogo completo.</small></span></article>
-          <article><Layers size={18} /><span><b>Categoria</b><small>Ex.: celulares, medicamentos ou perfumes.</small></span></article>
-          <article><Tag size={18} /><span><b>Marca</b><small>Mostra produtos de uma marca.</small></span></article>
-          <article><Sparkles size={18} /><span><b>Condição</b><small>Ex.: novos, seminovos ou outlet.</small></span></article>
-          <article><ListFilter size={18} /><span><b>Filtro cadastrado</b><small>Usa qualquer filtro criado para sua loja.</small></span></article>
-          <article><Link2 size={18} /><span><b>Link personalizado</b><small>Somente para uma página especial.</small></span></article>
-        </div>
-      </section>
+      )}
     </form>
   );
 }
