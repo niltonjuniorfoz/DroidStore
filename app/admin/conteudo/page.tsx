@@ -40,6 +40,8 @@ type MenuItem = { id?: string; label: string; href: string; active: boolean };
 type ContentTab = "overview" | "banners" | "shelves" | "menu" | "visual";
 type SortableContentKind = "heroSlides" | "catalogSlides" | "homePromoBanners" | "homeProductSections" | "navigation";
 type PreviewDevice = "desktop" | "mobile";
+type PreviewPage = "home" | "catalog";
+type SortVisualState = { kind: SortableContentKind; index: number; pointerId: number };
 type MenuDestinationType = "all" | "category" | "brand" | "condition" | "filter" | "page" | "custom";
 type GuidedDestinationType = MenuDestinationType | "search" | "none";
 type CatalogFilterOption = { id: string; label: string; slug: string };
@@ -84,6 +86,59 @@ type Content = {
   homeProductSections: HomeProductSection[];
   navigation: MenuItem[];
 };
+
+function isVideoMediaUrl(value: string) {
+  const pathname = value.split(/[?#]/, 1)[0]?.toLowerCase() ?? "";
+  return /\.(mp4|webm|mov|m4v|ogv)$/.test(pathname);
+}
+
+function AdminMediaPreview({
+  src,
+  alt = "",
+  className = "",
+  compact = false,
+  emptyLabel = "Imagem ou vídeo não carregado",
+}: {
+  src?: string;
+  alt?: string;
+  className?: string;
+  compact?: boolean;
+  emptyLabel?: string;
+}) {
+  const [mode, setMode] = useState<"image" | "video" | "fallback">(
+    src ? (isVideoMediaUrl(src) ? "video" : "image") : "fallback",
+  );
+
+  useEffect(() => {
+    setMode(src ? (isVideoMediaUrl(src) ? "video" : "image") : "fallback");
+  }, [src]);
+
+  if (!src || mode === "fallback") {
+    return (
+      <span className={`admin-media-fallback ${compact ? "compact" : ""} ${className}`.trim()}>
+        <ImagePlus size={compact ? 15 : 20} />
+        {!compact && <small>{emptyLabel}</small>}
+      </span>
+    );
+  }
+
+  if (mode === "video") {
+    return (
+      <video
+        className={className}
+        src={src}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="metadata"
+        onError={() => setMode("fallback")}
+      />
+    );
+  }
+
+  return <img className={className} src={src} alt={alt} onError={() => setMode("video")} />;
+}
 
 const defaultCatalogBanner = (): CatalogBanner => ({
   eyebrow: "Catálogo completo",
@@ -358,10 +413,15 @@ export default function AdminConteudo() {
   const [activeTab, setActiveTab] = useState<ContentTab>("overview");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("desktop");
+  const [previewPage, setPreviewPage] = useState<PreviewPage>("home");
   const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
+  const [previewCatalogSlideIndex, setPreviewCatalogSlideIndex] = useState(0);
+  const [sorting, setSorting] = useState<SortVisualState | null>(null);
+  const [lastDropped, setLastDropped] = useState<Omit<SortVisualState, "pointerId"> | null>(null);
   const [dirty, setDirty] = useState(false);
   const menuBuilderRef = useRef<HTMLDivElement | null>(null);
-  const pointerSortRef = useRef<{ kind: SortableContentKind; index: number; pointerId: number } | null>(null);
+  const pointerSortRef = useRef<SortVisualState | null>(null);
+  const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function changeContent(
     updater: (current: Content) => Content,
@@ -451,6 +511,7 @@ export default function AdminConteudo() {
 
   useEffect(() => () => {
     document.body.classList.remove("admin-content-sorting");
+    if (dropTimerRef.current) clearTimeout(dropTimerRef.current);
   }, []);
 
   function reorderArray<T>(items: T[], from: number, to: number) {
@@ -474,9 +535,13 @@ export default function AdminConteudo() {
 
   function beginPointerSort(kind: SortableContentKind, index: number, event: ReactPointerEvent<HTMLElement>) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    pointerSortRef.current = { kind, index, pointerId: event.pointerId };
+    const active = { kind, index, pointerId: event.pointerId };
+    pointerSortRef.current = active;
+    setSorting(active);
+    setLastDropped(null);
     event.currentTarget.setPointerCapture(event.pointerId);
     document.body.classList.add("admin-content-sorting");
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.(10);
   }
 
   function movePointerSort(event: ReactPointerEvent<HTMLElement>) {
@@ -487,14 +552,20 @@ export default function AdminConteudo() {
     const nextIndex = Number(target.dataset.sortIndex);
     if (!Number.isInteger(nextIndex) || nextIndex === active.index) return;
     reorderContent(active.kind, active.index, nextIndex);
-    pointerSortRef.current = { ...active, index: nextIndex };
+    const moved = { ...active, index: nextIndex };
+    pointerSortRef.current = moved;
+    setSorting(moved);
   }
 
   function endPointerSort(event: ReactPointerEvent<HTMLElement>) {
     const active = pointerSortRef.current;
     if (!active || active.pointerId !== event.pointerId) return;
     pointerSortRef.current = null;
+    setSorting(null);
+    setLastDropped({ kind: active.kind, index: active.index });
     document.body.classList.remove("admin-content-sorting");
+    if (dropTimerRef.current) clearTimeout(dropTimerRef.current);
+    dropTimerRef.current = setTimeout(() => setLastDropped(null), 420);
     try { event.currentTarget.releasePointerCapture(event.pointerId); } catch { /* captura já liberada */ }
   }
 
@@ -505,6 +576,19 @@ export default function AdminConteudo() {
       onPointerUp: endPointerSort,
       onPointerCancel: endPointerSort,
     };
+  }
+
+  function sortableClass(kind: SortableContentKind, index: number, baseClass: string) {
+    const isDragging = sorting?.kind === kind && sorting.index === index;
+    const isDropped = lastDropped?.kind === kind && lastDropped.index === index;
+    return `${baseClass} aura-sortable-item${isDragging ? " is-dragging" : ""}${isDropped ? " is-dropped" : ""}`;
+  }
+
+  function openPreview(page: PreviewPage = "home") {
+    setPreviewPage(page);
+    if (page === "home") setPreviewSlideIndex(0);
+    else setPreviewCatalogSlideIndex(0);
+    setPreviewOpen(true);
   }
 
   function updateMenu(index: number, patch: Partial<MenuItem>) {
@@ -839,6 +923,7 @@ export default function AdminConteudo() {
 
   const activeSlide = content.heroSlides[activePreviewIndex] ?? content.heroSlides[0];
   const previewSlide = content.heroSlides[previewSlideIndex] ?? content.heroSlides[0];
+  const previewCatalogSlide = content.catalogSlides[previewCatalogSlideIndex] ?? content.catalogSlides[0];
   const activeNavigation = content.navigation.filter((item) => item.active);
 
   return (
@@ -857,10 +942,7 @@ export default function AdminConteudo() {
           <button
             type="button"
             className="button ghost preview-button"
-            onClick={() => {
-              setPreviewSlideIndex(0);
-              setPreviewOpen(true);
-            }}
+            onClick={() => openPreview("home")}
           >
             <Eye size={16} /> Pré-visualizar
           </button>
@@ -903,12 +985,12 @@ export default function AdminConteudo() {
             </header>
             <div className="sortable-preview-strip banner-sort-strip">
               {content.heroSlides.map((slide, index) => (
-                <article key={`overview-hero-${index}`} className="sortable-preview-card" data-sort-kind="heroSlides" data-sort-index={index}>
+                <article key={`overview-hero-${index}`} className={sortableClass("heroSlides", index, "sortable-preview-card")} data-sort-kind="heroSlides" data-sort-index={index}>
                   <button type="button" className="drag-handle" aria-label={`Arrastar banner ${index + 1}`} {...sortHandleProps("heroSlides", index)}>
                     <GripVertical size={16} />
                   </button>
                   <div className="sortable-media-thumb">
-                    {slide.imageUrl ? <img src={slide.imageUrl} alt="" /> : <ImagePlus size={20} />}
+                    <AdminMediaPreview src={slide.imageUrl} compact />
                   </div>
                   <div><strong>Banner {index + 1}</strong><small>{slide.title || "Sem título"}</small></div>
                 </article>
@@ -926,7 +1008,7 @@ export default function AdminConteudo() {
             </header>
             <div className="sortable-preview-strip shelf-sort-strip">
               {content.homeProductSections.map((section, index) => (
-                <article key={`overview-shelf-${index}`} className="sortable-preview-card shelf" data-sort-kind="homeProductSections" data-sort-index={index}>
+                <article key={`overview-shelf-${index}`} className={sortableClass("homeProductSections", index, "sortable-preview-card shelf")} data-sort-kind="homeProductSections" data-sort-index={index}>
                   <button type="button" className="drag-handle" aria-label={`Arrastar prateleira ${index + 1}`} {...sortHandleProps("homeProductSections", index)}>
                     <GripVertical size={16} />
                   </button>
@@ -949,7 +1031,7 @@ export default function AdminConteudo() {
               {content.navigation.map((item, index) => (
                 <article
                   key={item.id ?? `overview-menu-${index}`}
-                  className={`menu-order-chip ${item.active ? "" : "inactive"}`}
+                  className={sortableClass("navigation", index, `menu-order-chip ${item.active ? "" : "inactive"}`)}
                   data-sort-kind="navigation"
                   data-sort-index={index}
                 >
@@ -970,7 +1052,7 @@ export default function AdminConteudo() {
               <span><strong>Confira tudo antes de publicar</strong><small>A prévia é particular: somente você vê as alterações até clicar em “Salvar e publicar”.</small></span>
             </div>
             <div>
-              <button type="button" className="button ghost" onClick={() => setPreviewOpen(true)}>Abrir prévia</button>
+              <button type="button" className="button ghost" onClick={() => openPreview("home")}>Abrir prévia</button>
               <button type="submit" className="button primary" disabled={busy || !dirty}>Salvar e publicar</button>
             </div>
           </section>
@@ -981,7 +1063,7 @@ export default function AdminConteudo() {
         <div className="content-tab-pane">
           <section className="tab-intro-card">
             <div><Tv size={22} /><span><strong>Banners e capas</strong><small>Use imagens largas. Arraste as miniaturas para mudar a ordem.</small></span></div>
-            <button type="button" className="button ghost sm" onClick={() => setPreviewOpen(true)}><Eye size={15} /> Ver prévia</button>
+            <button type="button" className="button ghost sm" onClick={() => openPreview("home")}><Eye size={15} /> Ver prévia</button>
           </section>
 
           <section className="admin-panel visual-preview-panel">
@@ -1001,11 +1083,9 @@ export default function AdminConteudo() {
             {activeSlide && (
               <div className="realtime-banner-mockup">
                 <div className="mockup-background">
-                  {activeSlide.imageUrl ? (
-                    activeSlide.imageUrl.endsWith(".mp4") || activeSlide.imageUrl.endsWith(".webm") ?
-                      <video src={activeSlide.imageUrl} autoPlay loop muted playsInline /> :
-                      <img src={activeSlide.imageUrl} alt="" />
-                  ) : <div className="mockup-placeholder-bg">Escolha uma imagem ou vídeo</div>}
+                  {activeSlide.imageUrl
+                    ? <AdminMediaPreview src={activeSlide.imageUrl} emptyLabel="Não foi possível carregar esta mídia" />
+                    : <div className="mockup-placeholder-bg">Escolha uma imagem ou vídeo</div>}
                 </div>
                 <div className="mockup-overlay">
                   {activeSlide.eyebrow && <span className="mockup-eyebrow">{activeSlide.eyebrow}</span>}
@@ -1026,9 +1106,9 @@ export default function AdminConteudo() {
             </div>
             <div className="banner-order-board">
               {content.heroSlides.map((slide, index) => (
-                <article key={`hero-order-${index}`} data-sort-kind="heroSlides" data-sort-index={index} className="banner-order-card">
+                <article key={`hero-order-${index}`} data-sort-kind="heroSlides" data-sort-index={index} className={sortableClass("heroSlides", index, "banner-order-card")}>
                   <button type="button" className="drag-handle" aria-label={`Arrastar banner ${index + 1}`} {...sortHandleProps("heroSlides", index)}><GripVertical size={16} /></button>
-                  <div>{slide.imageUrl ? <img src={slide.imageUrl} alt="" /> : <ImagePlus size={20} />}</div>
+                  <div><AdminMediaPreview src={slide.imageUrl} compact /></div>
                   <span><b>{index + 1}</b><small>{slide.title || "Sem título"}</small></span>
                 </article>
               ))}
@@ -1037,7 +1117,7 @@ export default function AdminConteudo() {
               {content.heroSlides.map((slide, index) => (
                 <details className="hero-slide-editor compact-editor-card" key={`hero-editor-${index}`}>
                   <summary>
-                    <span className="editor-card-thumb" style={slide.imageUrl ? { backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` } : undefined}><ImagePlus size={15} /></span>
+                    <span className="editor-card-thumb"><AdminMediaPreview src={slide.imageUrl} compact /></span>
                     <span><strong>Banner {index + 1}</strong><small>{slide.title || "Sem título"}</small></span>
                   </summary>
                   <div className="compact-editor-body">
@@ -1053,7 +1133,7 @@ export default function AdminConteudo() {
                       <GuidedLinkField label="Ao clicar no botão" value={slide.buttonHref} onChange={(buttonHref) => updateSlide(index, { buttonHref })} brandOptions={brandMenuOptions} categoryOptions={categoryMenuOptions} filterGroups={customFilterGroups} />
                     </div>
                     <label className="upload-box"><ImagePlus size={16} /> {slide.imageUrl ? "Trocar imagem ou vídeo" : "Escolher imagem ou vídeo"}<input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" onChange={(event) => void upload(index, event.target.files?.[0])} /></label>
-                    {slide.imageUrl && <div className="hero-slide-preview">{slide.imageUrl.endsWith(".mp4") || slide.imageUrl.endsWith(".webm") || slide.imageUrl.endsWith(".mov") ? <video src={slide.imageUrl} autoPlay loop muted playsInline /> : <img src={slide.imageUrl} alt="" />}</div>}
+                    {slide.imageUrl && <div className="hero-slide-preview"><AdminMediaPreview src={slide.imageUrl} emptyLabel="Não foi possível carregar esta mídia" /></div>}
                   </div>
                 </details>
               ))}
@@ -1064,9 +1144,9 @@ export default function AdminConteudo() {
             <div className="panel-heading"><div><h2>2. Banners promocionais</h2><p>Arraste para escolher qual aparece primeiro.</p></div></div>
             <div className="banner-order-board promo-order-board">
               {content.homePromoBanners.map((banner, index) => (
-                <article key={`promo-order-${index}`} data-sort-kind="homePromoBanners" data-sort-index={index} className="banner-order-card">
+                <article key={`promo-order-${index}`} data-sort-kind="homePromoBanners" data-sort-index={index} className={sortableClass("homePromoBanners", index, "banner-order-card")}>
                   <button type="button" className="drag-handle" aria-label={`Arrastar banner promocional ${index + 1}`} {...sortHandleProps("homePromoBanners", index)}><GripVertical size={16} /></button>
-                  <div>{banner.imageUrl ? <img src={banner.imageUrl} alt="" /> : <ImagePlus size={20} />}</div>
+                  <div><AdminMediaPreview src={banner.imageUrl} compact /></div>
                   <span><b>{index + 1}</b><small>{banner.title}</small></span>
                 </article>
               ))}
@@ -1074,7 +1154,7 @@ export default function AdminConteudo() {
             <div className="promo-config-list">
               {content.homePromoBanners.map((banner, index) => (
                 <details className="promo-config-row compact-editor-card" key={`promo-editor-${index}`}>
-                  <summary><span className="editor-card-thumb">{banner.imageUrl ? <img src={banner.imageUrl} alt="" /> : <ImagePlus size={15} />}</span><span><strong>Banner promocional {index + 1}</strong><small>{banner.title}</small></span></summary>
+                  <summary><span className="editor-card-thumb"><AdminMediaPreview src={banner.imageUrl} compact /></span><span><strong>Banner promocional {index + 1}</strong><small>{banner.title}</small></span></summary>
                   <div className="promo-config-fields compact-editor-body">
                     <label>Chamada pequena<input value={banner.eyebrow} onChange={(event) => updateHomePromo(index, { eyebrow: event.target.value })} /></label>
                     <label>Título<input value={banner.title} onChange={(event) => updateHomePromo(index, { title: event.target.value })} /></label>
@@ -1090,14 +1170,17 @@ export default function AdminConteudo() {
 
           <section className="admin-panel catalog-banner-editor">
             <div className="panel-heading">
-              <div><h2>3. Banners da página de produtos</h2><p>Capas exibidas no topo do catálogo. Arraste para mudar a ordem.</p></div>
-              <button type="button" className="button ghost" disabled={content.catalogSlides.length >= 5} onClick={() => changeContent((current) => ({ ...current, catalogSlides: [...current.catalogSlides, blankCatalogSlide()] }))}><Plus size={15} /> Adicionar banner</button>
+              <div><h2>3. Banners da página de produtos</h2><p>Capas exibidas no topo de “Todos os produtos”. Arraste para mudar a ordem.</p></div>
+              <div className="panel-heading-actions">
+                <button type="button" className="button ghost" onClick={() => openPreview("catalog")}><Eye size={15} /> Ver página de produtos</button>
+                <button type="button" className="button ghost" disabled={content.catalogSlides.length >= 5} onClick={() => changeContent((current) => ({ ...current, catalogSlides: [...current.catalogSlides, blankCatalogSlide()] }))}><Plus size={15} /> Adicionar banner</button>
+              </div>
             </div>
             <div className="banner-order-board">
               {content.catalogSlides.map((slide, index) => (
-                <article key={`catalog-order-${index}`} data-sort-kind="catalogSlides" data-sort-index={index} className="banner-order-card">
+                <article key={`catalog-order-${index}`} data-sort-kind="catalogSlides" data-sort-index={index} className={sortableClass("catalogSlides", index, "banner-order-card")}>
                   <button type="button" className="drag-handle" aria-label={`Arrastar banner do catálogo ${index + 1}`} {...sortHandleProps("catalogSlides", index)}><GripVertical size={16} /></button>
-                  <div>{slide.imageUrl ? <img src={slide.imageUrl} alt="" /> : <ImagePlus size={20} />}</div>
+                  <div><AdminMediaPreview src={slide.imageUrl} compact /></div>
                   <span><b>{index + 1}</b><small>{slide.title || "Sem título"}</small></span>
                 </article>
               ))}
@@ -1105,7 +1188,7 @@ export default function AdminConteudo() {
             <div className="hero-slides-editor">
               {content.catalogSlides.map((slide, index) => (
                 <details className="hero-slide-editor compact-editor-card" key={`catalog-editor-${index}`}>
-                  <summary><span className="editor-card-thumb" style={slide.imageUrl ? { backgroundImage: `url("${slide.imageUrl.replaceAll('"', '\\"')}")` } : undefined}><ImagePlus size={15} /></span><span><strong>Catálogo {index + 1}</strong><small>{slide.title || "Sem título"}</small></span></summary>
+                  <summary><span className="editor-card-thumb"><AdminMediaPreview src={slide.imageUrl} compact /></span><span><strong>Catálogo {index + 1}</strong><small>{slide.title || "Sem título"}</small></span></summary>
                   <div className="compact-editor-body">
                     <div className="hero-slide-editor-head"><strong>Editar capa {index + 1}</strong>{content.catalogSlides.length > 1 && <button type="button" className="danger-text" onClick={() => changeContent((current) => ({ ...current, catalogSlides: current.catalogSlides.filter((_, slideIndex) => slideIndex !== index) }))}><Trash2 size={14} /> Remover</button>}</div>
                     <div className="hero-slide-fields">
@@ -1114,7 +1197,7 @@ export default function AdminConteudo() {
                       <label className="wide">Descrição<textarea rows={2} value={slide.description} onChange={(event) => updateCatalogSlide(index, { description: event.target.value })} /></label>
                     </div>
                     <label className="upload-box"><ImagePlus size={16} /> {slide.imageUrl ? "Trocar imagem ou vídeo" : "Escolher imagem ou vídeo"}<input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" onChange={(event) => void uploadCatalogSlide(index, event.target.files?.[0])} /></label>
-                    {slide.imageUrl && <div className="hero-slide-preview">{slide.imageUrl.endsWith(".mp4") || slide.imageUrl.endsWith(".webm") || slide.imageUrl.endsWith(".mov") ? <video src={slide.imageUrl} autoPlay loop muted playsInline /> : <img src={slide.imageUrl} alt="" />}</div>}
+                    {slide.imageUrl && <div className="hero-slide-preview"><AdminMediaPreview src={slide.imageUrl} emptyLabel="Não foi possível carregar esta mídia" /></div>}
                   </div>
                 </details>
               ))}
@@ -1139,13 +1222,13 @@ export default function AdminConteudo() {
         <div className="content-tab-pane">
           <section className="tab-intro-card">
             <div><Layers size={22} /><span><strong>Prateleiras da página inicial</strong><small>São grupos de produtos exibidos na home. Arraste para escolher a ordem.</small></span></div>
-            <button type="button" className="button ghost sm" onClick={() => setPreviewOpen(true)}><Eye size={15} /> Ver prévia</button>
+            <button type="button" className="button ghost sm" onClick={() => openPreview("home")}><Eye size={15} /> Ver prévia</button>
           </section>
           <section className="admin-panel shelves-editor-panel">
             <label className="compact-setting-field">Título da área de produtos destacados<input value={content.homeFeaturedTitle} onChange={(event) => changeContent((current) => ({ ...current, homeFeaturedTitle: event.target.value }))} /></label>
             <div className="shelf-editor-list">
               {content.homeProductSections.map((section, index) => (
-                <article key={`shelf-editor-${index}`} className="shelf-editor-card" data-sort-kind="homeProductSections" data-sort-index={index}>
+                <article key={`shelf-editor-${index}`} className={sortableClass("homeProductSections", index, "shelf-editor-card")} data-sort-kind="homeProductSections" data-sort-index={index}>
                   <header>
                     <button type="button" className="drag-handle" aria-label={`Arrastar prateleira ${index + 1}`} {...sortHandleProps("homeProductSections", index)}><GripVertical size={17} /></button>
                     <span className="shelf-position">{index + 1}</span>
@@ -1168,7 +1251,7 @@ export default function AdminConteudo() {
         <div className="content-tab-pane">
           <section className="tab-intro-card">
             <div><Menu size={22} /><span><strong>Menu de navegação</strong><small>Arraste os itens para a esquerda ou direita. A ordem muda imediatamente na prévia.</small></span></div>
-            <button type="button" className="button ghost sm" onClick={() => setPreviewOpen(true)}><Eye size={15} /> Ver prévia</button>
+            <button type="button" className="button ghost sm" onClick={() => openPreview("home")}><Eye size={15} /> Ver prévia</button>
           </section>
 
           <section className="admin-panel menu-editor-panel">
@@ -1178,7 +1261,7 @@ export default function AdminConteudo() {
             </div>
             <div className="menu-order-board">
               {content.navigation.map((item, index) => (
-                <article key={item.id ?? `menu-sort-${index}`} className={`menu-order-chip ${item.active ? "" : "inactive"}`} data-sort-kind="navigation" data-sort-index={index}>
+                <article key={item.id ?? `menu-sort-${index}`} className={sortableClass("navigation", index, `menu-order-chip ${item.active ? "" : "inactive"}`)} data-sort-kind="navigation" data-sort-index={index}>
                   <button type="button" className="drag-handle" aria-label={`Arrastar ${item.label}`} {...sortHandleProps("navigation", index)}><GripVertical size={16} /></button>
                   <span>{item.label || `Item ${index + 1}`}</span>
                   <small>{item.active ? String(index + 1).padStart(2, "0") : "Oculto"}</small>
@@ -1237,7 +1320,7 @@ export default function AdminConteudo() {
         <div className="content-tab-pane">
           <section className="tab-intro-card">
             <div><Layout size={22} /><span><strong>Configurações visuais</strong><small>Informações gerais que aparecem na vitrine e na prévia.</small></span></div>
-            <button type="button" className="button ghost sm" onClick={() => setPreviewOpen(true)}><Eye size={15} /> Ver prévia</button>
+            <button type="button" className="button ghost sm" onClick={() => openPreview("home")}><Eye size={15} /> Ver prévia</button>
           </section>
           <section className="admin-panel visual-settings-panel">
             <div className="visual-settings-grid">
@@ -1254,9 +1337,15 @@ export default function AdminConteudo() {
           <div className="store-preview-dialog">
             <header className="store-preview-toolbar">
               <div><Eye size={18} /><span><strong>Prévia antes de publicar</strong><small>Somente você está vendo estas alterações.</small></span></div>
-              <div className="preview-device-switch">
-                <button type="button" className={previewDevice === "desktop" ? "active" : ""} onClick={() => setPreviewDevice("desktop")}><Monitor size={15} /> Computador</button>
-                <button type="button" className={previewDevice === "mobile" ? "active" : ""} onClick={() => setPreviewDevice("mobile")}><Smartphone size={15} /> Celular</button>
+              <div className="store-preview-controls">
+                <div className="preview-page-switch" aria-label="Página da prévia">
+                  <button type="button" className={previewPage === "home" ? "active" : ""} onClick={() => setPreviewPage("home")}><Layout size={15} /> Página inicial</button>
+                  <button type="button" className={previewPage === "catalog" ? "active" : ""} onClick={() => setPreviewPage("catalog")}><PackageSearch size={15} /> Todos os produtos</button>
+                </div>
+                <div className="preview-device-switch" aria-label="Tamanho da tela">
+                  <button type="button" className={previewDevice === "desktop" ? "active" : ""} onClick={() => setPreviewDevice("desktop")}><Monitor size={15} /> Computador</button>
+                  <button type="button" className={previewDevice === "mobile" ? "active" : ""} onClick={() => setPreviewDevice("mobile")}><Smartphone size={15} /> Celular</button>
+                </div>
               </div>
               <button type="button" className="preview-close" aria-label="Fechar prévia" onClick={() => setPreviewOpen(false)}><X size={20} /></button>
             </header>
@@ -1273,32 +1362,73 @@ export default function AdminConteudo() {
                   {!activeNavigation.length && <span>Menu ainda não configurado</span>}
                 </nav>
 
-                <section className="preview-hero">
-                  {previewSlide?.imageUrl ? (
-                    previewSlide.imageUrl.endsWith(".mp4") || previewSlide.imageUrl.endsWith(".webm") ? <video src={previewSlide.imageUrl} autoPlay loop muted playsInline /> : <img src={previewSlide.imageUrl} alt="" />
-                  ) : <div className="preview-empty-media">Banner sem imagem</div>}
-                  <div className="preview-hero-copy">
-                    {previewSlide?.eyebrow && <small>{previewSlide.eyebrow}</small>}
-                    <h2>{previewSlide?.title || "Título do banner"}</h2>
-                    {previewSlide?.description && <p>{previewSlide.description}</p>}
-                    {previewSlide?.buttonLabel && <span>{previewSlide.buttonLabel}</span>}
-                  </div>
-                  <div className="preview-dots">{content.heroSlides.map((_, index) => <button key={index} type="button" className={previewSlideIndex === index ? "active" : ""} onClick={() => setPreviewSlideIndex(index)} aria-label={`Ver banner ${index + 1}`} />)}</div>
-                </section>
+                {previewPage === "home" ? (
+                  <>
+                    <section className="preview-hero">
+                      {previewSlide?.imageUrl
+                        ? <AdminMediaPreview src={previewSlide.imageUrl} emptyLabel="Banner não carregado" />
+                        : <div className="preview-empty-media">Banner sem imagem</div>}
+                      <div className="preview-hero-copy">
+                        {previewSlide?.eyebrow && <small>{previewSlide.eyebrow}</small>}
+                        <h2>{previewSlide?.title || "Título do banner"}</h2>
+                        {previewSlide?.description && <p>{previewSlide.description}</p>}
+                        {previewSlide?.buttonLabel && <span>{previewSlide.buttonLabel}</span>}
+                      </div>
+                      <div className="preview-dots">{content.heroSlides.map((_, index) => <button key={index} type="button" className={previewSlideIndex === index ? "active" : ""} onClick={() => setPreviewSlideIndex(index)} aria-label={`Ver banner ${index + 1}`} />)}</div>
+                    </section>
 
-                <section className="preview-promos">
-                  {content.homePromoBanners.map((banner, index) => (
-                    <article key={`preview-promo-${index}`}>{banner.imageUrl && <img src={banner.imageUrl} alt="" />}<div><small>{banner.eyebrow}</small><strong>{banner.title}</strong><span>{banner.buttonLabel}</span></div></article>
-                  ))}
-                </section>
+                    <section className="preview-promos">
+                      {content.homePromoBanners.map((banner, index) => (
+                        <article key={`preview-promo-${index}`}>
+                          {banner.imageUrl && <AdminMediaPreview src={banner.imageUrl} compact />}
+                          <div><small>{banner.eyebrow}</small><strong>{banner.title}</strong><span>{banner.buttonLabel}</span></div>
+                        </article>
+                      ))}
+                    </section>
 
-                <section className="preview-featured"><h2>{content.homeFeaturedTitle}</h2><div>{[1, 2, 3, 4].map((item) => <article key={item}><div /><small>Produto em destaque</small><strong>R$ 0,00</strong></article>)}</div></section>
+                    <section className="preview-featured"><h2>{content.homeFeaturedTitle}</h2><div>{[1, 2, 3, 4].map((item) => <article key={item}><div /><small>Produto em destaque</small><strong>R$ 0,00</strong></article>)}</div></section>
 
-                {content.homeProductSections.map((section, index) => (
-                  <section className="preview-shelf" key={`preview-shelf-${index}`}><header><div><h2>{section.title}</h2><small>Produtos relacionados a: {section.query}</small></div><span>{section.buttonLabel}</span></header><div>{[1, 2, 3, 4].map((item) => <article key={item}><div /><small>Produto da prateleira</small><strong>R$ 0,00</strong></article>)}</div></section>
-                ))}
+                    {content.homeProductSections.map((section, index) => (
+                      <section className="preview-shelf" key={`preview-shelf-${index}`}><header><div><h2>{section.title}</h2><small>Produtos relacionados a: {section.query}</small></div><span>{section.buttonLabel}</span></header><div>{[1, 2, 3, 4].map((item) => <article key={item}><div /><small>Produto da prateleira</small><strong>R$ 0,00</strong></article>)}</div></section>
+                    ))}
 
-                {content.homeFooterBanner.active && content.homeFooterBanner.imageUrl && <section className="preview-footer-banner"><img src={content.homeFooterBanner.imageUrl} alt="" /></section>}
+                    {content.homeFooterBanner.active && content.homeFooterBanner.imageUrl && <section className="preview-footer-banner"><img src={content.homeFooterBanner.imageUrl} alt="" /></section>}
+                  </>
+                ) : (
+                  <>
+                    <section className="preview-catalog-hero">
+                      {previewCatalogSlide?.imageUrl
+                        ? <AdminMediaPreview src={previewCatalogSlide.imageUrl} emptyLabel="Banner do catálogo não carregado" />
+                        : <div className="preview-empty-media">Banner do catálogo sem imagem</div>}
+                      <div className="preview-catalog-copy">
+                        {previewCatalogSlide?.eyebrow && <small>{previewCatalogSlide.eyebrow}</small>}
+                        <h2>{previewCatalogSlide?.title || "Todos os produtos"}</h2>
+                        {previewCatalogSlide?.description && <p>{previewCatalogSlide.description}</p>}
+                      </div>
+                      <div className="preview-dots">{content.catalogSlides.map((_, index) => <button key={index} type="button" className={previewCatalogSlideIndex === index ? "active" : ""} onClick={() => setPreviewCatalogSlideIndex(index)} aria-label={`Ver banner do catálogo ${index + 1}`} />)}</div>
+                    </section>
+
+                    <section className="preview-catalog-heading">
+                      <div><small>Catálogo completo</small><h2>Todos os produtos</h2><span>Modelos disponíveis na loja</span></div>
+                      <button type="button">Relevância⌄</button>
+                    </section>
+
+                    <div className="preview-catalog-layout">
+                      <aside className="preview-catalog-filters">
+                        <strong>Filtrar produtos</strong>
+                        <span>Categoria</span><div />
+                        <span>Marca</span><div />
+                        <span>Condição</span><div />
+                      </aside>
+                      <section className="preview-catalog-grid">
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+                          <article key={item}><div /><small>Produto do catálogo</small><strong>R$ 0,00</strong><span>Ver produto</span></article>
+                        ))}
+                      </section>
+                    </div>
+                    <div className="preview-mobile-filter-bar"><ListFilter size={14} /> Filtros <span>Todos os produtos</span></div>
+                  </>
+                )}
               </div>
             </div>
 
