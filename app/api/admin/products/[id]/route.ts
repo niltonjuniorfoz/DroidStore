@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import prisma from "../../../../../src/lib/prisma";
@@ -222,6 +223,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     where: { id },
     select: {
       id: true,
+      slug: true,
       variants: { select: { id: true, _count: { select: { orderItems: true } } } },
     },
   });
@@ -236,6 +238,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       entityId: id,
       summary: "Produto desativado (removido da vitrine)",
     });
+    revalidatePath("/");
+    revalidatePath("/celulares");
+    revalidatePath(`/produto/${product.slug}`);
     return NextResponse.json({
       deleted: false,
       archived: true,
@@ -247,5 +252,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     await tx.variant.deleteMany({ where: { productId: id } });
     await tx.product.delete({ where: { id } });
   });
+  revalidatePath("/");
+  revalidatePath("/celulares");
+  revalidatePath(`/produto/${product.slug}`);
   return NextResponse.json({ deleted: true, archived: false, message: "Produto excluído com sucesso." });
 }

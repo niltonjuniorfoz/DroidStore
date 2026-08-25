@@ -146,9 +146,7 @@ export async function getProducts(
       orderBy: { updatedAt: "desc" },
       take,
     })]);
-    return rows.length
-      ? rows.map((row) => mapProduct(row, storeMode))
-      : fallbackProducts;
+    return rows.map((row) => mapProduct(row, storeMode));
   } catch {
     return fallbackProducts;
   }
@@ -170,18 +168,17 @@ const getProductBySlugCached = unstable_cache(async (slug: string): Promise<Stor
       },
     })]);
 
-    if (product) {
-      const mapped = mapProduct(product, storeMode);
-      return { ...mapped, familyVariants: await getFamilyVariantsForProduct(mapped, storeMode) };
-    }
-  } catch {
-    // The static catalog below keeps the storefront available during database outages.
-  }
+    if (!product) return null;
 
-  const fallback = products.find((item) => item.slug === slug);
-  if (!fallback) return null;
-  return { ...fallback, familyVariants: await getFamilyVariantsForProduct(fallback) };
-}, ["storefront-product-detail-v3"], { revalidate: 45 });
+    const mapped = mapProduct(product, storeMode);
+    return { ...mapped, familyVariants: await getFamilyVariantsForProduct(mapped, storeMode) };
+  } catch {
+    // Somente uma falha real do banco usa o catalogo estatico de emergencia.
+    const fallback = products.find((item) => item.slug === slug);
+    if (!fallback) return null;
+    return { ...fallback, familyVariants: await getFamilyVariantsForProduct(fallback) };
+  }
+}, ["storefront-product-detail-v4"], { revalidate: 45 });
 
 export { getBaseModelName };
 
