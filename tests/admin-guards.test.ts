@@ -77,4 +77,12 @@ describe("seleção em massa de produtos", () => {
     assert.match(source, /toggleSelectGroup\(group\.items\)/);
     assert.match(source, /index \+= 5/);
   });
+
+  it("mantém a barra de ações compacta em telas responsivas", () => {
+    const source = readFileSync(join(root, "app", "admin", "admin-theme.css"), "utf8");
+    const rule = source.match(/\.admin-shell \.bulk-actions-floating-bar\s*\{([^}]+)\}/)?.[1] ?? "";
+    assert.match(rule, /top:\s*auto/);
+    assert.match(rule, /height:\s*auto/);
+    assert.match(rule, /width:\s*max-content/);
+  });
 });

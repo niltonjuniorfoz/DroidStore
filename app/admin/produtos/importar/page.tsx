@@ -430,9 +430,12 @@ export default function AuraCatalogImportPage() {
   }
 
   async function deleteHistoryItem(historyJob: Job) {
+    const preservedProducts = historyJob.status === "PARTIAL_ROLLBACK";
     if (!await confirmDialog({
       title: "Excluir importação",
-      message: `Excluir “${historyJob.fileName}” do histórico? Importações com produtos ainda aplicados precisam ser desfeitas primeiro.`,
+      message: preservedProducts
+        ? `Excluir “${historyJob.fileName}” do histórico? Os produtos que não puderam ser desfeitos serão preservados no catálogo.`
+        : `Excluir “${historyJob.fileName}” do histórico? Importações com produtos ainda aplicados precisam ser desfeitas primeiro.`,
       confirmLabel: "Excluir",
       danger: true,
     })) return;

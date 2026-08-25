@@ -3,7 +3,7 @@ import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
 import { audit } from "../../../../../src/lib/audit";
 import prisma from "../../../../../src/lib/prisma";
 
-const deletableStatuses = new Set(["UPLOADED", "PREVIEW", "READY", "FAILED", "CANCELLED", "ROLLED_BACK"]);
+const deletableStatuses = new Set(["UPLOADED", "PREVIEW", "READY", "FAILED", "CANCELLED", "ROLLED_BACK", "PARTIAL_ROLLBACK"]);
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireAdmin();
@@ -17,7 +17,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!job) return NextResponse.json({ error: "Importação não encontrada." }, { status: 404 });
   const completedWithoutChanges = job.status === "COMPLETED" && job.createdItems === 0 && job.updatedItems === 0;
   if (!deletableStatuses.has(job.status) && !completedWithoutChanges) {
-    return NextResponse.json({ error: "Desfaça ou cancele a importação antes de excluí-la do histórico." }, { status: 409 });
+    return NextResponse.json({ error: "Desfaça ou cancele a importação antes de excluí-la do histórico. Em rollback parcial, os produtos preservados continuam no catálogo." }, { status: 409 });
   }
   await prisma.auraImportJob.delete({ where: { id } });
   await audit(session, {

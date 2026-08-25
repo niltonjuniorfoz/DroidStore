@@ -487,8 +487,9 @@
 
 /* ---------- BARRA DE AÇÕES EM MASSA ---------- */
 .admin-shell .bulk-actions-floating-bar {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  position: fixed; top: auto; right: auto; bottom: 20px; left: 50%; transform: translateX(-50%);
   z-index: 60;
+  width: max-content; max-width: calc(100vw - 32px); min-height: 0; height: auto;
   display: flex; align-items: center; gap: 0.6rem;
   background: #141a16ee; backdrop-filter: blur(10px);
   color: #fff; border-radius: 14px; padding: 0.6rem 0.9rem;
@@ -509,6 +510,19 @@
 .admin-shell .group-selection-cell .checkbox-btn { width: 25px; padding: 2px; }
 .admin-shell .group-expand-icon { flex: 0 0 auto; color: var(--a-accent); }
 .admin-shell .partially-selected-icon { color: var(--a-accent); fill: var(--a-accent-soft); }
+
+@media (max-width: 768px) {
+  .admin-shell .bulk-actions-floating-bar {
+    top: auto;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: auto;
+    max-width: none;
+    transform: none;
+    flex-wrap: wrap;
+  }
+}
 
 /* ---------- PAGINAÇÃO ---------- */
 .admin-shell .page-buttons { display: flex; align-items: center; gap: 0.5rem; }
