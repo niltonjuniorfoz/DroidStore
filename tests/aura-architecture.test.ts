@@ -76,3 +76,12 @@ test("todas as rotas novas usam guarda Admin", async () => {
   ];
   for (const route of routes) assert.match(await source(route), /requireAdmin/);
 });
+
+test("upload Aura pequeno não depende do filesystem temporário da Vercel", async () => {
+  const route = await source("app/api/admin/aura-import/upload/route.ts");
+  const page = await source("app/admin/produtos/importar/page.tsx");
+  assert.match(route, /multipart\/form-data/);
+  assert.match(route, /Buffer\.from\(await file\.arrayBuffer\(\)\)/);
+  assert.match(page, /file\.size <= 4 \* 1024 \* 1024/);
+  assert.match(page, /form\.set\("file", file\)/);
+});

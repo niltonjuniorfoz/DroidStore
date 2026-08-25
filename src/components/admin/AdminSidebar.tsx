@@ -88,7 +88,7 @@ export default function AdminSidebar({ open = false, onClose, role }: { open?: b
       </Link>
       {onClose && <button onClick={onClose} aria-label="Fechar menu"><X /></button>}
     </div>
-    <div style={{ overflowY: "auto", flex: 1, paddingBottom: "0.8rem" }}>
+    <div className="admin-sidebar-menu">
       {groups.map((group) => {
         const visible = group.items.filter((item) => !item.adminOnly || isOwner);
         if (!visible.length) return null;
@@ -96,7 +96,7 @@ export default function AdminSidebar({ open = false, onClose, role }: { open?: b
           <div key={group.label ?? "root"}>
             {group.label
               ? <div className="admin-section-label">{group.label}</div>
-              : <div style={{ height: "0.8rem" }} />}
+              : <div className="admin-sidebar-spacer" />}
             <nav aria-label={group.label ?? "Principal"}>
               {visible.map((item) => {
                 const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);

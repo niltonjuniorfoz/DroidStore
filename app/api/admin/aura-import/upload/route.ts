@@ -14,17 +14,37 @@ const uploadSchema = z.object({
   fileName: z.string().trim().min(1).max(255).refine((value) => value.toLowerCase().endsWith(".json"), "Envie um arquivo .json"),
 });
 
+const DIRECT_UPLOAD_LIMIT = 4 * 1024 * 1024;
+
+async function readUpload(request: Request) {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    const file = form.get("file");
+    if (!(file instanceof File)) throw new Error("Selecione um arquivo JSON válido.");
+    if (!file.name.toLowerCase().endsWith(".json")) throw new Error("Envie um arquivo .json");
+    if (file.size > DIRECT_UPLOAD_LIMIT) throw new Error("Para catálogos acima de 4 MB, configure o Vercel Blob.");
+    return { buffer: Buffer.from(await file.arrayBuffer()), fileName: file.name, temporaryUrl: "" };
+  }
+
+  const parsedBody = uploadSchema.safeParse(await request.json());
+  if (!parsedBody.success) throw new Error(parsedBody.error.issues[0]?.message ?? "Upload inválido.");
+  return {
+    buffer: await readTemporaryAdminUpload(parsedBody.data.url, 75 * 1024 * 1024),
+    fileName: parsedBody.data.fileName,
+    temporaryUrl: parsedBody.data.url,
+  };
+}
+
 export async function POST(request: Request) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  const parsedBody = uploadSchema.safeParse(await request.json());
-  if (!parsedBody.success) return NextResponse.json({ error: parsedBody.error.issues[0]?.message ?? "Upload inválido." }, { status: 400 });
   try {
-    const buffer = await readTemporaryAdminUpload(parsedBody.data.url, 75 * 1024 * 1024);
+    const { buffer, fileName, temporaryUrl } = await readUpload(request);
     const parsed = parseAuraExport(buffer);
     const user = session.user as { id?: string; name?: string | null; email?: string | null };
-    const result = await createAuraImportJob({ parsed, fileName: parsedBody.data.fileName, actor: user });
-    await deleteTemporaryAdminUpload(parsedBody.data.url);
+    const result = await createAuraImportJob({ parsed, fileName, actor: user });
+    if (temporaryUrl) await deleteTemporaryAdminUpload(temporaryUrl);
     await audit(session, {
       action: "aura.import.create",
       entity: "AuraImportJob",

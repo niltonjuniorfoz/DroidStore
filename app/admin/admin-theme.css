@@ -63,8 +63,18 @@
 .admin-shell .admin-sidebar::-webkit-scrollbar { width: 6px; }
 .admin-shell .admin-sidebar::-webkit-scrollbar-thumb { background: #ffffff14; border-radius: 3px; }
 
+.admin-shell .admin-sidebar-menu {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: clamp(0.25rem, 0.8vh, 0.8rem);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.admin-shell .admin-sidebar-menu::-webkit-scrollbar { display: none; }
+.admin-shell .admin-sidebar-spacer { height: clamp(0.25rem, 0.85vh, 0.8rem); }
+
 .admin-shell .admin-brand {
-  height: 82px;
+  height: clamp(58px, 8.9vh, 82px);
   padding: 0 1rem;
   border-bottom: 1px solid rgba(255, 121, 0, 0.14);
   background: linear-gradient(180deg, rgba(255, 121, 0, 0.045), transparent);
@@ -74,19 +84,19 @@
   align-items: center;
   min-width: 0;
   width: 174px;
-  height: 64px;
+  height: clamp(52px, 7vh, 64px);
 }
 .admin-shell .admin-brand-logo {
   display: block;
   width: 168px;
-  height: 58px;
+  height: clamp(46px, 6.3vh, 58px);
   object-fit: contain;
   object-position: left center;
   filter: drop-shadow(0 6px 13px rgba(255, 121, 0, 0.18));
 }
 
 .admin-shell .admin-section-label {
-  padding: 1.05rem 1.55rem 0.4rem;
+  padding: clamp(0.35rem, 1.15vh, 1.05rem) 1.55rem clamp(0.2rem, 0.45vh, 0.4rem);
   font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -96,7 +106,7 @@
 
 .admin-shell .admin-sidebar nav { padding: 0 0.7rem; gap: 2px; }
 .admin-shell .admin-sidebar nav a {
-  height: 38px;
+  height: clamp(30px, 4.15vh, 38px);
   border-radius: 9px;
   font-size: 0.76rem;
   font-weight: 550;
@@ -127,9 +137,9 @@
 .admin-shell .admin-sidebar nav a svg { width: 16px; height: 16px; opacity: 0.85; }
 .admin-shell .admin-sidebar nav a.active svg { opacity: 1; }
 
-.admin-shell .admin-sidebar-bottom { margin-top: auto; padding: 0.7rem; border-top: 1px solid rgba(255, 121, 0, 0.12); }
+.admin-shell .admin-sidebar-bottom { margin-top: auto; padding: clamp(0.35rem, 0.75vh, 0.7rem); border-top: 1px solid rgba(255, 121, 0, 0.12); }
 .admin-shell .admin-sidebar-bottom a, .admin-shell .admin-sidebar-bottom button {
-  height: 38px; border-radius: 9px; font-size: 0.74rem; font-weight: 550; color: #aab3ab;
+  height: clamp(30px, 4.15vh, 38px); border-radius: 9px; font-size: 0.74rem; font-weight: 550; color: #aab3ab;
 }
 .admin-shell .admin-sidebar-bottom a:hover, .admin-shell .admin-sidebar-bottom button:hover { background: #ffffff0a; color: #fff; }
 

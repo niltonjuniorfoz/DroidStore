@@ -137,7 +137,10 @@ function asStrings(value: unknown) {
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
+  const headers = init?.body instanceof FormData
+    ? init.headers
+    : { "Content-Type": "application/json", ...(init?.headers ?? {}) };
+  const response = await fetch(url, { ...init, headers });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw Object.assign(new Error(body.error ?? "Não foi possível concluir a operação."), { body });
   return body as T;
@@ -238,6 +241,20 @@ export default function AuraCatalogImportPage() {
     if (!file && !temporaryUrl) return;
     setBusy("upload"); setError(""); setNotice("");
     try {
+      if (mode === "AURA_JSON" && file && !temporaryUrl && file.size <= 4 * 1024 * 1024) {
+        const form = new FormData();
+        form.set("file", file);
+        const result = await requestJson<{ jobId: string; summary: Summary }>("/api/admin/aura-import/upload", {
+          method: "POST",
+          body: form,
+        });
+        const nextJob = await requestJson<Job>(`/api/admin/aura-import/${result.jobId}/status`);
+        setJob(nextJob); setSummary(result.summary); hydrateConfiguration(result.summary); setStep(2);
+        setNotice("Arquivo validado. Nenhum produto do catálogo foi alterado.");
+        await loadHistory();
+        return;
+      }
+
       let url = temporaryUrl;
       if (!url) {
         const uploaded = await uploadAdminFile(file!);
