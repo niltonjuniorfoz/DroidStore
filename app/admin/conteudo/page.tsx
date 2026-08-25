@@ -28,9 +28,13 @@ import type { HeroSlide } from "../../../src/components/HeroCarousel";
 import {
   DEFAULT_HOME_FEATURED_TITLE,
   DEFAULT_HOME_FOOTER_BANNER,
+  DEFAULT_HOME_GARMIN_SHOWCASE,
+  DEFAULT_HOME_OUTLET_SECTION,
   DEFAULT_HOME_PRODUCT_SECTIONS,
   DEFAULT_HOME_PROMO_BANNERS,
+  type HomeBrandShowcase,
   type HomeFooterBanner,
+  type HomeOutletSection,
   type HomeProductSection,
   type HomePromoBanner,
 } from "../../../src/lib/homeContent";
@@ -83,6 +87,8 @@ type Content = {
   catalogSlides: CatalogBanner[];
   homeFeaturedTitle: string;
   homeFooterBanner: HomeFooterBanner;
+  homeOutletSection: HomeOutletSection;
+  homeGarminShowcase: HomeBrandShowcase;
   homePromoBanners: HomePromoBanner[];
   homeProductSections: HomeProductSection[];
   navigation: MenuItem[];
@@ -397,6 +403,8 @@ const initial: Content = {
   catalogSlides: [blankCatalogSlide()],
   homeFeaturedTitle: DEFAULT_HOME_FEATURED_TITLE,
   homeFooterBanner: { ...DEFAULT_HOME_FOOTER_BANNER },
+  homeOutletSection: { ...DEFAULT_HOME_OUTLET_SECTION },
+  homeGarminShowcase: { ...DEFAULT_HOME_GARMIN_SHOWCASE },
   homePromoBanners: DEFAULT_HOME_PROMO_BANNERS.map((banner) => ({ ...banner })),
   homeProductSections: DEFAULT_HOME_PRODUCT_SECTIONS.map((section) => ({ ...section })),
   navigation: DEFAULT_STOREFRONT_NAVIGATION.map((item) => ({ ...item, active: true })),
@@ -488,6 +496,12 @@ export default function AdminConteudo() {
         homeFooterBanner: data.homeFooterBanner && typeof data.homeFooterBanner === "object"
           ? { ...DEFAULT_HOME_FOOTER_BANNER, ...data.homeFooterBanner }
           : { ...DEFAULT_HOME_FOOTER_BANNER },
+        homeOutletSection: data.homeOutletSection && typeof data.homeOutletSection === "object"
+          ? { ...DEFAULT_HOME_OUTLET_SECTION, ...data.homeOutletSection }
+          : { ...DEFAULT_HOME_OUTLET_SECTION },
+        homeGarminShowcase: data.homeGarminShowcase && typeof data.homeGarminShowcase === "object"
+          ? { ...DEFAULT_HOME_GARMIN_SHOWCASE, ...data.homeGarminShowcase }
+          : { ...DEFAULT_HOME_GARMIN_SHOWCASE },
         homePromoBanners: Array.isArray(data.homePromoBanners) && data.homePromoBanners.length === 2
           ? data.homePromoBanners
           : DEFAULT_HOME_PROMO_BANNERS.map((banner) => ({ ...banner })),
@@ -652,6 +666,32 @@ export default function AdminConteudo() {
       ...current,
       homeFooterBanner: { ...current.homeFooterBanner, ...patch },
     }));
+  }
+
+  function updateHomeOutletSection(patch: Partial<HomeOutletSection>) {
+    changeContent((current) => ({
+      ...current,
+      homeOutletSection: { ...current.homeOutletSection, ...patch },
+    }));
+  }
+
+  function updateHomeGarminShowcase(patch: Partial<HomeBrandShowcase>) {
+    changeContent((current) => ({
+      ...current,
+      homeGarminShowcase: { ...current.homeGarminShowcase, ...patch },
+    }));
+  }
+
+  async function uploadHomeGarminBanner(file?: File) {
+    if (!file) return;
+    setBusy(true);
+    setMessage("Enviando banner da linha Garmin...");
+    scrollToAdminMessage();
+    const result = await uploadAdminFile(file);
+    if (result.url) updateHomeGarminShowcase({ bannerImageUrl: result.url });
+    else setMessage(result.error ?? "Não foi possível trocar o banner Garmin.");
+    scrollToAdminMessage();
+    setBusy(false);
   }
 
   async function upload(index: number, file?: File) {
@@ -1251,6 +1291,37 @@ export default function AdminConteudo() {
                   </div>
                 </article>
               ))}
+            </div>
+
+            <div className="promo-config-list">
+              <details className="compact-editor-card" open>
+                <summary>
+                  <span className="editor-card-thumb"><Tag size={18} /></span>
+                  <span><strong>Outlet especial</strong><small>Mosaico com 2 produtos grandes e 4 compactos.</small></span>
+                </summary>
+                <div className="promo-config-fields compact-editor-body">
+                  <label>Título<input value={content.homeOutletSection.title} onChange={(event) => updateHomeOutletSection({ title: event.target.value })} /></label>
+                  <label>Texto do botão<input value={content.homeOutletSection.buttonLabel} onChange={(event) => updateHomeOutletSection({ buttonLabel: event.target.value })} /></label>
+                  <GuidedLinkField label="Ao clicar em Ver todos" value={content.homeOutletSection.buttonHref} onChange={(buttonHref) => updateHomeOutletSection({ buttonHref })} brandOptions={brandMenuOptions} categoryOptions={categoryMenuOptions} filterGroups={customFilterGroups} />
+                  <label className="footer-banner-toggle"><input type="checkbox" checked={content.homeOutletSection.active} onChange={(event) => updateHomeOutletSection({ active: event.target.checked })} /><span>Exibir o mosaico Outlet na página inicial</span></label>
+                </div>
+              </details>
+
+              <details className="compact-editor-card" open>
+                <summary>
+                  <span className="editor-card-thumb"><AdminMediaPreview src={content.homeGarminShowcase.bannerImageUrl} compact /></span>
+                  <span><strong>Banner + carrossel Garmin</strong><small>Aparece imediatamente depois da prateleira Xiaomi.</small></span>
+                </summary>
+                <div className="promo-config-fields compact-editor-body">
+                  <label>Título<input value={content.homeGarminShowcase.title} onChange={(event) => updateHomeGarminShowcase({ title: event.target.value })} /></label>
+                  <label>Produtos do carrossel<input value={content.homeGarminShowcase.query} onChange={(event) => updateHomeGarminShowcase({ query: event.target.value })} placeholder="garmin" /><small>Use palavras que identifiquem a linha, marca ou categoria.</small></label>
+                  <label>Texto do botão<input value={content.homeGarminShowcase.buttonLabel} onChange={(event) => updateHomeGarminShowcase({ buttonLabel: event.target.value })} /></label>
+                  <GuidedLinkField label="Ao clicar em Ver todos / banner" value={content.homeGarminShowcase.buttonHref} onChange={(buttonHref) => updateHomeGarminShowcase({ buttonHref })} brandOptions={brandMenuOptions} categoryOptions={categoryMenuOptions} filterGroups={customFilterGroups} searchSuggestion={content.homeGarminShowcase.query.split(",")[0]?.trim() ?? "garmin"} />
+                  <label className="compact-upload-button"><ImagePlus size={15} /> Trocar banner Garmin<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; void uploadHomeGarminBanner(file); }} /></label>
+                  {content.homeGarminShowcase.bannerImageUrl && <div className="hero-slide-preview"><AdminMediaPreview src={content.homeGarminShowcase.bannerImageUrl} emptyLabel="Banner Garmin não carregado" /></div>}
+                  <label className="footer-banner-toggle"><input type="checkbox" checked={content.homeGarminShowcase.active} onChange={(event) => updateHomeGarminShowcase({ active: event.target.checked })} /><span>Exibir banner e carrossel Garmin</span></label>
+                </div>
+              </details>
             </div>
           </section>
         </div>

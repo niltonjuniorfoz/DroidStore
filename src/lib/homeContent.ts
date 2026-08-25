@@ -20,6 +20,22 @@ export type HomeFooterBanner = {
   active: boolean;
 };
 
+export type HomeOutletSection = {
+  title: string;
+  buttonLabel: string;
+  buttonHref: string;
+  active: boolean;
+};
+
+export type HomeBrandShowcase = {
+  title: string;
+  query: string;
+  buttonLabel: string;
+  buttonHref: string;
+  bannerImageUrl: string;
+  active: boolean;
+};
+
 export const DEFAULT_HOME_FEATURED_TITLE = "Mais vendidos";
 
 export const DEFAULT_HOME_PROMO_BANNERS: HomePromoBanner[] = [
@@ -44,6 +60,22 @@ export const DEFAULT_HOME_PROMO_BANNERS: HomePromoBanner[] = [
 export const DEFAULT_HOME_FOOTER_BANNER: HomeFooterBanner = {
   imageUrl: "/home-banners/aura-tech-footer-banner.png",
   linkHref: "/celulares",
+  active: true,
+};
+
+export const DEFAULT_HOME_OUTLET_SECTION: HomeOutletSection = {
+  title: "Outlet",
+  buttonLabel: "Ver todos",
+  buttonHref: "/celulares?condition=Outlet",
+  active: true,
+};
+
+export const DEFAULT_HOME_GARMIN_SHOWCASE: HomeBrandShowcase = {
+  title: "Garmin",
+  query: "garmin",
+  buttonLabel: "Ver todos",
+  buttonHref: "/celulares?brand=Garmin",
+  bannerImageUrl: "/home-banners/garmin-line.png",
   active: true,
 };
 
@@ -114,5 +146,29 @@ export function readHomeFooterBanner(value: unknown): HomeFooterBanner {
     imageUrl: text(saved?.imageUrl, DEFAULT_HOME_FOOTER_BANNER.imageUrl),
     linkHref: text(saved?.linkHref, DEFAULT_HOME_FOOTER_BANNER.linkHref),
     active: typeof saved?.active === "boolean" ? saved.active : DEFAULT_HOME_FOOTER_BANNER.active,
+  };
+}
+
+export function readHomeOutletSection(value: unknown): HomeOutletSection {
+  const source = record(value);
+  const saved = record(source?.homeOutletSection);
+  return {
+    title: text(saved?.title, DEFAULT_HOME_OUTLET_SECTION.title),
+    buttonLabel: text(saved?.buttonLabel, DEFAULT_HOME_OUTLET_SECTION.buttonLabel),
+    buttonHref: text(saved?.buttonHref, DEFAULT_HOME_OUTLET_SECTION.buttonHref),
+    active: typeof saved?.active === "boolean" ? saved.active : DEFAULT_HOME_OUTLET_SECTION.active,
+  };
+}
+
+export function readHomeGarminShowcase(value: unknown): HomeBrandShowcase {
+  const source = record(value);
+  const saved = record(source?.homeGarminShowcase);
+  return {
+    title: text(saved?.title, DEFAULT_HOME_GARMIN_SHOWCASE.title),
+    query: text(saved?.query, DEFAULT_HOME_GARMIN_SHOWCASE.query),
+    buttonLabel: text(saved?.buttonLabel, DEFAULT_HOME_GARMIN_SHOWCASE.buttonLabel),
+    buttonHref: text(saved?.buttonHref, DEFAULT_HOME_GARMIN_SHOWCASE.buttonHref),
+    bannerImageUrl: text(saved?.bannerImageUrl, DEFAULT_HOME_GARMIN_SHOWCASE.bannerImageUrl),
+    active: typeof saved?.active === "boolean" ? saved.active : DEFAULT_HOME_GARMIN_SHOWCASE.active,
   };
 }

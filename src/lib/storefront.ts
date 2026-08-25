@@ -12,6 +12,8 @@ import { readInstagramFromCatalogBanner } from "./contact";
 import {
   readHomeFeaturedTitle,
   readHomeFooterBanner,
+  readHomeGarminShowcase,
+  readHomeOutletSection,
   readHomeProductSections,
   readHomePromoBanners,
 } from "./homeContent";
@@ -393,6 +395,8 @@ export async function getSiteContent() {
           instagramUrl: readInstagramFromCatalogBanner(content.catalogBanner),
           homeFeaturedTitle: readHomeFeaturedTitle(content.catalogBanner),
           homeFooterBanner: readHomeFooterBanner(content.catalogBanner),
+          homeOutletSection: readHomeOutletSection(content.catalogBanner),
+          homeGarminShowcase: readHomeGarminShowcase(content.catalogBanner),
           homePromoBanners: readHomePromoBanners(content.catalogBanner),
           homeProductSections: readHomeProductSections(content.catalogBanner),
         }

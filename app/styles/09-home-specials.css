@@ -1,0 +1,429 @@
+/* ==========================================================================
+   Aura Tech - Home especial: mosaico Outlet + banner/carrossel Garmin
+   ========================================================================== */
+
+.storefront-theme .home-outlet-section,
+.storefront-theme .home-brand-showcase {
+  margin-top: 1.2rem;
+  margin-bottom: 2rem;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid #dbe4de;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .04);
+}
+
+.storefront-theme .special-home-heading {
+  min-height: 48px;
+  margin: 0;
+  padding: .68rem .95rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #fff;
+  background: linear-gradient(100deg, var(--store-orange), #ff922f);
+}
+
+.storefront-theme .special-home-heading h2 {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  color: #fff;
+  font-size: .9rem;
+  line-height: 1;
+}
+
+.storefront-theme .special-home-heading a {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+/* OUTLET - grade 4x2: grande / 2 compactos / 2 compactos / grande */
+.storefront-theme .outlet-mosaic-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 270px);
+  gap: 0;
+  background: #eef1ef;
+}
+
+.storefront-theme .outlet-mosaic-card {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid #dfe5e1;
+  border-bottom: 1px solid #dfe5e1;
+  background: #fff;
+}
+
+.storefront-theme .outlet-mosaic-card:nth-child(1) { grid-column: 1 / 3; grid-row: 1; }
+.storefront-theme .outlet-mosaic-card:nth-child(2) { grid-column: 3; grid-row: 1; }
+.storefront-theme .outlet-mosaic-card:nth-child(3) { grid-column: 4; grid-row: 1; }
+.storefront-theme .outlet-mosaic-card:nth-child(4) { grid-column: 1; grid-row: 2; }
+.storefront-theme .outlet-mosaic-card:nth-child(5) { grid-column: 2; grid-row: 2; }
+.storefront-theme .outlet-mosaic-card:nth-child(6) { grid-column: 3 / 5; grid-row: 2; }
+
+.storefront-theme .outlet-mosaic-card.is-featured {
+  display: grid;
+  grid-template-columns: 47% 53%;
+}
+
+.storefront-theme .outlet-card-media {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(145deg, #fbfcfb, #f0f4f1);
+}
+
+.storefront-theme .outlet-card-media img {
+  width: 100%;
+  height: 100%;
+  padding: 1.15rem;
+  object-fit: contain;
+  transition: transform .34s cubic-bezier(.22, 1, .36, 1);
+}
+
+.storefront-theme .outlet-mosaic-card:hover .outlet-card-media img {
+  transform: scale(1.055);
+}
+
+.storefront-theme .outlet-card-copy {
+  position: relative;
+  min-width: 0;
+  padding: .95rem 1rem;
+}
+
+.storefront-theme .outlet-mosaic-card.is-featured .outlet-card-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.15rem 1.25rem;
+  background: linear-gradient(135deg, #fff8f1, #fff 70%);
+}
+
+.storefront-theme .outlet-card-brand {
+  color: #8b938f;
+  font-size: .58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.storefront-theme .outlet-card-copy h3 {
+  margin: .35rem 0 .25rem;
+  overflow: hidden;
+  color: #161b18;
+  font-size: .72rem;
+  font-weight: 850;
+  line-height: 1.28;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.storefront-theme .outlet-mosaic-card.is-featured .outlet-card-copy h3 {
+  max-width: 95%;
+  font-size: 1.03rem;
+  line-height: 1.18;
+  -webkit-line-clamp: 3;
+}
+
+.storefront-theme .outlet-card-meta {
+  min-height: 1rem;
+  color: #939b97;
+  font-size: .56rem;
+}
+
+.storefront-theme .outlet-card-price {
+  margin-top: auto;
+  padding-top: .65rem;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #edf0ee;
+}
+
+.storefront-theme .outlet-card-price small,
+.storefront-theme .outlet-card-price span {
+  color: #949c98;
+  font-size: .53rem;
+}
+
+.storefront-theme .outlet-card-price strong {
+  margin: 2px 0;
+  color: var(--store-orange);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.storefront-theme .outlet-mosaic-card.is-featured .outlet-card-price strong {
+  font-size: 1.4rem;
+}
+
+.storefront-theme .outlet-card-action {
+  position: absolute;
+  right: .8rem;
+  bottom: .75rem;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--store-orange);
+  border-radius: 9px;
+  color: var(--store-orange);
+  background: #fff;
+  transition: transform .22s ease, color .22s ease, background .22s ease;
+}
+
+.storefront-theme .outlet-card-action:hover {
+  color: #fff;
+  background: var(--store-orange);
+  transform: translateY(-1px);
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact {
+  display: grid;
+  grid-template-rows: 55% 45%;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-media img {
+  padding: .7rem;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-copy {
+  padding: .6rem .7rem;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-price {
+  padding-top: .4rem;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-action {
+  right: .6rem;
+  bottom: .55rem;
+  width: 28px;
+  height: 28px;
+}
+
+/* GARMIN - banner quadrado a esquerda + carrossel a direita */
+.storefront-theme .home-brand-showcase {
+  position: relative;
+}
+
+.storefront-theme .home-brand-showcase-body {
+  min-height: 330px;
+  display: grid;
+  grid-template-columns: minmax(245px, 29%) minmax(0, 1fr);
+  gap: 0;
+}
+
+.storefront-theme .home-brand-banner {
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid #e0e5e2;
+  background: #0b0b0b;
+}
+
+.storefront-theme .home-brand-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .45s cubic-bezier(.22, 1, .36, 1);
+}
+
+.storefront-theme .home-brand-banner:hover img {
+  transform: scale(1.025);
+}
+
+.storefront-theme .home-brand-products {
+  position: relative;
+  min-width: 0;
+  padding: .8rem;
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+}
+
+.storefront-theme .home-brand-products .product-carousel-shell {
+  width: 100%;
+  min-width: 0;
+}
+
+.storefront-theme .garmin-showcase .brand-showcase-track {
+  height: 100%;
+  padding: 0;
+  align-items: stretch;
+}
+
+.storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide {
+  flex-basis: calc((100% - 2.1rem) / 4);
+}
+
+.storefront-theme .garmin-showcase .product-card {
+  height: 100%;
+  min-height: 310px;
+}
+
+.storefront-theme .garmin-showcase .product-visual {
+  height: 155px;
+}
+
+.storefront-theme .garmin-showcase .product-body {
+  padding: .6rem .65rem .7rem;
+}
+
+.storefront-theme .garmin-showcase .product-card-clean-title {
+  min-height: 3.4em;
+  font-size: .67rem;
+  line-height: 1.25;
+  -webkit-line-clamp: 3;
+}
+
+.storefront-theme .garmin-showcase .pix-amount-val {
+  font-size: 1.05rem;
+}
+
+.storefront-theme .garmin-showcase .installment-line-item {
+  font-size: .52rem;
+}
+
+.storefront-theme .garmin-showcase .card-buy-button {
+  min-height: 32px;
+  margin-top: .45rem;
+  font-size: .58rem;
+}
+
+.storefront-theme .garmin-showcase .product-photo-primary,
+.storefront-theme .garmin-showcase .product-photo-secondary {
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1), opacity .3s ease !important;
+}
+
+.storefront-theme .garmin-showcase .product-card:hover .product-photo-primary,
+.storefront-theme .garmin-showcase .product-card:hover .product-photo-secondary {
+  transform: scale(1.055) !important;
+}
+
+.storefront-theme .home-brand-empty {
+  width: 100%;
+  min-height: 280px;
+  display: grid;
+  place-content: center;
+  gap: .35rem;
+  padding: 2rem;
+  text-align: center;
+  color: #6c7671;
+}
+
+.storefront-theme .home-brand-empty strong {
+  color: #202722;
+}
+
+@media (max-width: 1000px) {
+  .storefront-theme .outlet-mosaic-grid {
+    grid-template-rows: repeat(2, 245px);
+  }
+
+  .storefront-theme .home-brand-showcase-body {
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+
+  .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide {
+    flex-basis: calc((100% - 1.4rem) / 3);
+  }
+}
+
+@media (max-width: 650px) {
+  .storefront-theme .home-outlet-section,
+  .storefront-theme .home-brand-showcase {
+    margin-top: .9rem;
+    margin-bottom: 1.2rem;
+    border-radius: 15px;
+  }
+
+  .storefront-theme .special-home-heading {
+    min-height: 42px;
+    padding: .58rem .72rem;
+  }
+
+  .storefront-theme .special-home-heading h2 {
+    font-size: .82rem;
+  }
+
+  .storefront-theme .special-home-heading a {
+    font-size: .6rem;
+  }
+
+  .storefront-theme .outlet-mosaic-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-rows: 235px;
+  }
+
+  .storefront-theme .outlet-mosaic-card:nth-child(n) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .storefront-theme .outlet-mosaic-card:nth-child(1),
+  .storefront-theme .outlet-mosaic-card:nth-child(6) {
+    grid-column: 1 / 3;
+  }
+
+  .storefront-theme .outlet-mosaic-card.is-featured {
+    grid-template-columns: 45% 55%;
+  }
+
+  .storefront-theme .outlet-mosaic-card.is-featured .outlet-card-copy {
+    padding: .8rem;
+  }
+
+  .storefront-theme .outlet-mosaic-card.is-featured .outlet-card-copy h3 {
+    font-size: .82rem;
+  }
+
+  .storefront-theme .outlet-mosaic-card.is-featured .outlet-card-price strong {
+    font-size: 1.05rem;
+  }
+
+  .storefront-theme .outlet-mosaic-card.is-compact .outlet-card-copy h3 {
+    font-size: .61rem;
+  }
+
+  .storefront-theme .home-brand-showcase-body {
+    display: block;
+  }
+
+  .storefront-theme .home-brand-banner {
+    display: block;
+    aspect-ratio: 1 / 1;
+    border-right: 0;
+    border-bottom: 1px solid #e0e5e2;
+  }
+
+  .storefront-theme .home-brand-products {
+    padding: .7rem;
+  }
+
+  .storefront-theme .garmin-showcase .brand-showcase-track {
+    gap: .65rem;
+  }
+
+  .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide {
+    flex: 0 0 min(72vw, 235px);
+  }
+
+  .storefront-theme .garmin-showcase .product-card {
+    min-height: 300px;
+  }
+
+  .storefront-theme .garmin-showcase .product-visual {
+    height: 145px;
+  }
+}

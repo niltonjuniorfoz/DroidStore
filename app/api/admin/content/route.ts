@@ -8,6 +8,8 @@ import { readInstagramFromCatalogBanner } from "../../../../src/lib/contact";
 import {
   readHomeFeaturedTitle,
   readHomeFooterBanner,
+  readHomeGarminShowcase,
+  readHomeOutletSection,
   readHomeProductSections,
   readHomePromoBanners,
 } from "../../../../src/lib/homeContent";
@@ -47,6 +49,22 @@ const homeFooterBannerSchema = z.object({
   active: z.boolean(),
 });
 
+const homeOutletSectionSchema = z.object({
+  title: z.string().trim().min(1).max(60),
+  buttonLabel: z.string().trim().min(1).max(40),
+  buttonHref: z.string().trim().startsWith("/").max(200),
+  active: z.boolean(),
+});
+
+const homeGarminShowcaseSchema = z.object({
+  title: z.string().trim().min(1).max(60),
+  query: z.string().trim().min(1).max(160),
+  buttonLabel: z.string().trim().min(1).max(40),
+  buttonHref: z.string().trim().startsWith("/").max(200),
+  bannerImageUrl: z.string().trim().min(1).max(500),
+  active: z.boolean(),
+});
+
 const homeProductSectionSchema = z.object({
   title: z.string().trim().min(1).max(60),
   query: z.string().trim().min(1).max(160),
@@ -61,6 +79,8 @@ const schema = z.object({
   catalogSlides: z.array(catalogBannerSchema).min(1).max(5).optional(),
   homeFeaturedTitle: z.string().trim().min(1).max(80),
   homeFooterBanner: homeFooterBannerSchema,
+  homeOutletSection: homeOutletSectionSchema,
+  homeGarminShowcase: homeGarminShowcaseSchema,
   homePromoBanners: z.array(homePromoBannerSchema).length(2),
   homeProductSections: z.array(homeProductSectionSchema).length(2),
   navigation: z.array(z.object({
@@ -91,6 +111,8 @@ export async function GET() {
       : navigation,
     homeFeaturedTitle: readHomeFeaturedTitle(content.catalogBanner),
     homeFooterBanner: readHomeFooterBanner(content.catalogBanner),
+    homeOutletSection: readHomeOutletSection(content.catalogBanner),
+    homeGarminShowcase: readHomeGarminShowcase(content.catalogBanner),
     homePromoBanners: readHomePromoBanners(content.catalogBanner),
     homeProductSections: readHomeProductSections(content.catalogBanner),
   });
@@ -109,6 +131,8 @@ export async function PUT(req: Request) {
     catalogSlides,
     homeFeaturedTitle,
     homeFooterBanner,
+    homeOutletSection,
+    homeGarminShowcase,
     homePromoBanners,
     homeProductSections,
     storeName,
@@ -125,6 +149,8 @@ export async function PUT(req: Request) {
     ...(instagramUrl ? { instagramUrl } : {}),
     homeFeaturedTitle,
     homeFooterBanner,
+    homeOutletSection,
+    homeGarminShowcase,
     homePromoBanners,
     homeProductSections,
   } as Prisma.InputJsonObject;

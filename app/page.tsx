@@ -1,13 +1,18 @@
+import { Fragment } from "react";
 import HeroCarousel, { type HeroSlide } from "../src/components/HeroCarousel";
 import FeaturedCarousel from "../src/components/FeaturedCarousel";
 import HomeProductSection from "../src/components/HomeProductSection";
 import HomePromoBanners from "../src/components/HomePromoBanners";
 import HomeFooterBanner from "../src/components/HomeFooterBanner";
+import HomeOutletMosaic from "../src/components/HomeOutletMosaic";
+import HomeBrandShowcase from "../src/components/HomeBrandShowcase";
 import QuickActions from "../src/components/QuickActions";
 import { getProducts, getProductsForSection, getSiteContent } from "../src/lib/storefront";
 import {
   DEFAULT_HOME_FEATURED_TITLE,
   DEFAULT_HOME_FOOTER_BANNER,
+  DEFAULT_HOME_GARMIN_SHOWCASE,
+  DEFAULT_HOME_OUTLET_SECTION,
   DEFAULT_HOME_PRODUCT_SECTIONS,
   DEFAULT_HOME_PROMO_BANNERS,
 } from "../src/lib/homeContent";
@@ -47,7 +52,17 @@ export default async function Home() {
   const promoBanners = content?.homePromoBanners ?? DEFAULT_HOME_PROMO_BANNERS;
   const productSections = content?.homeProductSections ?? DEFAULT_HOME_PRODUCT_SECTIONS;
   const footerBanner = content?.homeFooterBanner ?? DEFAULT_HOME_FOOTER_BANNER;
-  const sectionProducts = await Promise.all(productSections.map((section) => getProductsForSection(section.query, 5)));
+  const outletSection = content?.homeOutletSection ?? DEFAULT_HOME_OUTLET_SECTION;
+  const garminShowcase = content?.homeGarminShowcase ?? DEFAULT_HOME_GARMIN_SHOWCASE;
+  const [sectionProducts, outletProducts, garminProducts] = await Promise.all([
+    Promise.all(productSections.map((section) => getProductsForSection(section.query, 5))),
+    outletSection.active ? getProducts(false, { take: 6, condition: "Outlet" }) : Promise.resolve([]),
+    garminShowcase.active ? getProductsForSection(garminShowcase.query, 8) : Promise.resolve([]),
+  ]);
+  const xiaomiSectionIndex = Math.max(
+    0,
+    productSections.findIndex((section) => `${section.title} ${section.query}`.toLocaleLowerCase("pt-BR").includes("xiaomi")),
+  );
 
   return <main className="storefront-home">
     <HeroCarousel slides={readSlides(content)} />
@@ -58,14 +73,27 @@ export default async function Home() {
 
     <HomePromoBanners banners={promoBanners} />
 
-    {productSections.map((section, index) => (
-      <HomeProductSection
-        key={`${section.title}-${index}`}
-        title={section.title}
-        buttonLabel={section.buttonLabel}
-        buttonHref={section.buttonHref}
-        products={sectionProducts[index] ?? []}
+    {outletSection.active && (
+      <HomeOutletMosaic
+        title={outletSection.title}
+        buttonLabel={outletSection.buttonLabel}
+        buttonHref={outletSection.buttonHref}
+        products={outletProducts}
       />
+    )}
+
+    {productSections.map((section, index) => (
+      <Fragment key={`${section.title}-${index}`}>
+        <HomeProductSection
+          title={section.title}
+          buttonLabel={section.buttonLabel}
+          buttonHref={section.buttonHref}
+          products={sectionProducts[index] ?? []}
+        />
+        {garminShowcase.active && index === xiaomiSectionIndex && (
+          <HomeBrandShowcase config={garminShowcase} products={garminProducts} />
+        )}
+      </Fragment>
     ))}
 
     <HomeFooterBanner banner={footerBanner} />
