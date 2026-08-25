@@ -1,0 +1,246 @@
+/* ==========================================================================
+   Aura Tech - UI polish V4
+   Tipografia moderna + alinhamento estrutural dos cards.
+   ========================================================================== */
+
+/* A fonte Inter já é carregada no layout da aplicação. */
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-feature-settings: "kern" 1, "liga" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.storefront-theme {
+  --apple-font-text: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --apple-font-display: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--apple-font-text);
+  letter-spacing: -0.012em;
+}
+
+.storefront-theme h1,
+.storefront-theme h2,
+.storefront-theme h3,
+.storefront-theme h4,
+.storefront-theme strong,
+.storefront-theme b {
+  font-family: var(--apple-font-display);
+}
+
+.storefront-theme h1,
+.storefront-theme h2,
+.storefront-theme h3,
+.storefront-theme h4 {
+  letter-spacing: -0.025em;
+}
+
+/* Evita a aparência excessivamente pesada de pesos sintetizados 850/900. */
+.storefront-theme .product-card-clean-title,
+.storefront-theme .outlet-card-title-link h3 {
+  font-weight: 700 !important;
+}
+
+.storefront-theme .pix-amount-val,
+.storefront-theme .outlet-card-price strong {
+  font-weight: 800 !important;
+}
+
+.storefront-theme .card-buy-button,
+.storefront-theme .outlet-card-action {
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Cards de produto: botão Comprar/Ver opções sempre na mesma linha.
+   ========================================================================== */
+.storefront-theme .product-grid,
+.storefront-theme .best-sellers-grid,
+.storefront-theme .infinite-carousel-track {
+  align-items: stretch;
+}
+
+.storefront-theme .product-card {
+  height: 100%;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.storefront-theme .product-card .product-visual {
+  flex: 0 0 205px;
+  width: 100%;
+}
+
+.storefront-theme .product-card .product-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex !important;
+  flex-direction: column;
+}
+
+.storefront-theme .product-card .product-info-top {
+  flex: 0 0 auto;
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+}
+
+.storefront-theme .product-card .product-card-clean-title {
+  min-height: 3.15em;
+  max-height: 3.15em;
+  margin: .08rem 0 .22rem;
+  overflow: hidden;
+  display: -webkit-box;
+  font-size: .75rem;
+  line-height: 1.32;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.storefront-theme .product-card .product-variant-summary {
+  min-height: 1.05rem;
+  max-height: 1.05rem;
+  margin-top: .08rem;
+  overflow: hidden;
+  line-height: 1.25;
+}
+
+.storefront-theme .product-card .product-price {
+  width: 100%;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.storefront-theme .product-card .pix-amount-wrapper {
+  min-height: 54px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.storefront-theme .product-card .card-installments-block {
+  min-height: 43px;
+  box-sizing: border-box;
+}
+
+.storefront-theme .product-card .card-buy-button {
+  flex: 0 0 40px;
+  width: 100%;
+  min-height: 40px;
+  margin-top: .65rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .42rem;
+}
+
+/* Grid de Mais vendidos: todos os cards ocupam exatamente a altura da célula. */
+.storefront-theme .best-sellers-grid > .product-card {
+  align-self: stretch;
+}
+
+/* Carrosséis: o slide inteiro estica o card. */
+.storefront-theme .infinite-carousel-track > .carousel-slide {
+  align-self: stretch;
+}
+
+.storefront-theme .infinite-carousel-track > .carousel-slide > .product-card {
+  align-self: stretch;
+}
+
+/* Foto de catálogo sempre centralizada e inteira. */
+.storefront-theme .product-card .product-image-link {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: hidden;
+}
+
+.storefront-theme .product-card .catalog-photo,
+.storefront-theme .product-card .product-photo-primary,
+.storefront-theme .product-card .product-photo-secondary {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0;
+  box-sizing: border-box;
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
+/* ==========================================================================
+   Outlet: reforça consistência da V3.
+   ========================================================================== */
+.storefront-theme .outlet-mosaic-card .outlet-card-copy {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-main,
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-price {
+  text-align: center;
+  align-items: center;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-footer {
+  width: 100%;
+}
+
+/* ==========================================================================
+   Responsividade.
+   ========================================================================== */
+@media (max-width: 1100px) and (min-width: 651px) {
+  .storefront-theme .product-card .product-visual {
+    flex-basis: 185px;
+    height: 185px;
+  }
+
+  .storefront-theme .product-card .product-card-clean-title {
+    font-size: .7rem;
+  }
+}
+
+@media (max-width: 650px) {
+  .storefront-theme .product-card .product-visual {
+    flex-basis: 155px;
+    height: 155px;
+  }
+
+  .storefront-theme .product-card .product-info-top {
+    min-height: 52px;
+  }
+
+  .storefront-theme .product-card .product-card-clean-title {
+    min-height: 2.65em;
+    max-height: 2.65em;
+    font-size: .64rem;
+    line-height: 1.32;
+    -webkit-line-clamp: 2;
+  }
+
+  .storefront-theme .product-card .product-variant-summary {
+    min-height: .82rem;
+    max-height: .82rem;
+  }
+
+  .storefront-theme .product-card .pix-amount-wrapper {
+    min-height: 48px;
+  }
+
+  .storefront-theme .product-card .card-installments-block {
+    min-height: 38px;
+  }
+
+  .storefront-theme .product-card .card-buy-button {
+    flex-basis: 34px;
+    min-height: 34px !important;
+  }
+}

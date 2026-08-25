@@ -11,27 +11,57 @@ type Props = {
   products: CatalogProduct[];
 };
 
+function productCategory(product: CatalogProduct) {
+  return product.filters?.find((filter) =>
+    ["categoria", "tipo-de-produto"].includes(filter.groupSlug)
+  )?.optionLabel ?? product.brand;
+}
+
 function OutletProductCard({ product, featured = false }: { product: CatalogProduct; featured?: boolean }) {
   const href = `/produto/${product.slug}`;
-  const image = product.images?.[0] ?? product.imageUrl;
+  const primaryImage = product.images?.[0] ?? product.imageUrl;
+  const secondaryImage = product.images?.[1];
+  const category = productCategory(product);
 
   return (
     <article className={`outlet-mosaic-card ${featured ? "is-featured" : "is-compact"}`}>
       <Link className="outlet-card-media" href={href} aria-label={`Ver ${product.name}`}>
-        {image ? <ProductImage src={image} alt={product.name} /> : <ProductImage alt="" />}
+        {primaryImage ? (
+          <>
+            <ProductImage className="outlet-product-photo outlet-photo-primary" src={primaryImage} alt={product.name} />
+            {secondaryImage && (
+              <ProductImage className="outlet-product-photo outlet-photo-secondary" src={secondaryImage} alt="" />
+            )}
+          </>
+        ) : (
+          <ProductImage className="outlet-product-photo" alt="" />
+        )}
       </Link>
+
       <div className="outlet-card-copy">
-        <span className="outlet-card-brand">{product.brand}</span>
-        <Link href={href}><h3>{product.name}</h3></Link>
-        <span className="outlet-card-meta">{[product.storage, product.color].filter(Boolean).join(" · ")}</span>
-        <div className="outlet-card-price">
-          <small>{featured ? "Preço Outlet" : "Outlet"}</small>
-          <strong>{money(product.price)}</strong>
-          <span>à vista</span>
+        <div className="outlet-card-main">
+          <span className="outlet-card-brand">{product.brand}</span>
+          <Link href={href} className="outlet-card-title-link">
+            <h3>{product.name}</h3>
+          </Link>
+          <span className="outlet-card-category">{category}</span>
+          <span className="outlet-card-meta">{[product.storage, product.color].filter(Boolean).join(" · ")}</span>
         </div>
-        <Link className="outlet-card-action" href={href} aria-label={`Comprar ${product.name}`}>
-          <ShoppingBag size={featured ? 17 : 14} />
-        </Link>
+
+        <div className="outlet-card-bottom">
+          <div className="outlet-card-price">
+            <small>A partir de</small>
+            <strong>{money(product.price)}</strong>
+            <span>no pix à vista</span>
+          </div>
+
+          <div className="outlet-card-footer">
+            <span className="outlet-card-sku">{product.sku ?? ""}</span>
+            <Link className="outlet-card-action" href={href} aria-label={`Comprar ${product.name}`}>
+              <ShoppingBag size={featured ? 17 : 14} />
+            </Link>
+          </div>
+        </div>
       </div>
     </article>
   );
