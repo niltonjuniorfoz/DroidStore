@@ -11,6 +11,7 @@ import {
   readHomeProductSections,
   readHomePromoBanners,
 } from "../../../../src/lib/homeContent";
+import { DEFAULT_STOREFRONT_NAVIGATION, isLegacyStorefrontNavigation } from "../../../../src/lib/storefrontNavigation";
 
 const slideSchema = z.object({
   eyebrow: z.string().trim().max(100).optional().or(z.literal("")),
@@ -85,7 +86,9 @@ export async function GET() {
     ...content,
     catalogBanner: publicCatalogBanner,
     storeName: ["DroidStore", "Brasil Store"].includes(content.storeName) ? "Aura Tech" : content.storeName,
-    navigation,
+    navigation: !navigation.length || isLegacyStorefrontNavigation(navigation)
+      ? DEFAULT_STOREFRONT_NAVIGATION
+      : navigation,
     homeFeaturedTitle: readHomeFeaturedTitle(content.catalogBanner),
     homeFooterBanner: readHomeFooterBanner(content.catalogBanner),
     homePromoBanners: readHomePromoBanners(content.catalogBanner),

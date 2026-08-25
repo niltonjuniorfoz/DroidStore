@@ -1287,6 +1287,7 @@
 
 /* Editor do menu do cabeçalho: uma linha clara no desktop e um card organizado no celular. */
 .admin-shell .menu-editor-panel { padding: 1rem; }
+.admin-shell .menu-heading-actions { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
 .admin-shell .menu-editor { gap: .5rem; }
 .admin-shell .menu-item-row {
   display: grid;
@@ -1359,6 +1360,8 @@
 .admin-shell .panel-heading p { font-size: .66rem; line-height: 1.45; }
 
 @media (max-width: 900px) {
+  .admin-shell .menu-heading-actions { width: 100%; }
+  .admin-shell .menu-heading-actions .button { flex: 1 1 210px; }
   .admin-shell .admin-main { padding: .85rem .75rem 4rem !important; }
   .admin-shell .admin-title { gap: .7rem; padding-bottom: .65rem; }
   .admin-shell .product-manager-title { align-items: stretch; }

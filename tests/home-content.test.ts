@@ -12,6 +12,11 @@ import {
   readHomeProductSections,
   readHomePromoBanners,
 } from "../src/lib/homeContent";
+import {
+  DEFAULT_STOREFRONT_NAVIGATION,
+  isLegacyStorefrontNavigation,
+  resolveStorefrontNavigation,
+} from "../src/lib/storefrontNavigation";
 
 test("configuração da Home usa os dois banners e prateleiras padrão", () => {
   assert.equal(readHomeFeaturedTitle(null), DEFAULT_HOME_FEATURED_TITLE);
@@ -47,4 +52,37 @@ test("upload de imagens da vitrine permanece disponível sem Vercel Blob", () =>
   assert.match(uploadRoute, /DATABASE_IMAGE_MAX_BYTES/);
   assert.match(mediaRoute, /adminMediaAsset\.findUnique/);
   assert.match(uploadClient, /return uploadThroughServer\(\)/);
+});
+
+test("prateleiras da home consultam seus próprios produtos sem limite global", () => {
+  const root = join(import.meta.dirname, "..");
+  const home = readFileSync(join(root, "app", "page.tsx"), "utf8");
+  const storefront = readFileSync(join(root, "src", "lib", "storefront.ts"), "utf8");
+  assert.match(home, /getProductsForSection\(section\.query, 5\)/);
+  assert.match(storefront, /export async function getProductsForSection/);
+  assert.match(storefront, /filterSelections/);
+});
+
+test("menu legado de marcas migra para departamentos editáveis", () => {
+  const legacy = [
+    { label: "iPhone", href: "/celulares?brand=Apple" },
+    { label: "Samsung", href: "/celulares?brand=Samsung" },
+    { label: "Motorola", href: "/celulares?brand=Motorola" },
+    { label: "Xiaomi", href: "/celulares?brand=Xiaomi" },
+  ];
+  assert.equal(isLegacyStorefrontNavigation(legacy), true);
+  assert.deepEqual(resolveStorefrontNavigation(legacy), DEFAULT_STOREFRONT_NAVIGATION.map(({ label, href }) => ({ label, href })));
+  assert.deepEqual(DEFAULT_STOREFRONT_NAVIGATION.map((item) => item.label), [
+    "Smartphones", "Informática", "Eletrônicos", "Smartwatch", "Tablets", "Seminovos", "Outlet",
+  ]);
+});
+
+test("mega menu público usa a navegação salva no painel", () => {
+  const root = join(import.meta.dirname, "..");
+  const megaMenu = readFileSync(join(root, "src", "components", "MegaMenu.tsx"), "utf8");
+  const admin = readFileSync(join(root, "app", "admin", "conteudo", "page.tsx"), "utf8");
+  assert.match(megaMenu, /customNavigation\.length \? customNavigation\.slice/);
+  assert.match(megaMenu, /navigation\.map/);
+  assert.match(admin, /Categorias do cabeçalho/);
+  assert.match(admin, /restoreRecommendedNavigation/);
 });

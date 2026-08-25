@@ -13,9 +13,21 @@ export const metadata: Metadata = {
   alternates: { canonical: `${process.env.APP_URL ?? "http://localhost:3000"}/celulares` },
 };
 
-export default async function CatalogPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function CatalogPage({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams;
   const [initialCatalog, initialFilters] = await Promise.all([
-    getProducts(false),
+    getProducts(false, {
+      query: first(params.q),
+      brand: first(params.brand),
+      category: first(params.categoria) ?? first(params.category) ?? first(params.cat),
+      condition: first(params.condition),
+    }),
     getPublicCatalogFilters(),
   ]);
 

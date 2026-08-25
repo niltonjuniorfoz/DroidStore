@@ -6,13 +6,14 @@ import { saveAuraConfiguration } from "../../../../../../src/lib/aura/jobService
 
 const conditions = ["NOVO", "NOVO_REEMBALADO", "EXCELENTE", "MUITO_BOM", "BOM", "OUTLET"] as const;
 const roundingRules = ["CEIL_10", "NEAREST_10", "CEIL_50", "CEIL_100"] as const;
+const catalogOptionId = z.string().trim().min(1).max(160);
 const schema = z.object({
   exchangeRate: z.coerce.number().positive().max(100),
   roundingRule: z.enum(roundingRules),
-  brandMappings: z.array(z.object({ sourceBrand: z.string().trim().min(1).max(120), optionId: z.string().uuid().optional(), createIfMissing: z.boolean().optional() })).max(500),
+  brandMappings: z.array(z.object({ sourceBrand: z.string().trim().min(1).max(120), optionId: catalogOptionId.optional(), createIfMissing: z.boolean().optional() })).max(500),
   categories: z.array(z.object({
     sourceGroup: z.string().trim().min(1).max(160),
-    optionIds: z.array(z.string().uuid()).max(1),
+    optionIds: z.array(catalogOptionId).max(1),
     createIfMissing: z.boolean().optional(),
     persist: z.boolean().optional(),
   }).refine((value) => value.optionIds.length === 1 || value.createIfMissing, "Selecione ou crie a categoria.")).max(500),

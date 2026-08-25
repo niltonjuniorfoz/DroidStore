@@ -2,10 +2,15 @@ type SearchParamsReader = { get(name: string): string | null };
 type FilterOptionLike = { label: string; slug: string };
 
 const CATEGORY_PARAMS = ["categoria", "tipo-de-produto", "cat", "category"];
-const VIRTUAL_CATEGORIES = new Set(["acessorios", "informatica", "games", "tv-audio"]);
+const VIRTUAL_CATEGORIES = new Set(["smartphones", "eletronicos", "acessorios", "informatica", "games", "tv-audio"]);
 
 const CATEGORY_FAMILIES: Record<string, string[]> = {
+  smartphones: ["smartphone", "smartphones", "celular", "celulares", "iphone"],
   notebook: ["notebook", "macbook"],
+  eletronicos: [
+    "smartwatch", "gps-rastreador-e-localizador", "equipamentos-para-pesca", "utensilios",
+    "caixas-de-som", "microfone", "fone-de-ouvido-headset", "rede-e-internet",
+  ],
   acessorios: [
     "cases-e-peliculas", "cabos-e-adaptadores", "carregadores", "suportes-e-tripes",
     "mochilas-e-cases", "cartao-de-memoria-e-sd", "mouses", "pendrives", "teclado",
@@ -59,4 +64,9 @@ export function matchesCategory(productCategorySlugs: string[], selectedCategory
   const productSlugs = productCategorySlugs.map(normalizeCatalogToken);
   const family = CATEGORY_FAMILIES[selected];
   return family ? productSlugs.some((slug) => family.includes(slug)) : productSlugs.includes(selected);
+}
+
+export function categoryFamilyTokens(selectedCategory: string) {
+  const selected = normalizeCatalogToken(selectedCategory);
+  return CATEGORY_FAMILIES[selected] ?? [selected];
 }

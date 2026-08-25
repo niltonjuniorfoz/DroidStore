@@ -70,8 +70,9 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
   const [mobileFilterBarVisible, setMobileFilterBarVisible] = useState(true);
 
   useEffect(() => {
+    const productEndpoint = paramsKey ? `/api/products?${paramsKey}` : "/api/products";
     void Promise.all([
-      fetch("/api/products").then((response) => response.json()),
+      fetch(productEndpoint).then((response) => response.json()),
       fetch("/api/catalog-filters").then((response) => response.json()),
     ]).then(([catalogData, filterData]: [CatalogProduct[], PublicFilter[]]) => {
       setCatalog(catalogData);
@@ -80,7 +81,7 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
       setMinPrice(prices.length ? Math.floor(Math.min(...prices)) : 0);
       setMaxPrice(prices.length ? Math.ceil(Math.max(...prices)) : 0);
     }).catch(() => undefined);
-  }, []);
+  }, [paramsKey]);
 
   const catalogSlides = useMemo(() => {
     if (Array.isArray(content?.catalogSlides) && content.catalogSlides.length) {
@@ -214,7 +215,9 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
         .map((item) => ({ id: item.optionId, label: item.optionLabel, slug: item.optionSlug })));
       const combined = [...(filterObj?.options ?? []), ...productOptions];
       const unique = new Map(combined.map((option) => [option.slug.toLowerCase(), option]));
+      unique.set("smartphones", { id: "virtual-smartphones", label: "Smartphones", slug: "smartphones" });
       unique.set("informatica", { id: "virtual-informatica", label: "Informática", slug: "informatica" });
+      unique.set("eletronicos", { id: "virtual-eletronicos", label: "Eletrônicos", slug: "eletronicos" });
       unique.set("acessorios", { id: "virtual-acessorios", label: "Acessórios", slug: "acessorios" });
       unique.set("games", { id: "virtual-games", label: "Games", slug: "games" });
       unique.set("tv-audio", { id: "virtual-tv-audio", label: "TV e Áudio", slug: "tv-audio" });

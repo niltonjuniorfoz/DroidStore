@@ -97,6 +97,16 @@ test("mapeamento Aura cria categoria ausente e salva o vínculo resolvido", asyn
   assert.doesNotMatch(page, /> Reutilizar</);
 });
 
+test("configuração Aura aceita IDs legados e descarta vínculos de categoria obsoletos", async () => {
+  const configure = await source("app/api/admin/aura-import/[id]/configure/route.ts");
+  const page = await source("app/admin/produtos/importar/page.tsx");
+  assert.match(configure, /const catalogOptionId = z\.string\(\)\.trim\(\)\.min\(1\)\.max\(160\)/);
+  assert.doesNotMatch(configure, /z\.string\(\)\.uuid\(\)/);
+  assert.match(page, /currentCategoryOptionIds\.has\(optionId\)/);
+  assert.match(page, /refreshMappingSources\(\)/);
+  assert.match(page, /hydrateConfiguration\(result\.summary, mappingSources\.currentSupplier, mappingSources\.activeFilters\)/);
+});
+
 test("prévia permite margem individual e exibe lucro calculado", async () => {
   const itemRoute = await source("app/api/admin/aura-import/[id]/items/[itemId]/route.ts");
   const service = await source("src/lib/aura/jobService.ts");

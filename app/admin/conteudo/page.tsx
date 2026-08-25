@@ -35,6 +35,7 @@ import {
   type HomePromoBanner,
 } from "../../../src/lib/homeContent";
 import { uploadAdminFile } from "../../../src/lib/uploadClient";
+import { DEFAULT_STOREFRONT_NAVIGATION } from "../../../src/lib/storefrontNavigation";
 
 type MenuItem = { id?: string; label: string; href: string; active: boolean };
 type ContentTab = "overview" | "banners" | "shelves" | "menu" | "visual";
@@ -398,7 +399,7 @@ const initial: Content = {
   homeFooterBanner: { ...DEFAULT_HOME_FOOTER_BANNER },
   homePromoBanners: DEFAULT_HOME_PROMO_BANNERS.map((banner) => ({ ...banner })),
   homeProductSections: DEFAULT_HOME_PRODUCT_SECTIONS.map((section) => ({ ...section })),
-  navigation: [],
+  navigation: DEFAULT_STOREFRONT_NAVIGATION.map((item) => ({ ...item, active: true })),
 };
 
 export default function AdminConteudo() {
@@ -823,6 +824,14 @@ export default function AdminConteudo() {
     scrollToMenuBuilder();
   }
 
+  function restoreRecommendedNavigation() {
+    changeContent((current) => ({
+      ...current,
+      navigation: DEFAULT_STOREFRONT_NAVIGATION.map((item) => ({ ...item, active: true })),
+    }), "Categorias recomendadas restauradas. Clique em Salvar e publicar para aplicar na loja.");
+    resetMenuBuilder();
+  }
+
   function editMenuWithBuilder(index: number) {
     const item = content.navigation[index];
     const [path, query = ""] = item.href.split("?");
@@ -959,7 +968,7 @@ export default function AdminConteudo() {
           ["overview", "Visão geral"],
           ["banners", "Banners"],
           ["shelves", "Prateleiras"],
-          ["menu", "Menu de navegação"],
+          ["menu", "Categorias do cabeçalho"],
           ["visual", "Configurações visuais"],
         ] as Array<[ContentTab, string]>).map(([tab, label]) => (
           <button
@@ -1023,7 +1032,7 @@ export default function AdminConteudo() {
             <header>
               <div>
                 <span className="overview-number">3</span>
-                <div><h2>Menu de navegação do cabeçalho</h2><p>Segure o ícone e arraste cada item para a esquerda ou para a direita.</p></div>
+                <div><h2>Categorias do cabeçalho</h2><p>Organize os departamentos exibidos no menu principal da loja.</p></div>
               </div>
               <button type="button" className="button ghost sm" onClick={() => setActiveTab("menu")}>Editar menu</button>
             </header>
@@ -1250,14 +1259,14 @@ export default function AdminConteudo() {
       {activeTab === "menu" && (
         <div className="content-tab-pane">
           <section className="tab-intro-card">
-            <div><Menu size={22} /><span><strong>Menu de navegação</strong><small>Arraste os itens para a esquerda ou direita. A ordem muda imediatamente na prévia.</small></span></div>
+            <div><Menu size={22} /><span><strong>Categorias do cabeçalho</strong><small>Edite nome, destino, visibilidade e ordem dos departamentos da loja.</small></span></div>
             <button type="button" className="button ghost sm" onClick={() => openPreview("home")}><Eye size={15} /> Ver prévia</button>
           </section>
 
           <section className="admin-panel menu-editor-panel">
             <div className="panel-heading">
-              <div><h2>1. Escolha a ordem do menu</h2><p>Segure o ícone de seis pontos e arraste o item para a posição desejada.</p></div>
-              <button type="button" className="button ghost" onClick={beginNewMenuItem}><Plus size={15} /> Adicionar item</button>
+              <div><h2>1. Organize as categorias</h2><p>Segure o ícone de seis pontos e arraste o item para a posição desejada.</p></div>
+              <div className="menu-heading-actions"><button type="button" className="button ghost" onClick={restoreRecommendedNavigation}>Restaurar modelo recomendado</button><button type="button" className="button ghost" onClick={beginNewMenuItem}><Plus size={15} /> Adicionar item</button></div>
             </div>
             <div className="menu-order-board">
               {content.navigation.map((item, index) => (

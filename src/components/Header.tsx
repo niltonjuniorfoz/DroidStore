@@ -24,6 +24,7 @@ import { useCart } from "./CartProvider";
 import MegaMenu from "./MegaMenu";
 import { useSiteContent } from "./SiteContentProvider";
 import ProductImage from "./ProductImage";
+import { DEFAULT_STOREFRONT_NAVIGATION } from "../lib/storefrontNavigation";
 
 type MenuItem = { label: string; href: string };
 type SearchProduct = {
@@ -50,35 +51,13 @@ type QuickBuyState = {
   disabled: boolean;
 };
 
-const defaultNavigation: MenuItem[] = [
-  { label: "Todos os celulares", href: "/celulares" },
-  { label: "Novos", href: "/celulares?condition=Novo" },
-  { label: "Seminovos", href: "/celulares?condition=Excelente" },
-  { label: "Samsung", href: "/celulares?brand=Samsung" },
-  { label: "Motorola", href: "/celulares?brand=Motorola" },
-  { label: "iPhone", href: "/celulares?brand=Apple" },
-];
-
-const mobileCategories: MenuItem[] = [
-  { label: "Categorias", href: "/celulares" },
-  { label: "iPhone", href: "/celulares?brand=Apple" },
-  { label: "Samsung", href: "/celulares?brand=Samsung" },
-  { label: "Motorola", href: "/celulares?brand=Motorola" },
-  { label: "Xiaomi", href: "/celulares?brand=Xiaomi" },
-  { label: "Notebook", href: "/celulares?categoria=notebook" },
-  { label: "Smartwatches", href: "/celulares?categoria=smartwatch" },
-  { label: "Tablets", href: "/celulares?categoria=tablets" },
-  { label: "Acessórios", href: "/celulares?categoria=acessorios" },
-  { label: "Seminovos", href: "/celulares?condition=Excelente" },
-];
-
 const popularSearches = ["iPhone", "Samsung", "Xiaomi", "Notebook gamer", "Seminovos"];
 const searchMoney = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function Header() {
   const { count } = useCart();
   const { content, navigation: siteNavigation } = useSiteContent();
-  const navigation = siteNavigation.length ? siteNavigation.slice(0, 8) : defaultNavigation;
+  const navigation = siteNavigation.length ? siteNavigation.slice(0, 8) : DEFAULT_STOREFRONT_NAVIGATION;
   const customerLoginEnabled = content?.customerLoginEnabled !== false;
   const [quickBuy, setQuickBuy] = useState<QuickBuyState | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
@@ -305,7 +284,7 @@ export default function Header() {
   }, [menuOpen]);
 
   const drawerCategories = useMemo(() => {
-    const combined = [...mobileCategories, ...navigation];
+    const combined: MenuItem[] = [{ label: "Todas as categorias", href: "/celulares" }, ...navigation];
     const unique = new Map(combined.map((item) => [`${item.label}-${item.href}`, item]));
     return Array.from(unique.values());
   }, [navigation]);
@@ -570,7 +549,7 @@ export default function Header() {
           )}
           <MegaMenu customNavigation={navigation} />
           <nav className="mobile-category-strip" aria-label="Categorias da loja">
-            {mobileCategories.map((item) => (
+            {[{ label: "Categorias", href: "/celulares" }, ...navigation].map((item) => (
               <Link key={`${item.label}-${item.href}`} href={item.href}>{item.label}</Link>
             ))}
           </nav>

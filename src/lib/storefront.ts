@@ -1,4 +1,5 @@
 import { cache } from "react";
+import type { Prisma } from "@prisma/client";
 import prisma from "./prisma";
 import {
   getBaseModelName,
@@ -14,6 +15,8 @@ import {
   readHomePromoBanners,
 } from "./homeContent";
 import { DEFAULT_STORE_MODE, isVariantAvailable, normalizeStoreMode, type StoreModeValue } from "./storeMode";
+import { resolveStorefrontNavigation } from "./storefrontNavigation";
+import { categoryFamilyTokens, matchesCategory } from "./catalogRouting";
 
 const conditionLabels: Record<string, CatalogProduct["condition"]> = {
   NOVO: "Novo", NOVO_REEMBALADO: "Novo", EXCELENTE: "Excelente",
@@ -77,14 +80,28 @@ export function mapProduct(product: {
 
 export async function getProducts(
   featuredOnly = false,
-  options: { take?: number; excludeSlug?: string; query?: string } = {},
+  options: { take?: number; excludeSlug?: string; query?: string; brand?: string; category?: string; condition?: string } = {},
 ) {
   const take = Math.min(Math.max(options.take ?? (featuredOnly ? 10 : 120), 1), 120);
   const query = options.query?.trim();
+  const brand = options.brand?.trim();
+  const category = options.category?.trim();
+  const requestedCondition = options.condition?.trim();
+  const conditionCode = ({
+    Novo: "NOVO",
+    Excelente: "EXCELENTE",
+    "Muito Bom": "MUITO_BOM",
+    Bom: "BOM",
+    Outlet: "OUTLET",
+  } as const)[requestedCondition as "Novo" | "Excelente" | "Muito Bom" | "Bom" | "Outlet"];
+  const categoryTokens = category ? categoryFamilyTokens(category) : [];
   const fallbackProducts = products
     .filter((product) => product.slug !== options.excludeSlug)
     .filter((product) => !featuredOnly || product.featured)
     .filter((product) => !query || `${product.name} ${product.brand} ${product.storage} ${product.color}`.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")))
+    .filter((product) => !brand || product.brand.toLocaleLowerCase("pt-BR") === brand.toLocaleLowerCase("pt-BR"))
+    .filter((product) => !category || matchesCategory((product.filters ?? []).map((filter) => filter.optionSlug), category))
+    .filter((product) => !requestedCondition || product.condition === requestedCondition)
     .slice(0, take);
   try {
     const [storeMode, rows] = await Promise.all([getStoreMode(), prisma.product.findMany({
@@ -92,6 +109,11 @@ export async function getProducts(
         active: true,
         ...(featuredOnly ? { featured: true } : {}),
         ...(options.excludeSlug ? { slug: { not: options.excludeSlug } } : {}),
+        ...(brand ? { brand: { equals: brand, mode: "insensitive" } } : {}),
+        ...(conditionCode ? { variants: { some: { condition: conditionCode } } } : {}),
+        ...(categoryTokens.length ? {
+          filterSelections: { some: { option: { slug: { in: categoryTokens } } } },
+        } : {}),
         ...(query ? {
           OR: [
             { name: { contains: query, mode: "insensitive" } },
@@ -241,6 +263,63 @@ export async function getFamilyVariantsForProduct(
   }));
 }
 
+export async function getProductsForSection(query: string, requestedTake = 5) {
+  const terms = query
+    .split(/[,;]/)
+    .map((term) => term.trim())
+    .filter(Boolean)
+    .slice(0, 10);
+  const take = Math.min(Math.max(requestedTake, 1), 12);
+  if (!terms.length) return [];
+
+  const fallbackProducts = products.filter((product) => {
+    const filterText = product.filters?.flatMap((filter) => [
+      filter.groupName,
+      filter.groupSlug,
+      filter.optionLabel,
+      filter.optionSlug,
+    ]).join(" ") ?? "";
+    const haystack = `${product.name} ${product.brand} ${filterText}`.toLocaleLowerCase("pt-BR");
+    return terms.some((term) => haystack.includes(term.toLocaleLowerCase("pt-BR")));
+  }).slice(0, take);
+
+  const textConditions = terms.flatMap<Prisma.ProductWhereInput>((term) => [
+    { name: { contains: term, mode: "insensitive" } },
+    { brand: { contains: term, mode: "insensitive" } },
+    { slug: { contains: term, mode: "insensitive" } },
+    {
+      filterSelections: {
+        some: {
+          option: {
+            OR: [
+              { label: { contains: term, mode: "insensitive" } },
+              { slug: { contains: term, mode: "insensitive" } },
+              { filter: { name: { contains: term, mode: "insensitive" } } },
+              { filter: { slug: { contains: term, mode: "insensitive" } } },
+            ],
+          },
+        },
+      },
+    },
+  ]);
+
+  try {
+    const [storeMode, rows] = await Promise.all([getStoreMode(), prisma.product.findMany({
+      where: { active: true, OR: textConditions },
+      include: {
+        variants: { orderBy: { price: "asc" } },
+        images: { orderBy: { position: "asc" }, take: 2 },
+        filterSelections: { include: { option: { include: { filter: true } } } },
+      },
+      orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
+      take,
+    })]);
+    return rows.length ? rows.map((row) => mapProduct(row, storeMode)) : fallbackProducts;
+  } catch {
+    return fallbackProducts;
+  }
+}
+
 export const getStoreMode = cache(async (): Promise<StoreModeValue> => {
   try {
     const content = await prisma.siteContent.findUnique({
@@ -310,7 +389,7 @@ export async function getSiteContent() {
           homeProductSections: readHomeProductSections(content.catalogBanner),
         }
       : null;
-    return { content: normalizedContent, navigation };
+    return { content: normalizedContent, navigation: resolveStorefrontNavigation(navigation) };
   } catch {
     return { content: null, navigation: [] };
   }

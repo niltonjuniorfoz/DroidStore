@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  categoryFamilyTokens,
   matchesCategory,
   readFilterRequest,
   resolveFilterOptionSlug,
@@ -23,6 +24,11 @@ test("resolve diferenças de singular e plural nas rotas", () => {
 });
 
 test("categorias virtuais agrupam somente os produtos relacionados", () => {
+  assert.deepEqual(categoryFamilyTokens("smartphones"), ["smartphone", "smartphones", "celular", "celulares", "iphone"]);
+  assert.equal(resolveFilterOptionSlug("smartphones", options), "smartphones");
+  assert.equal(resolveFilterOptionSlug("eletronicos", options), "eletronicos");
+  assert.equal(matchesCategory(["iphone"], "smartphones"), true);
+  assert.equal(matchesCategory(["gps-rastreador-e-localizador"], "eletronicos"), true);
   assert.equal(matchesCategory(["cabos-e-adaptadores"], "acessorios"), true);
   assert.equal(matchesCategory(["iphone"], "acessorios"), false);
   assert.equal(matchesCategory(["notebook"], "notebook"), true);

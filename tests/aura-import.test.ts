@@ -123,6 +123,13 @@ test("localiza Marca e Categoria por nome ou slug sem depender de IDs fixos", ()
   assert.equal(findCatalogFilter(filters, "Categoria")?.id, "category-filter");
 });
 
+test("reutiliza a categoria Smartphones com identificador legado", () => {
+  const categoryFilter = {
+    options: [{ id: "type-smartphones", label: "Smartphones", slug: "smartphones", active: true }],
+  };
+  assert.equal(findCatalogOption(categoryFilter, "Smartphones")?.id, "type-smartphones");
+});
+
 test("Apple e Smartwatch geram uma seleção de Marca e outra de Categoria", () => {
   const result = resolveAuraFilterOptionIds({
     sourceBrand: "Apple",
