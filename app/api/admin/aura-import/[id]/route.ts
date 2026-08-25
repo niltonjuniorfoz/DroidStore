@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import type { AuraImportItemStatus } from "@prisma/client";
 import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
 import { audit } from "../../../../../src/lib/audit";
 import prisma from "../../../../../src/lib/prisma";
 
-const deletableStatuses = new Set(["UPLOADED", "PREVIEW", "READY", "FAILED", "CANCELLED", "ROLLED_BACK", "PARTIAL_ROLLBACK"]);
+const activeStatuses = new Set(["PROCESSING", "PAUSED"]);
+const appliedItemStatuses: AuraImportItemStatus[] = ["CREATED", "UPDATED", "UNCHANGED"];
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireAdmin();
@@ -12,12 +14,17 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params;
   const job = await prisma.auraImportJob.findUnique({
     where: { id },
-    select: { id: true, fileName: true, status: true, createdItems: true, updatedItems: true },
+    select: { id: true, fileName: true, status: true },
   });
   if (!job) return NextResponse.json({ error: "Importação não encontrada." }, { status: 404 });
-  const completedWithoutChanges = job.status === "COMPLETED" && job.createdItems === 0 && job.updatedItems === 0;
-  if (!deletableStatuses.has(job.status) && !completedWithoutChanges) {
-    return NextResponse.json({ error: "Desfaça ou cancele a importação antes de excluí-la do histórico. Em rollback parcial, os produtos preservados continuam no catálogo." }, { status: 409 });
+  if (activeStatuses.has(job.status)) {
+    return NextResponse.json({ error: "Pause ou cancele o processamento antes de excluir esta importação." }, { status: 409 });
+  }
+  const appliedItems = await prisma.auraImportItem.count({
+    where: { jobId: id, status: { in: appliedItemStatuses } },
+  });
+  if (appliedItems > 0) {
+    return NextResponse.json({ error: `Ainda existem ${appliedItems} item(ns) aplicados por esta importação. Desfaça a importação antes de excluir o histórico.` }, { status: 409 });
   }
   await prisma.auraImportJob.delete({ where: { id } });
   await audit(session, {

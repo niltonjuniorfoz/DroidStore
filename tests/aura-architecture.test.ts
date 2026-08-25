@@ -127,7 +127,8 @@ test("imagens externas válidas não bloqueiam a importação sem Vercel Blob", 
 test("exclusão do histórico protege importações ainda aplicadas", async () => {
   const route = await source("app/api/admin/aura-import/[id]/route.ts");
   assert.match(route, /isOwnerAdmin/);
-  assert.match(route, /Desfaça ou cancele a importação/);
-  assert.match(route, /PARTIAL_ROLLBACK/);
+  assert.match(route, /appliedItemStatuses/);
+  assert.match(route, /auraImportItem\.count/);
+  assert.match(route, /Ainda existem.*item\(ns\) aplicados/);
   assert.match(route, /auraImportJob\.delete/);
 });
