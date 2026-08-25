@@ -78,7 +78,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       priceCurrency: "BRL",
       price: product.price.toFixed(2),
       itemCondition: schemaCondition[product.condition] ?? "https://schema.org/UsedCondition",
-      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      availability: product.available ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       seller: { "@type": "Organization", name: storeName },
     },
   };

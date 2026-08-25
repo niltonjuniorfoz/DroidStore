@@ -11,13 +11,16 @@ import {
   LogIn,
   Mail,
   MessageCircle,
+  PackageSearch,
   Save,
   ShieldCheck,
+  Warehouse,
   XCircle,
 } from "lucide-react";
 
 type SettingsResponse = {
   content: {
+    storeMode: "INVENTORY" | "DROPSHIPPING";
     storeName: string;
     contactEmail: string | null;
     whatsapp: string | null;
@@ -49,12 +52,16 @@ export default function AdminConfiguracoes() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [savedStoreMode, setSavedStoreMode] = useState<"INVENTORY" | "DROPSHIPPING">("INVENTORY");
 
   useEffect(() => {
     void fetch("/api/admin/settings", { cache: "no-store" }).then(async (response) => {
       const body = await response.json();
       if (!response.ok) setError(body.error ?? "Não foi possível carregar as configurações.");
-      else setData({ ...body, content: { ...body.content, whatsapp: formatBrazilPhone(body.content.whatsapp ?? "") } });
+      else {
+        setData({ ...body, content: { ...body.content, whatsapp: formatBrazilPhone(body.content.whatsapp ?? "") } });
+        setSavedStoreMode(body.content.storeMode ?? "INVENTORY");
+      }
       setLoading(false);
     }).catch(() => { setError("Falha de conexão. Recarregue a página."); setLoading(false); });
   }, []);
@@ -79,6 +86,7 @@ export default function AdminConfiguracoes() {
     if (!response.ok) setError(body.error ?? "Não foi possível salvar.");
     else {
       setData({ ...body, content: { ...body.content, whatsapp: formatBrazilPhone(body.content.whatsapp ?? "") } });
+      setSavedStoreMode(body.content.storeMode);
       setMessage("Configurações salvas. Os dados da empresa, login e comunicações já estão atualizados.");
     }
     setSaving(false);
@@ -101,6 +109,32 @@ export default function AdminConfiguracoes() {
     {error && <div className="form-error">{error}</div>}
 
     <form onSubmit={submit} className="settings-grid">
+      <section className="admin-panel settings-form settings-wide-panel store-mode-panel">
+        <header>
+          <PackageSearch />
+          <div><h2>MODO DE OPERAÇÃO DA LOJA</h2><p>Escolha como a disponibilidade dos produtos será controlada.</p></div>
+        </header>
+        <div className="store-mode-options" role="radiogroup" aria-label="Modo de operação da loja">
+          <label className={data.content.storeMode === "INVENTORY" ? "is-active" : ""}>
+            <input disabled={!data.ownerView} type="radio" name="storeMode" checked={data.content.storeMode === "INVENTORY"} onChange={() => update("storeMode", "INVENTORY")} />
+            <Warehouse />
+            <span><strong>Estoque próprio</strong><small>Controle produtos com quantidade física, entradas, saídas, estoque mínimo e reservas de pedidos.</small></span>
+          </label>
+          <label className={data.content.storeMode === "DROPSHIPPING" ? "is-active" : ""}>
+            <input disabled={!data.ownerView} type="radio" name="storeMode" checked={data.content.storeMode === "DROPSHIPPING"} onChange={() => update("storeMode", "DROPSHIPPING")} />
+            <PackageSearch />
+            <span><strong>Dropshipping</strong><small>Controle produtos somente pela disponibilidade informada pelo fornecedor. Não há baixa automática de quantidade física.</small></span>
+          </label>
+        </div>
+        {savedStoreMode !== data.content.storeMode && (
+          <div className="store-mode-warning" role="status">
+            {data.content.storeMode === "DROPSHIPPING"
+              ? "No modo Dropshipping, a disponibilidade dos produtos será controlada pelo fornecedor. O estoque físico atual será preservado e não será alterado."
+              : "O controle de estoque físico será reativado. As quantidades de estoque existentes serão utilizadas novamente."}
+          </div>
+        )}
+      </section>
+
       <section className="admin-panel settings-form">
         <header>
           <ShieldCheck />

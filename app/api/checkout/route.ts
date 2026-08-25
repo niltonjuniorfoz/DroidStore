@@ -7,6 +7,12 @@ import { isBrazilState } from "../../../src/lib/brazil";
 import { expireStaleOrders } from "../../../src/lib/expireOrders";
 import { RATE_LIMITED_MESSAGE, clientIp, rateLimit } from "../../../src/lib/rateLimit";
 import { sendOrderCreatedEmail } from "../../../src/lib/orderEmail";
+import {
+  ProductUnavailableError,
+  recordOrderSaleMovements,
+  reserveVariantForOrder,
+} from "../../../src/lib/orderInventory";
+import { normalizeStoreMode, reservesInventory } from "../../../src/lib/storeMode";
 
 const checkoutSchema = z.object({
   items: z.array(z.object({
@@ -52,6 +58,12 @@ export async function POST(req: Request) {
     const shipping = parsed.data.shippingAddress;
 
     const order = await prisma.$transaction(async (tx) => {
+      const transactionalContent = await tx.siteContent.findUnique({
+        where: { id: "main" },
+        select: { storeMode: true },
+      });
+      const storeMode = normalizeStoreMode(transactionalContent?.storeMode);
+      const inventoryReserved = reservesInventory(storeMode);
       const variants = await tx.variant.findMany({
         where: {
           id: { in: parsed.data.items.map((item) => item.variantId) },
@@ -65,11 +77,16 @@ export async function POST(req: Request) {
       const orderItems = [];
       for (const item of parsed.data.items) {
         const variant = variants.find((candidate) => candidate.id === item.variantId)!;
-        const reserved = await tx.variant.updateMany({
-          where: { id: variant.id, stock: { gte: item.quantity } },
-          data: { stock: { decrement: item.quantity } },
+        await reserveVariantForOrder(tx, {
+          variant: {
+            id: variant.id,
+            stock: variant.stock,
+            dropshipAvailable: variant.dropshipAvailable,
+            productName: variant.product.name,
+          },
+          quantity: item.quantity,
+          storeMode,
         });
-        if (reserved.count !== 1) throw new Error(`OUT_OF_STOCK:${variant.product.name}`);
         // Desconto PIX do produto vence o da loja quando configurado.
         const productPix = variant.product.pixDiscountPct;
         const itemFactor = productPix === null || productPix === undefined
@@ -91,6 +108,7 @@ export async function POST(req: Request) {
           totalAmount: Math.round(totalAmount * 100) / 100,
           status: "PENDING",
           paymentMethod: "PIX",
+          inventoryReserved,
           shippingZipCode: shipping.zipCode,
           shippingStreet: shipping.street,
           shippingNumber: shipping.number,
@@ -106,13 +124,10 @@ export async function POST(req: Request) {
         include: { items: { include: { variant: { include: { product: true } } } } },
       });
 
-      await tx.stockMovement.createMany({
-        data: created.items.map((item) => ({
-          variantId: item.variantId,
-          type: "SALE" as const,
-          quantity: -item.quantity,
-          note: `Reserva do pedido #${created.id.slice(0, 8).toUpperCase()}`,
-        })),
+      await recordOrderSaleMovements(tx, {
+        orderId: created.id,
+        inventoryReserved,
+        items: created.items,
       });
       return created;
     }, { isolationLevel: "Serializable" });
@@ -160,8 +175,11 @@ export async function POST(req: Request) {
     if (message === "PRODUCT_NOT_FOUND") {
       return NextResponse.json({ error: "Produto indisponível." }, { status: 400 });
     }
-    if (message.startsWith("OUT_OF_STOCK:")) {
-      return NextResponse.json({ error: `Estoque insuficiente para ${message.slice(13)}.` }, { status: 409 });
+    if (error instanceof ProductUnavailableError) {
+      const detail = error.reason === "OUT_OF_STOCK"
+        ? `Estoque insuficiente para ${error.productName}.`
+        : `${error.productName} está indisponível no fornecedor.`;
+      return NextResponse.json({ error: detail }, { status: 409 });
     }
     return NextResponse.json({ error: "Não foi possível concluir o pedido." }, { status: 500 });
   }

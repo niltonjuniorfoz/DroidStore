@@ -1,0 +1,10 @@
+CREATE TYPE "StoreMode" AS ENUM ('INVENTORY', 'DROPSHIPPING');
+
+ALTER TABLE "SiteContent"
+ADD COLUMN "storeMode" "StoreMode" NOT NULL DEFAULT 'INVENTORY';
+
+ALTER TABLE "Variant"
+ADD COLUMN "dropshipAvailable" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "Order"
+ADD COLUMN "inventoryReserved" BOOLEAN NOT NULL DEFAULT true;

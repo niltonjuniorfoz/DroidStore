@@ -15,8 +15,12 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const pixDiscount = content?.pixDiscount ?? 10;
+  const hasUnavailableItem = items.some((item) => item.available === false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (hasUnavailableItem) {
+      return;
+    }
     setLoading(true); setMessage("");
     const form = new FormData(event.currentTarget);
     const payload = {
@@ -56,7 +60,7 @@ export default function CheckoutPage() {
           </div></section>
           <section><span className="step">2</span><h2>Pagamento</h2><div className="payment-choice"><label><input type="radio" defaultChecked name="payment" /> Pix <small>{pixDiscount}% de desconto</small></label><label><input type="radio" name="payment" disabled /> Cartão <small>Disponível após configurar o gateway</small></label></div></section>
         </div>
-        <aside className="cart-summary checkout-order-summary"><h2>Seu pedido</h2>{items.map((item) => <article className="checkout-order-line" key={item.id}><ProductImage src={item.imageUrl} alt={item.name} /><span>{item.quantity}x {item.name}</span><b>{money(item.price * item.quantity)}</b></article>)}<hr /><small>Total no Pix</small><strong>{money(subtotal * (1 - pixDiscount / 100))}</strong><button className="button primary" disabled={loading}>{loading ? "Processando..." : "Finalizar pedido"}</button><em>O valor e o estoque serão confirmados novamente pelo servidor.</em></aside>
+        <aside className="cart-summary checkout-order-summary"><h2>Seu pedido</h2>{items.map((item) => <article className="checkout-order-line" key={item.id}><ProductImage src={item.imageUrl} alt={item.name} /><span>{item.quantity}x {item.name}</span><b>{money(item.price * item.quantity)}</b></article>)}<hr /><small>Total no Pix</small><strong>{money(subtotal * (1 - pixDiscount / 100))}</strong><button className="button primary" disabled={loading || hasUnavailableItem}>{loading ? "Processando..." : "Finalizar pedido"}</button><em>{hasUnavailableItem ? "Há um produto indisponível no carrinho." : "O valor e a disponibilidade serão confirmados novamente pelo servidor."}</em></aside>
       </form>}
     </main>
   );

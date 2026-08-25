@@ -91,6 +91,8 @@ export default function AdminProdutos() {
   const [priceInput, setPriceInput] = useState<number | "">("");
   const [costInput, setCostInput] = useState<number | "">("");
   const [stockInput, setStockInput] = useState<number | "">(0);
+  const [dropshipAvailable, setDropshipAvailable] = useState(false);
+  const [storeMode, setStoreMode] = useState<"INVENTORY" | "DROPSHIPPING">("INVENTORY");
   const [pixDiscount, setPixDiscount] = useState(0);
   const [maxInstallments, setMaxInstallments] = useState(12);
   const [editorTab, setEditorTab] = useState<"dados" | "financeiro" | "inteligencia" | "midia" | "ficha">("dados");
@@ -159,6 +161,7 @@ export default function AdminProdutos() {
       .then((body) => {
         if (body?.content?.pixDiscount !== undefined) setPixDiscount(Number(body.content.pixDiscount));
         if (body?.content?.maxInstallments !== undefined) setMaxInstallments(Number(body.content.maxInstallments));
+        if (body?.content?.storeMode) setStoreMode(body.content.storeMode);
       })
       .catch(() => undefined);
   }, []);
@@ -223,6 +226,7 @@ export default function AdminProdutos() {
     setPriceInput("");
     setCostInput(0);
     setStockInput(0);
+    setDropshipAvailable(false);
     setAcquiredCost(null);
     setAcquiredPrice(null);
     setTitle("");
@@ -251,6 +255,7 @@ export default function AdminProdutos() {
     setPriceInput(item.variants[0]?.price !== undefined ? Number(item.variants[0].price) : "");
     setCostInput(item.variants[0]?.costPrice !== undefined ? Number(item.variants[0].costPrice) : "");
     setStockInput(item.variants[0]?.stock ?? 0);
+    setDropshipAvailable(item.variants[0]?.dropshipAvailable ?? false);
     setAcquiredCost(item.variants[0]?.costPrice !== undefined ? Number(item.variants[0].costPrice) : null);
     setAcquiredPrice(item.variants[0]?.price !== undefined ? Number(item.variants[0].price) : null);
     setProductPix(item.pixDiscountPct ?? "");
@@ -349,6 +354,7 @@ export default function AdminProdutos() {
     setEditing(null);
     // Estoque zera: a variação nova ainda não tem unidade física cadastrada.
     setStockInput(0);
+    setDropshipAvailable(false);
     setTemplate({
       ...full,
       variants: full.variants.map((variant, index) => index === 0 ? { ...variant, stock: 0 } : variant),
@@ -452,6 +458,7 @@ export default function AdminProdutos() {
         price: Number(values.price),
         ...(ownerView ? { costPrice: Number(values.costPrice) } : {}),
         stock: Number(values.stock),
+        dropshipAvailable,
         lowStockThreshold: Number(values.lowStockThreshold),
         filterOptionIds: Object.values(selectedFilters).filter(Boolean),
         featured: data.get("featured") === "on",
@@ -1469,6 +1476,10 @@ export default function AdminProdutos() {
                   <label>Estoque Total<input required name="stock" type="number" min="0" step="1" value={stockInput} onChange={(event) => setStockInput(event.target.value === "" ? "" : Number(event.target.value))} /></label>
                   <label>Alerta de estoque mínimo<input required name="lowStockThreshold" type="number" min="0" step="1" defaultValue={(editing ?? template)?.variants[0]?.lowStockThreshold ?? 5} /></label>
                 </div>
+                <label className={`settings-switch-row dropship-product-toggle ${dropshipAvailable ? "is-active" : ""}`}>
+                  <span><strong>Disponível no fornecedor</strong><small>{storeMode === "DROPSHIPPING" ? "Esta variação poderá ser comprada mesmo sem estoque físico." : "A flag fica preparada para quando a loja usar Dropshipping; o estoque físico continua valendo agora."}</small></span>
+                  <input type="checkbox" checked={dropshipAvailable} onChange={(event) => setDropshipAvailable(event.target.checked)} />
+                </label>
 
                 {/* Desconto PIX deste produto: mexeu, tudo recalcula. */}
                 <div className="pix-control">

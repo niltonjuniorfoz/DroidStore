@@ -32,22 +32,22 @@ enum Role {
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  slug        String   @unique
-  name        String
-  description String?
-  brand       String
-  active      Boolean  @default(true)
-  featured    Boolean  @default(false)
-  imageUrl    String?
-  model3dUrl  String?
+  id              String   @id @default(uuid())
+  slug            String   @unique
+  name            String
+  description     String?
+  brand           String
+  active          Boolean  @default(true)
+  featured        Boolean  @default(false)
+  imageUrl        String?
+  model3dUrl      String?
   // Desconto PIX exclusivo deste produto (%). Nulo = usa o desconto da loja.
-  pixDiscountPct Int?
+  pixDiscountPct  Int?
   // Tabela de parcelamento própria: [{ n: 3, price: 1499.00 }, ...].
   // Nulo = parcela simples do preço de tabela.
   installmentPlan Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   variants         Variant[]
   images           ProductImage[]
@@ -107,24 +107,25 @@ model NavigationItem {
 }
 
 model SiteContent {
-  id                        String   @id @default("main")
-  storeName                 String   @default("Aura Tech")
-  heroEyebrow               String   @default("Tecnologia boa cabe no seu bolso")
-  heroTitle                 String   @default("Seu próximo Android, escolhido sem complicação.")
-  heroDescription           String   @default("Novos e seminovos com procedência, revisão técnica e garantia.")
+  id                        String    @id @default("main")
+  storeMode                 StoreMode @default(INVENTORY)
+  storeName                 String    @default("Aura Tech")
+  heroEyebrow               String    @default("Tecnologia boa cabe no seu bolso")
+  heroTitle                 String    @default("Seu próximo Android, escolhido sem complicação.")
+  heroDescription           String    @default("Novos e seminovos com procedência, revisão técnica e garantia.")
   heroImageUrl              String?
-  heroSlides                Json     @default("[]")
-  catalogBanner             Json     @default("{}")
-  catalogSlides             Json     @default("[]")
+  heroSlides                Json      @default("[]")
+  catalogBanner             Json      @default("{}")
+  catalogSlides             Json      @default("[]")
   contactEmail              String?
   whatsapp                  String?
-  pixDiscount               Int      @default(10)
-  maxInstallments           Int      @default(12)
+  pixDiscount               Int       @default(10)
+  maxInstallments           Int       @default(12)
   // Taxas reais cobradas pelo gateway/maquininha (%). Ajustáveis por loja:
   // o painel calcula margem e lucro com estes valores.
-  pixFeePct                 Decimal  @default(0.99) @db.Decimal(6, 3)
-  cardFeePct                Decimal  @default(4.98) @db.Decimal(6, 3)
-  cardInstallmentFeePct     Decimal  @default(2.08) @db.Decimal(6, 3)
+  pixFeePct                 Decimal   @default(0.99) @db.Decimal(6, 3)
+  cardFeePct                Decimal   @default(4.98) @db.Decimal(6, 3)
+  cardInstallmentFeePct     Decimal   @default(2.08) @db.Decimal(6, 3)
   companyLegalName          String?
   companyTaxId              String?
   companyPhone              String?
@@ -132,14 +133,14 @@ model SiteContent {
   companyCity               String?
   companyState              String?
   companyZipCode            String?
-  customerLoginEnabled      Boolean  @default(true)
-  loginTitle                String   @default("Acesse sua conta")
-  loginSubtitle             String   @default("Entre para acompanhar pedidos, favoritos e finalizar suas compras.")
-  transactionalEmailEnabled Boolean  @default(false)
+  customerLoginEnabled      Boolean   @default(true)
+  loginTitle                String    @default("Acesse sua conta")
+  loginSubtitle             String    @default("Entre para acompanhar pedidos, favoritos e finalizar suas compras.")
+  transactionalEmailEnabled Boolean   @default(false)
   transactionalFromName     String?
   transactionalFromEmail    String?
   transactionalReplyTo      String?
-  updatedAt                 DateTime @updatedAt
+  updatedAt                 DateTime  @updatedAt
 }
 
 model Variant {
@@ -153,6 +154,7 @@ model Variant {
   price             Decimal   @db.Decimal(12, 2)
   costPrice         Decimal   @default(0) @db.Decimal(12, 2)
   stock             Int       @default(0)
+  dropshipAvailable Boolean   @default(false)
   lowStockThreshold Int       @default(5)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -216,6 +218,7 @@ model Order {
   shippedEmailSentAt   DateTime?
   gatewayFeeBrl        Decimal?    @db.Decimal(12, 2) // taxa real cobrada pelo Mercado Pago
   paidEmailSentAt      DateTime?
+  inventoryReserved    Boolean     @default(true)
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
@@ -303,6 +306,11 @@ enum StockMovementType {
   ADJUSTMENT
   SALE
   RETURN
+}
+
+enum StoreMode {
+  INVENTORY
+  DROPSHIPPING
 }
 
 model Favorite {

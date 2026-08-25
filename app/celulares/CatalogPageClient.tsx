@@ -278,7 +278,10 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
           .toLowerCase().includes(query.toLowerCase());
     });
     const grouped = groupCatalogProducts(list);
-    return grouped.sort((a, b) => sort === "low" ? a.price - b.price : sort === "high" ? b.price - a.price : b.stock - a.stock);
+    return grouped.sort((a, b) => {
+      if (a.available !== b.available) return a.available ? -1 : 1;
+      return sort === "low" ? a.price - b.price : sort === "high" ? b.price - a.price : b.stock - a.stock;
+    });
   }, [catalog, condition, effectiveMaxPrice, exactCondition, minPrice, query, selectedFilters, selectedModel, sort]);
 
   function clearFilters() {

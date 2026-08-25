@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "../../../../auth";
 import prisma from "../../../../src/lib/prisma";
+import { getStoreMode } from "../../../../src/lib/storefront";
 
 const favoriteSchema = z.object({ productId: z.string().uuid() });
 
@@ -13,6 +14,7 @@ async function userId() {
 export async function GET() {
   const id = await userId();
   if (!id) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  const storeMode = await getStoreMode();
   const favorites = await prisma.favorite.findMany({
     where: { userId: id, product: { active: true } },
     orderBy: { createdAt: "desc" },
@@ -21,10 +23,10 @@ export async function GET() {
         include: {
           images: { orderBy: { position: "asc" }, take: 1 },
           variants: {
-            where: { stock: { gt: 0 } },
+            where: storeMode === "DROPSHIPPING" ? { dropshipAvailable: true } : { stock: { gt: 0 } },
             orderBy: { price: "asc" },
             take: 1,
-            select: { id: true, price: true, stock: true, storage: true, color: true, condition: true },
+            select: { id: true, price: true, stock: true, dropshipAvailable: true, storage: true, color: true, condition: true },
           },
         },
       },

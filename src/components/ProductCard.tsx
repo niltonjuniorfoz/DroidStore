@@ -7,6 +7,7 @@ import { useAuthGate } from "./AuthGateProvider";
 import ProductImage from "./ProductImage";
 import { money, type CatalogProduct } from "../lib/catalog";
 import { useSiteContent } from "./SiteContentProvider";
+import { isCatalogProductAvailable } from "../lib/storeMode";
 
 export default function ProductCard({ product }: { product: CatalogProduct }) {
   const { add } = useCart();
@@ -20,7 +21,7 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
   const installmentWithInterest = product.price > 0 ? totalWithInterest / 21 : 0;
   const primaryImage = product.images?.[0] ?? product.imageUrl;
   const secondaryImage = product.images?.[1];
-  const isAvailable = product.stock > 0;
+  const isAvailable = isCatalogProductAvailable(product);
   const isOutlet = product.condition === "Outlet";
   const hasGroupedVariants = (product.variantCount ?? 1) > 1;
   const variantSummary = hasGroupedVariants
@@ -98,7 +99,7 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
           </div>
         </div>
 
-        {hasGroupedVariants ? (
+        {hasGroupedVariants && isAvailable ? (
           <Link className="card-buy-button" href={`/produto/${product.slug}`} aria-label={`Ver opções de ${product.name}`}>
             <span>Ver opções</span>
           </Link>

@@ -2126,6 +2126,21 @@
 .settings-switch-row > span { display: flex; flex-direction: column; gap: .2rem; }
 .settings-switch-row small { color: var(--muted); font-size: .64rem; font-weight: 600; }
 .settings-switch-row input { width: 42px !important; height: 22px; accent-color: #0cbc3e; }
+.store-mode-panel { border-top: 3px solid #ff7900; }
+.store-mode-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .8rem; }
+.store-mode-options > label { position: relative; min-height: 112px; display: grid; grid-template-columns: 34px 1fr; align-items: start; gap: .75rem; padding: 1rem; border: 1px solid #dfe7e2; border-radius: 8px; background: #fafcfb; cursor: pointer; transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+.store-mode-options > label.is-active { border-color: #ff7900; background: #fff8f1; box-shadow: 0 0 0 2px #ff79001a; }
+.store-mode-options input { position: absolute; top: .75rem; right: .75rem; width: 16px !important; height: 16px; accent-color: #ff7900; }
+.store-mode-options svg { width: 28px; height: 28px; color: #576963; }
+.store-mode-options .is-active svg { color: #e66d00; }
+.store-mode-options span { display: flex; flex-direction: column; gap: .3rem; padding-right: 1.5rem; }
+.store-mode-options strong { font-size: .76rem; text-transform: uppercase; }
+.store-mode-options small { color: var(--muted); font-size: .64rem; line-height: 1.5; }
+.store-mode-warning { padding: .75rem .9rem; border: 1px solid #fed7aa; border-radius: 7px; background: #fff8ed; color: #9a4f00; font-size: .68rem; line-height: 1.5; font-weight: 700; }
+.cart-drawer-unavailable { display: block; margin-bottom: .55rem; color: #b42323; font-size: .68rem; text-align: center; }
+.dropship-product-toggle { margin-top: .8rem; }
+.dropship-product-toggle.is-active { border-color: #ff7900; background: #fff8f1; }
+.inventory-mode-warning { margin-bottom: .8rem; }
 .email-layout-preview { max-width: 620px; margin: 1rem auto 0; padding: 1.25rem; text-align: center; border: 1px solid #dfe6e2; border-top: 4px solid #ff7900; border-radius: 7px; background: #fff; }
 .email-layout-preview span { display: block; color: #e66d00; font-size: .58rem; font-weight: 900; letter-spacing: .08em; }
 .email-layout-preview strong { display: block; margin: .45rem 0; font-size: 1rem; }
@@ -2134,6 +2149,7 @@
 
 @media (max-width: 1000px) {
   .settings-grid > .integration-panel { grid-column: auto; grid-row: auto; }
+  .store-mode-options { grid-template-columns: 1fr; }
 }
 
 .order-products > article > span {
