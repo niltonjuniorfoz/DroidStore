@@ -9,6 +9,7 @@ export const DEFAULT_STOREFRONT_NAVIGATION: StorefrontNavigationItem[] = [
   { label: "Smartphones", href: "/celulares?categoria=smartphones", active: true },
   { label: "Informática", href: "/celulares?categoria=notebook", active: true },
   { label: "Eletrônicos", href: "/celulares?categoria=eletronicos", active: true },
+  { label: "Drones", href: "/celulares?categoria=drones", active: true },
   { label: "Smartwatch", href: "/celulares?categoria=smartwatch", active: true },
   { label: "Tablets", href: "/celulares?categoria=tablets", active: true },
   { label: "Seminovos", href: "/celulares?condition=Excelente", active: true },
@@ -27,8 +28,14 @@ export function isLegacyStorefrontNavigation(items: StorefrontNavigationItem[]) 
 
 export function resolveStorefrontNavigation(items: StorefrontNavigationItem[]) {
   const activeItems = items.filter((item) => item.active !== false && item.label.trim() && item.href.startsWith("/"));
-  const resolved = !activeItems.length || isLegacyStorefrontNavigation(activeItems)
+  const base = !activeItems.length || isLegacyStorefrontNavigation(activeItems)
     ? DEFAULT_STOREFRONT_NAVIGATION
     : activeItems;
-  return resolved.slice(0, 8).map((item) => ({ label: item.label, href: item.href }));
+  const hasDrones = base.some((item) => normalized(`${item.label} ${item.href}`).includes("drone"));
+  const resolved = hasDrones ? base : (() => {
+    const insertAt = base.findIndex((item) => ["seminovos", "outlet"].includes(normalized(item.label)));
+    const index = insertAt >= 0 ? insertAt : base.length;
+    return [...base.slice(0, index), { label: "Drones", href: "/celulares?categoria=drones", active: true }, ...base.slice(index)];
+  })();
+  return resolved.slice(0, 9).map((item) => ({ label: item.label, href: item.href }));
 }

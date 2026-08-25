@@ -2,7 +2,7 @@ type SearchParamsReader = { get(name: string): string | null };
 type FilterOptionLike = { label: string; slug: string };
 
 const CATEGORY_PARAMS = ["categoria", "tipo-de-produto", "cat", "category"];
-const VIRTUAL_CATEGORIES = new Set(["smartphones", "eletronicos", "acessorios", "informatica", "games", "tv-audio"]);
+const VIRTUAL_CATEGORIES = new Set(["smartphones", "eletronicos", "acessorios", "informatica", "games", "tv-audio", "drones"]);
 
 const CATEGORY_FAMILIES: Record<string, string[]> = {
   smartphones: ["smartphone", "smartphones", "celular", "celulares", "iphone"],
@@ -20,6 +20,7 @@ const CATEGORY_FAMILIES: Record<string, string[]> = {
     "notebook", "macbook", "computador-desktop", "imac", "mac-mini", "impressoras-3d",
     "mouses", "pendrives", "rede-e-internet", "processadores", "teclado",
   ],
+  drones: ["drone", "drones", "quadricoptero", "quadricopteros"],
   games: ["joystick-e-gamepads", "consoles", "video-game-retro", "console-portatil", "jogos"],
   "tv-audio": ["caixas-de-som", "microfone", "fone-de-ouvido-headset"],
 };

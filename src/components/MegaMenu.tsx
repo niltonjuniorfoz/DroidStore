@@ -11,6 +11,7 @@ import {
   Flame,
   Laptop,
   LayoutGrid,
+  Plane,
   Radio,
   Smartphone,
   Tablet,
@@ -19,7 +20,7 @@ import {
 import { DEFAULT_STOREFRONT_NAVIGATION } from "../lib/storefrontNavigation";
 
 type MenuItem = { label: string; href: string };
-type MenuKind = "smartphones" | "informatica" | "eletronicos" | "smartwatch" | "tablets" | "seminovos" | "outlet" | "generic";
+type MenuKind = "smartphones" | "informatica" | "eletronicos" | "drones" | "smartwatch" | "tablets" | "seminovos" | "outlet" | "generic";
 type MenuPresentation = {
   eyebrow: string;
   description: string;
@@ -62,6 +63,17 @@ const MENU_PRESENTATIONS: Record<MenuKind, MenuPresentation> = {
       { label: "Equipamentos para pesca", href: "/celulares?q=equipamentos+para+pesca" },
       { label: "Garmin", href: "/celulares?brand=Garmin" },
       { label: "Acessórios eletrônicos", href: "/celulares?categoria=acessorios" },
+    ],
+  },
+  drones: {
+    eyebrow: "Drones",
+    description: "Drones, acessórios e soluções aéreas para lazer, imagem e uso profissional.",
+    icon: Plane,
+    links: [
+      { label: "Ver todos os drones", href: "/celulares?categoria=drones" },
+      { label: "DJI", href: "/celulares?categoria=drones&brand=DJI" },
+      { label: "Drones com câmera", href: "/celulares?categoria=drones&q=camera" },
+      { label: "Acessórios para drones", href: "/celulares?q=acessorios+drone" },
     ],
   },
   smartwatch: {
@@ -124,6 +136,7 @@ function menuKind(item: MenuItem): MenuKind {
   const value = normalize(`${item.label} ${item.href}`);
   if (value.includes("outlet")) return "outlet";
   if (value.includes("seminovo") || value.includes("excelente")) return "seminovos";
+  if (value.includes("drone")) return "drones";
   if (value.includes("smartwatch") || value.includes("watch")) return "smartwatch";
   if (value.includes("tablet")) return "tablets";
   if (value.includes("informatica") || value.includes("notebook") || value.includes("computador")) return "informatica";
@@ -133,7 +146,7 @@ function menuKind(item: MenuItem): MenuKind {
 }
 
 export default function MegaMenu({ customNavigation = [] }: { customNavigation?: MenuItem[] }) {
-  const navigation = customNavigation.length ? customNavigation.slice(0, 8) : DEFAULT_STOREFRONT_NAVIGATION;
+  const navigation = customNavigation.length ? customNavigation.slice(0, 9) : DEFAULT_STOREFRONT_NAVIGATION;
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const activeItem = navigation[activeIndex] ?? navigation[0];

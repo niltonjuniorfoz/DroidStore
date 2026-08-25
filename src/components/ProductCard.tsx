@@ -42,7 +42,7 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
       }}
     >
       <div className="product-visual" style={{ "--phone": product.accent } as React.CSSProperties}>
-        <Link href={productHref} prefetch={false} className="product-image-link" aria-label={`Ver ${product.name}`}>
+        <Link href={productHref} prefetch={true} className="product-image-link" aria-label={`Ver ${product.name}`}>
           <span className={`condition ${isOutlet ? "is-outlet" : ""}`}>{isOutlet && <Flame aria-hidden="true" />}{product.condition}</span>
           <span className="discount-badge-top-right">{pixDiscountPercent}% OFF NO PIX</span>
           {product.model3dUrl && (
@@ -82,7 +82,7 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
 
       <div className="product-body">
         <div className="product-info-top">
-          <Link href={productHref} prefetch={false} className="product-title-link">
+          <Link href={productHref} prefetch={true} className="product-title-link">
             <h3 className="product-card-clean-title">{product.name}</h3>
           </Link>
           {variantSummary && <span className="product-variant-summary">{variantSummary}</span>}
@@ -111,7 +111,7 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
         </div>
 
         {hasGroupedVariants && isAvailable ? (
-          <Link className="card-buy-button" href={productHref} prefetch={false} aria-label={`Ver opções de ${product.name}`}>
+          <Link className="card-buy-button" href={productHref} prefetch={true} aria-label={`Ver opções de ${product.name}`}>
             <span>Ver opções</span>
           </Link>
         ) : (

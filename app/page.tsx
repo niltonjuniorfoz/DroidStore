@@ -17,7 +17,40 @@ import {
   DEFAULT_HOME_PROMO_BANNERS,
 } from "../src/lib/homeContent";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
+type HomeCatalogProduct = Awaited<ReturnType<typeof getProducts>>[number];
+
+function homeCategoryKey(product: HomeCatalogProduct) {
+  const category = product.filters?.find((filter) => ["categoria", "tipo-de-produto"].includes(filter.groupSlug));
+  return category?.optionSlug || `brand:${product.brand.toLocaleLowerCase("pt-BR")}`;
+}
+
+function mixFeaturedProducts(products: HomeCatalogProduct[], limit = 10) {
+  const ordered = [...products].sort((left, right) => Number(right.featured) - Number(left.featured));
+  const buckets = new Map<string, HomeCatalogProduct[]>();
+  for (const product of ordered) {
+    const key = homeCategoryKey(product);
+    const bucket = buckets.get(key) ?? [];
+    bucket.push(product);
+    buckets.set(key, bucket);
+  }
+  const result: HomeCatalogProduct[] = [];
+  let depth = 0;
+  while (result.length < limit) {
+    let added = false;
+    for (const bucket of buckets.values()) {
+      const product = bucket[depth];
+      if (!product) continue;
+      result.push(product);
+      added = true;
+      if (result.length >= limit) break;
+    }
+    if (!added) break;
+    depth += 1;
+  }
+  return result;
+}
 
 function readSlides(content: Awaited<ReturnType<typeof getSiteContent>>["content"]): HeroSlide[] {
   const defaults: HeroSlide = {
@@ -45,9 +78,8 @@ function readSlides(content: Awaited<ReturnType<typeof getSiteContent>>["content
 }
 
 export default async function Home() {
-  const [{ content }, products] = await Promise.all([getSiteContent(), getProducts(false, { take: 20 })]);
-  const featured = products.filter((product) => product.featured).slice(0, 10);
-  const selected = featured.length ? featured : products.slice(0, 10);
+  const [{ content }, products] = await Promise.all([getSiteContent(), getProducts(false, { take: 50 })]);
+  const selected = mixFeaturedProducts(products, 10);
   const featuredTitle = content?.homeFeaturedTitle ?? DEFAULT_HOME_FEATURED_TITLE;
   const promoBanners = content?.homePromoBanners ?? DEFAULT_HOME_PROMO_BANNERS;
   const productSections = content?.homeProductSections ?? DEFAULT_HOME_PRODUCT_SECTIONS;

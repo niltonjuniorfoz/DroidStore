@@ -14,6 +14,7 @@ import {
   LogOut,
   PackagePlus,
   PanelsTopLeft,
+  Percent,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
@@ -57,6 +58,7 @@ const groups: NavGroup[] = [
   {
     label: "Financeiro",
     items: [
+      { href: "/admin/precificacao", label: "Precificação", icon: Percent, adminOnly: true },
       { href: "/admin/compras", label: "Compras (lotes)", icon: PackagePlus, adminOnly: true },
       { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3, adminOnly: true },
     ],

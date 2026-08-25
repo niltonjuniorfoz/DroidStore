@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getProductBySlug, getSiteContent } from "../../../src/lib/storefront";
 import ProductPageClient from "./ProductPageClient";
 
+export const revalidate = 60;
+
 const baseUrl = () => process.env.APP_URL ?? "http://localhost:3000";
 
 function absoluteUrl(pathOrUrl: string | undefined | null): string | null {

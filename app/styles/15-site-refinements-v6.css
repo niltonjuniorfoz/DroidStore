@@ -1,0 +1,27 @@
+/* Aura Tech V6 — Inter + refinamentos Home */
+html,body,button,input,select,textarea{font-family:"Inter",Arial,sans-serif!important}
+body{font-weight:400}
+.storefront-theme{font-family:"Inter",Arial,sans-serif!important}
+.storefront-theme .product-card-clean-title,.storefront-theme .outlet-card-title-link h3,.storefront-theme .product-details h1,.storefront-theme .product-title,.storefront-theme .product-code>span,.storefront-theme .outlet-card-brand{font-weight:700!important}
+.storefront-theme .pix-amount-val,.storefront-theme .outlet-card-price strong,.storefront-theme .product-price strong{font-weight:800!important}
+.storefront-theme .pix-from-label,.storefront-theme .pix-sub-label,.storefront-theme .product-variant-summary,.storefront-theme .installment-line-item,.storefront-theme small{font-weight:400!important}
+.storefront-theme .card-buy-button,.storefront-theme .condition,.storefront-theme .discount-badge-top-right,.storefront-theme .special-home-heading a,.storefront-theme .home-shelf-heading a{font-weight:600!important}
+
+/* Outlet: mais espaço para nome nos cards menores */
+.storefront-theme .outlet-mosaic-card.is-compact{grid-template-rows:43% 57%!important}
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-copy{padding:.55rem .68rem .58rem!important}
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-title-link h3{min-height:3.8em!important;max-height:3.8em!important;margin:.18rem 0 .16rem!important;font-size:.72rem!important;line-height:1.27!important;-webkit-line-clamp:3!important}
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-bottom{margin-top:.22rem!important}
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-price{margin-top:0!important;padding:.28rem .1rem .12rem!important}
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-price strong{margin:.1rem 0!important;font-size:.9rem!important}
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-footer{min-height:27px!important;margin-top:.12rem!important}
+
+/* Garmin mobile: não corta parcelas nem botão */
+@media(max-width:650px){
+  .storefront-theme .garmin-showcase .home-brand-showcase-body{overflow:hidden!important}
+  .storefront-theme .garmin-showcase .home-brand-products,.storefront-theme .garmin-showcase .home-brand-products .product-carousel-shell,.storefront-theme .garmin-showcase .brand-showcase-track{min-height:410px!important;height:410px!important}
+  .storefront-theme .garmin-showcase .brand-showcase-track>.carousel-slide,.storefront-theme .garmin-showcase .brand-showcase-track>.carousel-slide>.product-card,.storefront-theme .garmin-showcase .product-card{min-height:400px!important;height:400px!important}
+  .storefront-theme .garmin-showcase .product-visual{flex-basis:150px!important;height:150px!important;min-height:150px!important}
+  .storefront-theme .garmin-showcase .product-body{padding:.65rem .7rem .7rem!important}
+  .storefront-theme .garmin-showcase .card-buy-button{margin-top:.4rem!important;min-height:36px!important;flex-basis:36px!important}
+}
