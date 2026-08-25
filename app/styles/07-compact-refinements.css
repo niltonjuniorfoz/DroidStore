@@ -946,3 +946,38 @@
   .storefront-theme .home-section:has(.mobile-auto-track.is-interacting) .home-shelf-heading a { color: #fff; }
 }
 
+/* catalog-card-alignment-v1
+   Mantém título/preço variáveis, mas fixa a área de ação na mesma linha. */
+.storefront-theme .catalog-results .product-grid {
+  align-items: stretch;
+}
+
+.storefront-theme .catalog-results .product-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.storefront-theme .catalog-results .product-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.storefront-theme .catalog-results .product-info-top {
+  min-height: 4.1rem;
+}
+
+.storefront-theme .catalog-results .product-price {
+  flex: 0 0 auto;
+}
+
+.storefront-theme .catalog-results .card-buy-button {
+  margin-top: auto;
+}
+
+@media (max-width: 650px) {
+  .storefront-theme .catalog-results .product-info-top {
+    min-height: 3.45rem;
+  }
+}

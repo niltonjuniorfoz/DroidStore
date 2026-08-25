@@ -52,14 +52,30 @@ function mergeDefaultFilters(filterData: PublicFilter[]): PublicFilter[] {
   return merged;
 }
 
+function storageSortValue(value: string) {
+  const match = value.match(/(\d+(?:[.,]\d+)?)\s*(TB|GB|MB)/i);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+  const amount = Number(match[1].replace(",", "."));
+  const unit = match[2].toUpperCase();
+  if (unit === "TB") return amount * 1024 * 1024;
+  if (unit === "GB") return amount * 1024;
+  return amount;
+}
+
 function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
   const searchParams = useSearchParams();
   const paramsKey = searchParams.toString();
+  const scopedCategory = (
+    searchParams.get("categoria")
+    ?? searchParams.get("category")
+    ?? searchParams.get("cat")
+    ?? ""
+  ).trim();
   const { content } = useSiteContent();
   const [catalog, setCatalog] = useState<CatalogProduct[]>(initialCatalog?.length ? initialCatalog : products);
   const [filters, setFilters] = useState<PublicFilter[]>(() => initialFilters ? mergeDefaultFilters(initialFilters) : []);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string>>({});
-  const [selectedModel, setSelectedModel] = useState<string>("");
+  const [selectedStorage, setSelectedStorage] = useState<string>("");
   const [query, setQuery] = useState("");
   const [condition, setCondition] = useState<CatalogSection>("Novos");
   const [exactCondition, setExactCondition] = useState<CatalogProduct["condition"] | "">("");
@@ -111,7 +127,7 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
         ? requestedCondition
         : "",
     );
-    setSelectedModel(searchParams.get("model") ?? "");
+    setSelectedStorage(searchParams.get("storage") ?? "");
     const catalogPrices = catalog.map((product) => product.price).filter(Number.isFinite);
     const catalogMin = catalogPrices.length ? Math.floor(Math.min(...catalogPrices)) : 0;
     const catalogMax = catalogPrices.length ? Math.ceil(Math.max(...catalogPrices)) : 0;
@@ -121,13 +137,14 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
     setMaxPrice(Number.isFinite(requestedMax) && requestedMax > 0 ? Math.min(requestedMax, catalogMax || requestedMax) : catalogMax);
     const initialSelections: Record<string, string> = {};
     for (const filter of filters) {
+      if (scopedCategory && isCategoryFilterSlug(filter.slug)) continue;
       const requested = readFilterRequest(searchParams, filter.slug);
       if (!requested) continue;
       const optionSlug = resolveFilterOptionSlug(requested, filter.options);
       if (optionSlug) initialSelections[filter.slug] = optionSlug;
     }
     setSelectedFilters(initialSelections);
-  }, [catalog, filters, paramsKey, searchParams]);
+  }, [catalog, filters, paramsKey, scopedCategory, searchParams]);
 
   useEffect(() => {
     const footer = document.querySelector<HTMLElement>(".site-footer");
@@ -181,46 +198,49 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
           return product.brand.toLowerCase() === oSlug.toLowerCase() ||
                  product.filters?.some((f) => f.groupSlug === "marca" && f.optionSlug.toLowerCase() === oSlug.toLowerCase());
         }
+        if (isCategoryFilterSlug(gSlug)) {
+          return matchesCategory(
+            (product.filters ?? []).filter((f) => isCategoryFilterSlug(f.groupSlug)).map((f) => f.optionSlug),
+            oSlug,
+          );
+        }
         return product.filters?.some((f) => f.groupSlug === gSlug && f.optionSlug.toLowerCase() === oSlug.toLowerCase());
       });
-    });
+    });    if (filterGroupSlug === "marca") {
+      const allBrands = Array.from(new Set(
+        relevantProducts.map((product) => product.brand.trim()).filter(Boolean),
+      )).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
-    if (filterGroupSlug === "marca") {
-      const allBrands = Array.from(new Set(relevantProducts.map((p) => p.brand).filter(Boolean)));
-      const filterObj = filters.find((f) => f.slug === "marca");
-      const dbBrands = filterObj?.options.map((o) => o.label) ?? [];
-      const combined = Array.from(new Set([...allBrands, ...dbBrands].map((b) => b.trim()))).sort((a, b) => a.localeCompare(b, "pt-BR"));
-      
-      const seenSlugs = new Set<string>();
-      const result: Array<{ id: string; label: string; slug: string }> = [];
-      for (const b of combined) {
-        const s = b.toLowerCase();
-        if (!seenSlugs.has(s)) {
-          seenSlugs.add(s);
-          result.push({
-            id: `brand-${s}`,
-            label: b,
-            slug: s,
-          });
-        }
-      }
-      return result;
+      return allBrands.map((brand) => ({
+        id: `brand-${brand.toLocaleLowerCase("pt-BR")}`,
+        label: brand,
+        slug: brand.toLocaleLowerCase("pt-BR"),
+      }));
     }
 
 
     if (filterGroupSlug === "tipo-de-produto" || filterGroupSlug === "categoria") {
-      const filterObj = filters.find((f) => f.slug === "tipo-de-produto" || f.slug === "categoria");
       const productOptions = relevantProducts.flatMap((product) => (product.filters ?? [])
         .filter((item) => isCategoryFilterSlug(item.groupSlug))
         .map((item) => ({ id: item.optionId, label: item.optionLabel, slug: item.optionSlug })));
-      const combined = [...(filterObj?.options ?? []), ...productOptions];
-      const unique = new Map(combined.map((option) => [option.slug.toLowerCase(), option]));
-      unique.set("smartphones", { id: "virtual-smartphones", label: "Smartphones", slug: "smartphones" });
-      unique.set("informatica", { id: "virtual-informatica", label: "Informática", slug: "informatica" });
-      unique.set("eletronicos", { id: "virtual-eletronicos", label: "Eletrônicos", slug: "eletronicos" });
-      unique.set("acessorios", { id: "virtual-acessorios", label: "Acessórios", slug: "acessorios" });
-      unique.set("games", { id: "virtual-games", label: "Games", slug: "games" });
-      unique.set("tv-audio", { id: "virtual-tv-audio", label: "TV e Áudio", slug: "tv-audio" });
+      const unique = new Map(productOptions.map((option) => [option.slug.toLowerCase(), option]));
+      const virtualOptions = [
+        { id: "virtual-smartphones", label: "Smartphones", slug: "smartphones" },
+        { id: "virtual-informatica", label: "Informática", slug: "informatica" },
+        { id: "virtual-eletronicos", label: "Eletrônicos", slug: "eletronicos" },
+        { id: "virtual-acessorios", label: "Acessórios", slug: "acessorios" },
+        { id: "virtual-games", label: "Games", slug: "games" },
+        { id: "virtual-tv-audio", label: "TV e Áudio", slug: "tv-audio" },
+      ];
+
+      for (const option of virtualOptions) {
+        const exists = relevantProducts.some((product) => matchesCategory(
+          (product.filters ?? []).filter((item) => isCategoryFilterSlug(item.groupSlug)).map((item) => item.optionSlug),
+          option.slug,
+        ));
+        if (exists) unique.set(option.slug, option);
+      }
+
       return [...unique.values()].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
     }
 
@@ -233,25 +253,41 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
   };
 
 
-  // Extrai dinamicamente todos os modelos da família para a Marca e Categoria selecionadas
-  const availableModels = useMemo(() => {
+  const availableStorages = useMemo(() => {
     const relevantProducts = catalog.filter((product) => {
       if (getCatalogSection(product.condition) !== condition) return false;
-      const selectedBrandSlug = selectedFilters["marca"];
-      const matchesBrand = !selectedBrandSlug ||
-        product.brand.toLowerCase() === selectedBrandSlug.toLowerCase() ||
-        product.filters?.some((f) => f.groupSlug === "marca" && f.optionSlug.toLowerCase() === selectedBrandSlug.toLowerCase());
+      if (exactCondition && product.condition !== exactCondition) return false;
 
-      const selectedCategorySlug = selectedFilters["categoria"] ?? selectedFilters["tipo-de-produto"];
-      const categoryMatches = !selectedCategorySlug ||
-        matchesCategory((product.filters ?? []).filter((f) => isCategoryFilterSlug(f.groupSlug)).map((f) => f.optionSlug), selectedCategorySlug);
-
-      return matchesBrand && categoryMatches;
+      return Object.entries(selectedFilters).every(([groupSlug, optionSlug]) => {
+        if (!optionSlug) return true;
+        if (groupSlug === "marca") {
+          return product.brand.toLowerCase() === optionSlug.toLowerCase() ||
+            product.filters?.some((filter) => filter.groupSlug === "marca" && filter.optionSlug.toLowerCase() === optionSlug.toLowerCase());
+        }
+        if (isCategoryFilterSlug(groupSlug)) {
+          return matchesCategory(
+            (product.filters ?? []).filter((filter) => isCategoryFilterSlug(filter.groupSlug)).map((filter) => filter.optionSlug),
+            optionSlug,
+          );
+        }
+        return product.filters?.some((filter) => filter.groupSlug === groupSlug && filter.optionSlug.toLowerCase() === optionSlug.toLowerCase());
+      });
     });
 
-    const models = Array.from(new Set(relevantProducts.map((p) => getBaseModelName(p.name)).filter(Boolean)));
-    return models.sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [catalog, condition, selectedFilters]);
+    const values = relevantProducts.flatMap((product) =>
+      product.availableStorages?.length ? product.availableStorages : [product.storage],
+    );
+
+    return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)))
+      .sort((a, b) => storageSortValue(a) - storageSortValue(b) || a.localeCompare(b, "pt-BR"));
+  }, [catalog, condition, exactCondition, selectedFilters]);
+
+  const selectedCategory = Object.entries(selectedFilters)
+    .find(([slug, value]) => Boolean(value) && isCategoryFilterSlug(slug))?.[1] ?? "";
+  const showStorageFilter = Boolean(scopedCategory || selectedCategory);
+  const visibleFilters = filters.filter((filter) =>
+    filter.slug === "marca" || (!scopedCategory && isCategoryFilterSlug(filter.slug)),
+  );
 
   const filtered = useMemo(() => {
     const list = catalog.filter((product) => {
@@ -267,12 +303,12 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
         return product.filters?.some((filter) => filter.groupSlug === groupSlug && filter.optionSlug.toLowerCase() === optionSlug.toLowerCase());
       });
 
-      const matchesModel = !selectedModel ||
-        getBaseModelName(product.name).toLowerCase() === selectedModel.toLowerCase() ||
-        product.name.toLowerCase().includes(selectedModel.toLowerCase());
+      const productStorages = product.availableStorages?.length ? product.availableStorages : [product.storage];
+      const matchesStorage = !selectedStorage ||
+        productStorages.some((value) => value.toLowerCase() === selectedStorage.toLowerCase());
 
       return matchesCustomFilters &&
-        matchesModel &&
+        matchesStorage &&
         getCatalogSection(product.condition) === condition &&
         (!exactCondition || product.condition === exactCondition) &&
         product.price >= minPrice &&
@@ -285,14 +321,14 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
       if (a.available !== b.available) return a.available ? -1 : 1;
       return sort === "low" ? a.price - b.price : sort === "high" ? b.price - a.price : b.stock - a.stock;
     });
-  }, [catalog, condition, effectiveMaxPrice, exactCondition, minPrice, query, selectedFilters, selectedModel, sort]);
+  }, [catalog, condition, effectiveMaxPrice, exactCondition, minPrice, query, selectedFilters, selectedStorage, sort]);
 
   function clearFilters() {
     setQuery("");
     setCondition("Novos");
     setExactCondition("");
     setSelectedFilters({});
-    setSelectedModel("");
+    setSelectedStorage("");
     setMinPrice(priceLimits.min);
     setMaxPrice(priceLimits.max);
   }
@@ -303,7 +339,7 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
   const activeFilterCount =
     (query.trim() ? 1 : 0) +
     (condition !== "Novos" ? 1 : 0) +
-    (selectedModel ? 1 : 0) +
+    (selectedStorage ? 1 : 0) +
     Object.values(selectedFilters).filter(Boolean).length +
     (minPrice > priceLimits.min || effectiveMaxPrice < priceLimits.max ? 1 : 0);
 
@@ -314,11 +350,11 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Nome, marca ou modelo"
+          placeholder="Nome ou marca"
         />
       </label>
 
-      {filters.map((filter) => {
+      {visibleFilters.map((filter) => {
         const availableOptions = getAvailableOptionsForFilter(filter.slug);
         const currentOptions = availableOptions.length > 0 ? availableOptions : filter.options;
 
@@ -345,7 +381,7 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
                   }
                   return next;
                 });
-                setSelectedModel(""); // Resetar modelo ao alterar marca ou categoria
+                if (filter.slug === "marca" || isCategoryFilterSlug(filter.slug)) setSelectedStorage("");
               }}
             >
               <option value="">Todos</option>
@@ -359,52 +395,17 @@ function CatalogContent({ initialCatalog, initialFilters }: CatalogPageProps) {
         );
       })}
 
-      {/* 3º BOX DEDICADO: MODELO (GENÉRICO PARA QUALQUER CATEGORIA/MARCA) */}
-      <label className="catalog-filter-field">
-        <span>Modelo</span>
-        {(!selectedFilters["marca"] && !selectedFilters["tipo-de-produto"] && !selectedFilters["categoria"]) ? (
-          <div style={{ minHeight: '42px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: 'transparent' }} />
-        ) : (
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '6px',
-            padding: '8px',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            maxHeight: '180px',
-            overflowY: 'auto',
-            backgroundColor: '#ffffff'
-          }}>
-            {availableModels.length > 0 ? (
-              availableModels.map((modelName) => (
-                <button
-                  key={modelName}
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); setSelectedModel(selectedModel === modelName ? "" : modelName); }}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontSize: '0.85rem',
-                    border: '1px solid',
-                    borderColor: selectedModel === modelName ? '#FF7900' : '#e2e8f0',
-                    backgroundColor: selectedModel === modelName ? '#FFF1E5' : '#f8fafc',
-                    color: selectedModel === modelName ? '#FF7900' : '#334155',
-                    cursor: 'pointer',
-                    fontWeight: selectedModel === modelName ? '600' : '500',
-                    transition: 'all 0.2s',
-                    textAlign: 'left'
-                  }}
-                >
-                  {modelName}
-                </button>
-              ))
-            ) : (
-              <span style={{ fontSize: '0.85rem', color: '#64748b', padding: '4px' }}>Nenhum modelo...</span>
-            )}
-          </div>
-        )}
-      </label>
+      {showStorageFilter && availableStorages.length > 0 && (
+        <label className="catalog-filter-field">
+          <span>Armazenamento</span>
+          <select value={selectedStorage} onChange={(event) => setSelectedStorage(event.target.value)}>
+            <option value="">Todos</option>
+            {availableStorages.map((storage) => (
+              <option key={storage} value={storage}>{storage}</option>
+            ))}
+          </select>
+        </label>
+      )}
 
 
 

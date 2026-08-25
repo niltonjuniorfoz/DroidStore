@@ -75,6 +75,7 @@ export async function GET(request: Request) {
           { name: { contains: query, mode: "insensitive" as const } },
           { brand: { contains: query, mode: "insensitive" as const } },
           { slug: { contains: query, mode: "insensitive" as const } },
+          { variants: { some: { sku: { contains: query, mode: "insensitive" as const } } } },
         ],
       }
     : undefined;

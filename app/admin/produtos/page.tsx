@@ -638,7 +638,10 @@ export default function AdminProdutos() {
 
   const filteredItems = items.filter((item) => {
     const variant = item.variants[0];
-    const query = `${item.name} ${item.brand} ${variant?.storage ?? ""} ${variant?.color ?? ""}`.toLowerCase();
+    const searchableVariants = item.variants
+      .map((candidate) => [candidate.sku, candidate.storage, candidate.color, candidate.condition].filter(Boolean).join(" "))
+      .join(" ");
+    const query = `${item.name} ${item.brand} ${searchableVariants}`.toLowerCase();
     const matchesSearch = !search.trim() || query.includes(search.toLowerCase().trim());
     const matchesStatus =
       statusFilter === "all" ? true :
@@ -852,7 +855,7 @@ export default function AdminProdutos() {
 
           <label className="pro-search">
             <Search size={15} />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar modelo, marca, cor ou capacidade..." />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar nome, marca, SKU, cor ou capacidade..." />
           </label>
 
           <div className="view-mode-toggle">

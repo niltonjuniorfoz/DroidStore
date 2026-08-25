@@ -45,6 +45,12 @@ export function mapProduct(product: {
     return Number(left.price) - Number(right.price);
   })[0];
   const resolvedImages = selectImagesForColor(product.images, variant?.color, product.imageUrl);
+  const availableColors = Array.from(new Set(
+    product.variants.map((item) => item.color?.trim()).filter((value): value is string => Boolean(value)),
+  ));
+  const availableStorages = Array.from(new Set(
+    product.variants.map((item) => item.storage?.trim()).filter((value): value is string => Boolean(value)),
+  ));
   return {
     id: variant?.id ?? product.id,
     productId: product.id,
@@ -58,6 +64,9 @@ export function mapProduct(product: {
     price: Number(variant?.price ?? 0),
     stock: variant?.stock ?? 0,
     available: variant ? isVariantAvailable({ storeMode, stock: variant.stock, dropshipAvailable: variant.dropshipAvailable }) : false,
+    variantCount: product.variants.length,
+    availableColors,
+    availableStorages,
     accent: "#0f766e",
     imageUrl: resolvedImages[0] ?? product.imageUrl ?? undefined,
     model3dUrl: product.model3dUrl ?? undefined,
