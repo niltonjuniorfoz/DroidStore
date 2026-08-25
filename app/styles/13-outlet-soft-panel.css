@@ -1,0 +1,23 @@
+/* Aura Tech - Outlet refinamento cinza claro + elevacao */
+.storefront-theme .outlet-mosaic-card .outlet-card-copy {
+  background: #f1f3f2;
+}
+
+.storefront-theme .outlet-mosaic-card {
+  transition:
+    border-color .3s ease,
+    box-shadow .3s ease,
+    transform .3s cubic-bezier(.22, 1, .36, 1);
+}
+
+.storefront-theme .outlet-mosaic-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--outlet-accent);
+  box-shadow:
+    0 14px 28px rgba(20, 30, 25, .10),
+    0 7px 18px rgba(255, 121, 0, .10);
+}
+
+.storefront-theme .outlet-mosaic-card:hover .outlet-card-copy {
+  background: linear-gradient(135deg, var(--outlet-accent), var(--outlet-accent-2));
+}
