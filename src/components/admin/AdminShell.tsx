@@ -10,6 +10,7 @@ import { AdminFeedbackProvider } from "./AdminFeedback";
 const pageTitles: Array<{ prefix: string; title: string; hint: string }> = [
   { prefix: "/admin/pedidos", title: "Pedidos", hint: "Vendas" },
   { prefix: "/admin/produtos/planilha", title: "Planilha de produtos", hint: "Catálogo" },
+  { prefix: "/admin/produtos/importar", title: "Importação Aura", hint: "Catálogo Dropshipping" },
   { prefix: "/admin/produtos", title: "Produtos", hint: "Catálogo" },
   { prefix: "/admin/estoque", title: "Estoque", hint: "Catálogo" },
   { prefix: "/admin/filtros", title: "Filtros e categorias", hint: "Catálogo" },

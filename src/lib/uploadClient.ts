@@ -12,6 +12,8 @@ const mimeExtensions = new Map([
   ["video/quicktime", "mov"],
   ["model/gltf-binary", "glb"],
   ["model/gltf+json", "gltf"],
+  ["application/json", "json"],
+  ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"],
 ]);
 
 let blobEnabled: boolean | null = null;

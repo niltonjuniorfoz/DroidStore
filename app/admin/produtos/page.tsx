@@ -2,6 +2,7 @@
 
 import { FormEvent, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import {
   ArrowUpDown,
@@ -19,6 +20,7 @@ import {
   Eye,
   EyeOff,
   FolderTree,
+  FileJson,
   Grid,
   ImagePlus,
   Layers,
@@ -734,9 +736,12 @@ export default function AdminProdutos() {
             {items.length} produtos <i /> {groupedModelsList.length} famílias
           </span>
         </div>
-        <button className="button primary product-new-button" onClick={newProduct}>
-          <Plus size={16} /> Novo produto
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Link href="/admin/produtos/importar" className="button ghost"><FileJson size={16} /> Importar catálogo</Link>
+          <button className="button primary product-new-button" onClick={newProduct}>
+            <Plus size={16} /> Novo produto
+          </button>
+        </div>
       </header>
 
       {message && <p className="admin-message" role="status">{message}</p>}

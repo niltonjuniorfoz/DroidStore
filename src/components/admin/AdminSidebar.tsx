@@ -7,6 +7,7 @@ import {
   BarChart3,
   Boxes,
   FileSpreadsheet,
+  FileJson,
   FileText,
   History,
   LayoutDashboard,
@@ -47,6 +48,7 @@ const groups: NavGroup[] = [
     label: "Catálogo",
     items: [
       { href: "/admin/produtos", label: "Produtos", icon: Smartphone, exact: true },
+      { href: "/admin/produtos/importar", label: "Importar catálogo", icon: FileJson, exact: true, adminOnly: true },
       { href: "/admin/produtos/planilha", label: "Planilha", icon: FileSpreadsheet, exact: true },
       { href: "/admin/estoque", label: "Estoque", icon: Tags },
       { href: "/admin/filtros", label: "Filtros e categorias", icon: SlidersHorizontal },

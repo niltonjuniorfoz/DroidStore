@@ -22,6 +22,8 @@ const allowed = new Map([
   ["model/gltf-binary", "glb"],
   ["model/gltf+json", "gltf"],
   ["application/octet-stream", "glb"],
+  ["application/json", "json"],
+  ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"],
 ]);
 
 // Tipos de conteúdo aceitos por extensão no upload direto para o Vercel Blob.
@@ -35,6 +37,8 @@ const blobContentTypes: Record<string, string[]> = {
   mov: ["video/quicktime"],
   glb: ["model/gltf-binary", "application/octet-stream"],
   gltf: ["model/gltf+json", "application/json", "application/octet-stream"],
+  json: ["application/json", "text/json", "application/octet-stream"],
+  xlsx: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/zip", "application/octet-stream"],
 };
 
 const footerBannerMimeTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -119,7 +123,7 @@ async function handleBlobUpload(req: Request, session: unknown) {
         const extension = pathname.slice(pathname.lastIndexOf(".") + 1).toLowerCase();
         const contentTypes = blobContentTypes[extension];
         if (!pathname.startsWith("uploads/") || !contentTypes) {
-          throw new Error("Use JPG, PNG, WebP, MP4, WebM ou modelos 3D (.glb / .gltf).");
+          throw new Error("Formato de arquivo não permitido no painel.");
         }
         return {
           allowedContentTypes: contentTypes,
@@ -153,7 +157,7 @@ export async function POST(req: Request) {
     const purpose = form.get("purpose");
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "Selecione uma imagem, vídeo ou modelo 3D (.glb)." }, { status: 400 });
+      return NextResponse.json({ error: "Selecione um arquivo válido." }, { status: 400 });
     }
 
     if (purpose === "home-footer-banner") return saveFooterBanner(file);
@@ -163,10 +167,12 @@ export async function POST(req: Request) {
       const lowerName = file.name.toLowerCase();
       if (lowerName.endsWith(".glb")) extension = "glb";
       else if (lowerName.endsWith(".gltf")) extension = "gltf";
+      else if (lowerName.endsWith(".json")) extension = "json";
+      else if (lowerName.endsWith(".xlsx")) extension = "xlsx";
     }
 
     if (!extension || file.size > MAX_UPLOAD_BYTES) {
-      return NextResponse.json({ error: "Use JPG, PNG, WebP, MP4, WebM ou modelos 3D (.glb / .gltf) de até 100 MB." }, { status: 400 });
+      return NextResponse.json({ error: "Use um formato aceito pelo painel com até 100 MB." }, { status: 400 });
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());

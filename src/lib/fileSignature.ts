@@ -33,6 +33,15 @@ export function matchesSignature(extension: string, bytes: Uint8Array): boolean 
       }
       return false;
     }
+    case "json": {
+      for (const byte of bytes.subarray(0, 128)) {
+        if (byte === 0x20 || byte === 0x09 || byte === 0x0a || byte === 0x0d || byte === 0xef || byte === 0xbb || byte === 0xbf) continue;
+        return byte === 0x7b;
+      }
+      return false;
+    }
+    case "xlsx":
+      return bytes.length > 3 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
     default:
       return false;
   }
