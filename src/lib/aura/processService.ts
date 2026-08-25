@@ -164,11 +164,38 @@ async function applyExisting(input: {
       });
     }
     if (policies.updateImages && input.permanentImages.length) {
-      await tx.productImage.deleteMany({ where: { productId: variant.product.id } });
-      await tx.productImage.createMany({
-        data: input.permanentImages.map((url, position) => ({ productId: variant.product.id, url, color: input.source.color || null, position })),
+      const imageColor = input.source.color.trim() || variant.color?.trim() || null;
+      const colorsToReplace = [...new Set(
+        [variant.color?.trim(), input.source.color.trim()].filter((value): value is string => Boolean(value)),
+      )];
+      const normalizedColors = new Set(colorsToReplace.map((color) => color.toLocaleLowerCase("pt-BR")));
+      const imagesToReplace = variant.product.images.filter((image) => (
+        normalizedColors.size
+          ? Boolean(image.color && normalizedColors.has(image.color.trim().toLocaleLowerCase("pt-BR")))
+          : !image.color
+      ));
+
+      await tx.productImage.deleteMany({
+        where: {
+          productId: variant.product.id,
+          ...(colorsToReplace.length
+            ? { OR: colorsToReplace.map((color) => ({ color: { equals: color, mode: "insensitive" as const } })) }
+            : { color: null }),
+        },
       });
-      await tx.product.update({ where: { id: variant.product.id }, data: { imageUrl: input.permanentImages[0] } });
+      await tx.productImage.createMany({
+        data: input.permanentImages.map((url, position) => ({
+          productId: variant.product.id,
+          url,
+          color: imageColor,
+          position,
+        })),
+      });
+
+      const replacedUrls = new Set(imagesToReplace.map((image) => image.url));
+      if (!variant.product.imageUrl || replacedUrls.has(variant.product.imageUrl)) {
+        await tx.product.update({ where: { id: variant.product.id }, data: { imageUrl: input.permanentImages[0] } });
+      }
     }
     if (policies.replaceSpecifications) {
       await tx.productSpecification.deleteMany({ where: { productId: variant.product.id } });

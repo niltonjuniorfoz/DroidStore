@@ -304,7 +304,7 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
         </div>
 
         <div className="product-summary">
-          <div className="product-code"><span>{product.brand}</span><small>Cód. {product.id.slice(0, 8).toUpperCase()}</small></div>
+          <div className="product-code"><span>{product.brand}</span><small>SKU {product.sku || "—"}</small></div>
           <h1>{getBaseModelName(product.name)}</h1>
           <button className={`favorite-button ${favorite ? "active" : ""}`} onClick={() => void toggleFavorite()}><Heart /> {favorite ? "Salvo nos favoritos" : "Adicionar aos favoritos"}</button>
           

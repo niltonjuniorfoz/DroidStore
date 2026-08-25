@@ -69,7 +69,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     "@type": "Product",
     name: `${product.name} ${product.storage} ${product.color}`,
     description: product.description,
-    sku: product.id,
+    sku: product.sku ?? product.id,
     brand: { "@type": "Brand", name: product.brand },
     ...(images.length ? { image: images } : {}),
     offers: {

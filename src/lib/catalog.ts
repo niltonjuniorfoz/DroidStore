@@ -1,6 +1,7 @@
 export type CatalogProduct = {
   id: string;
   productId?: string;
+  sku?: string;
   slug: string;
   name: string;
   brand: string;

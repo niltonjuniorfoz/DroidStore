@@ -18,7 +18,7 @@ import {
 import { DEFAULT_STORE_MODE, isVariantAvailable, normalizeStoreMode, type StoreModeValue } from "./storeMode";
 import { resolveStorefrontNavigation } from "./storefrontNavigation";
 import { categoryFamilyTokens, matchesCategory } from "./catalogRouting";
-import type { ProductVariantOption } from "./productVariantSelection";
+import { selectImagesForColor, type ProductVariantOption } from "./productVariantSelection";
 
 const conditionLabels: Record<string, CatalogProduct["condition"]> = {
   NOVO: "Novo", NOVO_REEMBALADO: "Novo", EXCELENTE: "Excelente",
@@ -28,8 +28,8 @@ const conditionLabels: Record<string, CatalogProduct["condition"]> = {
 export function mapProduct(product: {
   id: string; slug: string; name: string; brand: string; description: string | null; featured: boolean;
   imageUrl: string | null; model3dUrl?: string | null; pixDiscountPct?: number | null; installmentPlan?: unknown;
-  variants: Array<{ id: string; storage: string | null; color: string | null; condition: string; price: unknown; stock: number; dropshipAvailable?: boolean }>;
-  images?: Array<{ url: string }>;
+  variants: Array<{ id: string; sku: string | null; storage: string | null; color: string | null; condition: string; price: unknown; stock: number; dropshipAvailable?: boolean }>;
+  images?: Array<{ url: string; color?: string | null }>;
   specifications?: Array<{ label: string; value: string }>;
   filterSelections?: Array<{
     option: {
@@ -44,9 +44,11 @@ export function mapProduct(product: {
     if (leftAvailable !== rightAvailable) return leftAvailable ? -1 : 1;
     return Number(left.price) - Number(right.price);
   })[0];
+  const resolvedImages = selectImagesForColor(product.images, variant?.color, product.imageUrl);
   return {
     id: variant?.id ?? product.id,
     productId: product.id,
+    sku: variant?.sku ?? undefined,
     slug: product.slug,
     name: product.name,
     brand: product.brand,
@@ -57,13 +59,13 @@ export function mapProduct(product: {
     stock: variant?.stock ?? 0,
     available: variant ? isVariantAvailable({ storeMode, stock: variant.stock, dropshipAvailable: variant.dropshipAvailable }) : false,
     accent: "#0f766e",
-    imageUrl: product.images?.[0]?.url ?? product.imageUrl ?? undefined,
+    imageUrl: resolvedImages[0] ?? product.imageUrl ?? undefined,
     model3dUrl: product.model3dUrl ?? undefined,
     pixDiscountPct: product.pixDiscountPct ?? undefined,
     installmentPlan: Array.isArray(product.installmentPlan)
       ? (product.installmentPlan as Array<{ n: number; price: number }>)
       : undefined,
-    images: product.images?.map((image) => image.url) ?? (product.imageUrl ? [product.imageUrl] : []),
+    images: resolvedImages,
     specifications: product.specifications ?? [],
     filters: (product.filterSelections ?? [])
       .filter((selection) => selection.option.active && selection.option.filter.active)
@@ -121,12 +123,13 @@ export async function getProducts(
             { name: { contains: query, mode: "insensitive" } },
             { brand: { contains: query, mode: "insensitive" } },
             { slug: { contains: query, mode: "insensitive" } },
+            { variants: { some: { sku: { contains: query, mode: "insensitive" } } } },
           ],
         } : {}),
       },
       include: {
         variants: { orderBy: { price: "asc" } },
-        images: { orderBy: { position: "asc" }, take: 2 },
+        images: { orderBy: { position: "asc" }, select: { url: true, color: true } },
         filterSelections: { include: { option: { include: { filter: true } } } },
       },
       orderBy: { updatedAt: "desc" },
@@ -150,7 +153,7 @@ const getProductBySlugCached = unstable_cache(async (slug: string): Promise<Stor
       where: { slug, active: true },
       include: {
         variants: { orderBy: { price: "asc" } },
-        images: { orderBy: { position: "asc" } },
+        images: { orderBy: { position: "asc" }, select: { url: true, color: true } },
         specifications: { orderBy: { position: "asc" } },
         filterSelections: { include: { option: { include: { filter: true } } } },
       },
@@ -167,7 +170,7 @@ const getProductBySlugCached = unstable_cache(async (slug: string): Promise<Stor
   const fallback = products.find((item) => item.slug === slug);
   if (!fallback) return null;
   return { ...fallback, familyVariants: await getFamilyVariantsForProduct(fallback) };
-}, ["storefront-product-detail-v2"], { revalidate: 45 });
+}, ["storefront-product-detail-v3"], { revalidate: 45 });
 
 export { getBaseModelName };
 
@@ -193,7 +196,7 @@ export async function getFamilyVariantsForProduct(
       take: 40,
       include: {
         variants: true,
-        images: { orderBy: { position: "asc" }, take: 1 },
+        images: { orderBy: { position: "asc" }, select: { url: true, color: true } },
       },
     });
 
@@ -207,9 +210,11 @@ export async function getFamilyVariantsForProduct(
       for (const v of p.variants) {
         const condition = conditionLabels[v.condition] ?? "Novo";
         if (getCatalogSection(condition) !== targetSection) continue;
+        const variantImages = selectImagesForColor(p.images, v.color ?? targetProduct.color, p.imageUrl);
         variantOptions.push({
           id: v.id,
           productId: p.id,
+          sku: v.sku ?? undefined,
           slug: p.slug,
           color: v.color ?? targetProduct.color,
           storage: v.storage ?? targetProduct.storage,
@@ -217,7 +222,8 @@ export async function getFamilyVariantsForProduct(
           price: Number(v.price),
           stock: v.stock,
           available: isVariantAvailable({ storeMode, stock: v.stock, dropshipAvailable: v.dropshipAvailable }),
-          imageUrl: p.images[0]?.url ?? p.imageUrl ?? undefined,
+          imageUrl: variantImages[0] ?? p.imageUrl ?? undefined,
+          images: variantImages,
         });
       }
     }
@@ -239,6 +245,7 @@ export async function getFamilyVariantsForProduct(
   return fallbackMatches.map((p) => ({
     id: p.id,
     productId: p.productId ?? p.id,
+    sku: p.sku,
     slug: p.slug,
     color: p.color,
     storage: p.storage,
@@ -247,6 +254,7 @@ export async function getFamilyVariantsForProduct(
     stock: p.stock,
     available: p.available,
     imageUrl: p.imageUrl,
+    images: p.images,
   }));
 }
 
@@ -295,7 +303,7 @@ export async function getProductsForSection(query: string, requestedTake = 5) {
       where: { active: true, OR: textConditions },
       include: {
         variants: { orderBy: { price: "asc" } },
-        images: { orderBy: { position: "asc" }, take: 2 },
+        images: { orderBy: { position: "asc" }, select: { url: true, color: true } },
         filterSelections: { include: { option: { include: { filter: true } } } },
       },
       orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
