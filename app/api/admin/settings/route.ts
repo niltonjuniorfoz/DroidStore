@@ -6,8 +6,10 @@ import { isOwnerAdmin, requireAdmin } from "../../../../src/lib/admin";
 import { readInstagramFromCatalogBanner } from "../../../../src/lib/contact";
 import { brazilNationalPhoneDigits, formatBrazilPhone } from "../../../../src/lib/brazil";
 import { audit } from "../../../../src/lib/audit";
+import { revalidatePath } from "next/cache";
 
 const settingsSchema = z.object({
+  storeMode: z.enum(["INVENTORY", "DROPSHIPPING"]),
   storeName: z.string().trim().min(2).max(80),
   contactEmail: z.string().trim().email().max(160).optional().nullable().or(z.literal("")),
   whatsapp: z.string().trim().max(30).optional().nullable(),
@@ -123,10 +125,13 @@ export async function PATCH(req: Request) {
     action: "settings.update",
     entity: "SiteContent",
     entityId: "main",
-    summary: "Configurações da loja alteradas",
+    summary: current && current.storeMode !== content.storeMode
+      ? `Configurações da loja: ${current.storeMode} → ${content.storeMode}`
+      : "Configurações da loja alteradas",
     before: current
       ? {
           storeName: current.storeName,
+          storeMode: current.storeMode,
           contactEmail: current.contactEmail,
           whatsapp: current.whatsapp,
           pixDiscount: current.pixDiscount,
@@ -137,6 +142,7 @@ export async function PATCH(req: Request) {
       : undefined,
     after: {
       storeName: content.storeName,
+      storeMode: content.storeMode,
       contactEmail: content.contactEmail,
       whatsapp: content.whatsapp,
       pixDiscount: content.pixDiscount,
@@ -145,5 +151,11 @@ export async function PATCH(req: Request) {
       cardFeePct: Number(content.cardFeePct),
     },
   });
+  if (current?.storeMode !== content.storeMode) {
+    revalidatePath("/", "layout");
+    revalidatePath("/celulares");
+    revalidatePath("/produto/[slug]", "page");
+    revalidatePath("/api/products");
+  }
   return NextResponse.json({ content: withInstagram(content), integrations: integrations(), ownerView: true });
 }

@@ -14,6 +14,7 @@ export default function CartDrawer() {
   const { content } = useSiteContent();
   const pixDiscount = content?.pixDiscount ?? 10;
   const pixTotal = subtotal * (1 - pixDiscount / 100);
+  const canCheckout = items.length > 0 && items.every((item) => item.available !== false);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -90,7 +91,8 @@ export default function CartDrawer() {
           <div><span>Subtotal</span><strong>{drawerMoney.format(subtotal)}</strong></div>
           <div><span>Desconto no PIX</span><strong className="cart-drawer-saving">- {drawerMoney.format(subtotal - pixTotal)}</strong></div>
           <div className="cart-drawer-total"><span>Total no PIX</span><strong>{drawerMoney.format(pixTotal)}</strong></div>
-          <Link className={`cart-drawer-checkout ${items.length ? "" : "is-disabled"}`} href={items.length ? "/checkout" : "#"} onClick={items.length ? closeDrawer : undefined} aria-disabled={!items.length}>
+          {!canCheckout && items.length > 0 && <span className="cart-drawer-unavailable">Remova os itens indisponíveis para continuar.</span>}
+          <Link className={`cart-drawer-checkout ${canCheckout ? "" : "is-disabled"}`} href={canCheckout ? "/checkout" : "#"} onClick={canCheckout ? closeDrawer : undefined} aria-disabled={!canCheckout}>
             <ShieldCheck size={18} /> Finalizar compra
           </Link>
           <button className="cart-drawer-continue" type="button" onClick={closeDrawer}>Continuar comprando</button>

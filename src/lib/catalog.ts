@@ -9,6 +9,7 @@ export type CatalogProduct = {
   color: string;
   price: number;
   stock: number;
+  available: boolean;
   accent: string;
   imageUrl?: string;
   model3dUrl?: string | null;
@@ -71,7 +72,7 @@ export function groupCatalogProducts(items: CatalogProduct[]): CatalogProduct[] 
 
   return Array.from(families.values()).map((family) => {
     const sorted = [...family].sort((a, b) => {
-      if ((a.stock > 0) !== (b.stock > 0)) return a.stock > 0 ? -1 : 1;
+      if (a.available !== b.available) return a.available ? -1 : 1;
       return a.price - b.price;
     });
     const representative = sorted[0];
@@ -83,6 +84,7 @@ export function groupCatalogProducts(items: CatalogProduct[]): CatalogProduct[] 
       name: getBaseModelName(representative.name),
       price: Math.min(...family.map((item) => item.price)),
       stock: family.reduce((total, item) => total + Math.max(0, item.stock), 0),
+      available: family.some((item) => item.available),
       variantCount: family.length,
       availableColors: colors,
       availableStorages: storages,
@@ -133,6 +135,7 @@ export const products: CatalogProduct[] = names.map(([brand, model, storage, col
     color,
     price: prices[index],
     stock: index === 6 ? 0 : index % 7 === 0 ? 2 : 8 + index,
+    available: index !== 6,
     accent: accents[index],
     images: [],
     specifications: [

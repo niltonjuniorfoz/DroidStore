@@ -6,6 +6,7 @@ import { isOwnerAdmin, requireAdmin } from "../../../../../src/lib/admin";
 import { sendPaidOrderEmail, sendShippedOrderEmail } from "../../../../../src/lib/orderEmail";
 import { canTransition, shouldRestock } from "../../../../../src/lib/orderStatus";
 import { audit } from "../../../../../src/lib/audit";
+import { restoreOrderInventory } from "../../../../../src/lib/orderInventory";
 
 const patchSchema = z.object({
   status: z.nativeEnum(OrderStatus).optional(),
@@ -40,18 +41,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const actorId = (session.user as { id?: string }).id;
   const updated = await prisma.$transaction(async (tx) => {
     if (shouldRestock(order.status, nextStatus)) {
-      for (const item of order.items) {
-        await tx.variant.update({ where: { id: item.variantId }, data: { stock: { increment: item.quantity } } });
-        await tx.stockMovement.create({
-          data: {
-            variantId: item.variantId,
-            type: "RETURN",
-            quantity: item.quantity,
-            note: `${nextStatus === "REFUNDED" ? "Reembolso" : "Estorno"} do pedido #${order.id.slice(0, 8).toUpperCase()}`,
-            createdById: actorId,
-          },
-        });
-      }
+      await restoreOrderInventory(tx, {
+        inventoryReserved: order.inventoryReserved,
+        items: order.items,
+        note: `${nextStatus === "REFUNDED" ? "Reembolso" : "Estorno"} do pedido #${order.id.slice(0, 8).toUpperCase()}`,
+        createdById: actorId,
+      });
     }
 
     const statusChanged = nextStatus !== order.status;

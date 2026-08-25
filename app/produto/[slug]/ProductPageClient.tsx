@@ -28,6 +28,7 @@ type ProductVariantOption = {
   condition: CatalogProduct["condition"];
   price: number;
   stock: number;
+  available: boolean;
   imageUrl?: string;
   model3dUrl?: string | null;
 };
@@ -85,7 +86,7 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
         pixDiscount,
         pixPrice: money(product.price * (1 - pixDiscount / 100)),
         installments: `ou ${maxInstallments}x de ${money(product.price / maxInstallments)} sem juros`,
-        disabled: !product.stock,
+        disabled: !product.available,
       } }));
     };
     const measure = () => {
@@ -248,6 +249,7 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
         condition: match.condition,
         price: match?.price ?? basePrice,
         stock: match.stock,
+        available: match.available,
         imageUrl: match?.imageUrl ?? prev.imageUrl,
         model3dUrl: match?.model3dUrl ?? prev.model3dUrl,
         images: match?.imageUrl ? [match.imageUrl] : prev.images,
@@ -362,13 +364,23 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
                 <div className="color-swatch-list">
                   {availableColors.map((colorName) => {
                     const isActive = (selectedColor || product.color).toLowerCase() === colorName.toLowerCase();
+                    const matchingVariant = familyVariants.find(
+                      (variant) => variant.color?.toLowerCase() === colorName.toLowerCase()
+                        && variant.storage === (selectedStorage || product.storage)
+                        && variant.condition === selectedCondition,
+                    );
+                    const isCurrentVariant = colorName.toLowerCase() === product.color.toLowerCase()
+                      && (selectedStorage || product.storage) === product.storage
+                      && selectedCondition === product.condition;
+                    const available = matchingVariant ? matchingVariant.available : isCurrentVariant && product.available;
                     return (
                       <button
                         key={colorName}
                         type="button"
-                        className={`color-swatch-btn ${isActive ? "active" : ""}`}
+                        className={`color-swatch-btn ${isActive ? "active" : ""} ${!available ? "out-of-stock" : ""}`}
                         onClick={() => void selectVariantOption(colorName, selectedStorage || product.storage, selectedCondition)}
-                        title={`Cor: ${colorName}`}
+                        disabled={!available}
+                        title={available ? `Cor: ${colorName}` : `${colorName} indisponível`}
                       >
                         <span className="color-circle" style={{ backgroundColor: getProductColorHex(colorName) }} />
                       </button>
@@ -395,8 +407,8 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
                       activeColor.toLowerCase() === product.color.toLowerCase()
                       && storageVal === product.storage
                       && selectedCondition === product.condition;
-                    const hasStock = exactVariant ? exactVariant.stock > 0 : isCurrentVariant && product.stock > 0;
-                    const unavailable = !hasStock;
+                    const available = exactVariant ? exactVariant.available : isCurrentVariant && product.available;
+                    const unavailable = !available;
 
                     return (
                       <button
@@ -431,15 +443,16 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
                     condName === product.condition &&
                     (selectedColor || product.color).toLowerCase() === product.color.toLowerCase() &&
                     (selectedStorage || product.storage) === product.storage;
-                  const hasStock = matchingVar ? matchingVar.stock > 0 : isCurrentVariant && product.stock > 0;
+                  const available = matchingVar ? matchingVar.available : isCurrentVariant && product.available;
                   const priceVal = matchingVar?.price ?? (isCurrentVariant ? product.price : 0);
-                  const priceDisplay = hasStock && priceVal > 0 ? money(priceVal) : "Esgotado";
+                  const priceDisplay = available && priceVal > 0 ? money(priceVal) : "Indisponível";
 
                   return (
                     <button
                       key={condName}
                       type="button"
-                      className={`condition-card-btn ${isActive ? "active" : ""} ${!hasStock ? "out-of-stock" : ""}`}
+                      className={`condition-card-btn ${isActive ? "active" : ""} ${!available ? "out-of-stock" : ""}`}
+                      disabled={!available}
                       onClick={() => void selectVariantOption(selectedColor || product.color, selectedStorage || product.storage, condName)}
                     >
                       <span className="condition-name">{condName}</span>
@@ -451,9 +464,9 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
             </div>
           </div>
 
-          <div className={`availability ${product.stock ? "" : "is-sold-out"}`.trim()}>
+          <div className={`availability ${product.available ? "" : "is-sold-out"}`.trim()}>
             <PackageCheck />
-            <div><strong>{product.stock ? "Disponível para compra" : "Produto esgotado"}</strong><small>{product.stock ? "Envio após a confirmação do pagamento" : "Avise-me quando chegar"}</small></div>
+            <div><strong>{product.available ? "Disponível para compra" : "Produto indisponível"}</strong><small>{product.available ? "Envio após a confirmação do pagamento" : "Consulte novamente em breve"}</small></div>
           </div>
 
           <div className="purchase-card">
@@ -476,7 +489,7 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
               </p>
             </div>
 
-            <button ref={buyButtonRef} className="buy-button" disabled={!product.stock} onClick={() => void requireAuth(() => add(product))}>
+            <button ref={buyButtonRef} className="buy-button" disabled={!product.available} onClick={() => void requireAuth(() => add(product))}>
               <ShoppingBag /> Adicionar ao carrinho
             </button>
           </div>

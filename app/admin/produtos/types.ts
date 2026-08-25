@@ -5,6 +5,7 @@ export type AdminVariant = {
   price: string;
   costPrice?: string;
   stock: number;
+  dropshipAvailable: boolean;
   lowStockThreshold: number;
   storage?: string;
   color?: string;

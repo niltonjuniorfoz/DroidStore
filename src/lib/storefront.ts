@@ -13,6 +13,7 @@ import {
   readHomeProductSections,
   readHomePromoBanners,
 } from "./homeContent";
+import { DEFAULT_STORE_MODE, isVariantAvailable, normalizeStoreMode, type StoreModeValue } from "./storeMode";
 
 const conditionLabels: Record<string, CatalogProduct["condition"]> = {
   NOVO: "Novo", NOVO_REEMBALADO: "Novo", EXCELENTE: "Excelente",
@@ -22,7 +23,7 @@ const conditionLabels: Record<string, CatalogProduct["condition"]> = {
 export function mapProduct(product: {
   id: string; slug: string; name: string; brand: string; description: string | null; featured: boolean;
   imageUrl: string | null; model3dUrl?: string | null; pixDiscountPct?: number | null; installmentPlan?: unknown;
-  variants: Array<{ id: string; storage: string | null; color: string | null; condition: string; price: unknown; stock: number }>;
+  variants: Array<{ id: string; storage: string | null; color: string | null; condition: string; price: unknown; stock: number; dropshipAvailable?: boolean }>;
   images?: Array<{ url: string }>;
   specifications?: Array<{ label: string; value: string }>;
   filterSelections?: Array<{
@@ -31,8 +32,13 @@ export function mapProduct(product: {
       filter: { id: string; name: string; slug: string; active: boolean };
     };
   }>;
-}): CatalogProduct {
-  const variant = product.variants[0];
+}, storeMode: StoreModeValue = DEFAULT_STORE_MODE): CatalogProduct {
+  const variant = [...product.variants].sort((left, right) => {
+    const leftAvailable = isVariantAvailable({ storeMode, stock: left.stock, dropshipAvailable: left.dropshipAvailable });
+    const rightAvailable = isVariantAvailable({ storeMode, stock: right.stock, dropshipAvailable: right.dropshipAvailable });
+    if (leftAvailable !== rightAvailable) return leftAvailable ? -1 : 1;
+    return Number(left.price) - Number(right.price);
+  })[0];
   return {
     id: variant?.id ?? product.id,
     productId: product.id,
@@ -44,6 +50,7 @@ export function mapProduct(product: {
     color: variant?.color ?? "Preto",
     price: Number(variant?.price ?? 0),
     stock: variant?.stock ?? 0,
+    available: variant ? isVariantAvailable({ storeMode, stock: variant.stock, dropshipAvailable: variant.dropshipAvailable }) : false,
     accent: "#0f766e",
     imageUrl: product.images?.[0]?.url ?? product.imageUrl ?? undefined,
     model3dUrl: product.model3dUrl ?? undefined,
@@ -80,7 +87,7 @@ export async function getProducts(
     .filter((product) => !query || `${product.name} ${product.brand} ${product.storage} ${product.color}`.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")))
     .slice(0, take);
   try {
-    const rows = await prisma.product.findMany({
+    const [storeMode, rows] = await Promise.all([getStoreMode(), prisma.product.findMany({
       where: {
         active: true,
         ...(featuredOnly ? { featured: true } : {}),
@@ -94,15 +101,15 @@ export async function getProducts(
         } : {}),
       },
       include: {
-        variants: { orderBy: { price: "asc" }, take: 1 },
+        variants: { orderBy: { price: "asc" } },
         images: { orderBy: { position: "asc" }, take: 2 },
         filterSelections: { include: { option: { include: { filter: true } } } },
       },
       orderBy: { updatedAt: "desc" },
       take,
-    });
+    })]);
     return rows.length
-      ? rows.map(mapProduct)
+      ? rows.map((row) => mapProduct(row, storeMode))
       : fallbackProducts;
   } catch {
     return fallbackProducts;
@@ -118,6 +125,7 @@ export type ProductVariantOption = {
   condition: CatalogProduct["condition"];
   price: number;
   stock: number;
+  available: boolean;
   imageUrl?: string;
   model3dUrl?: string | null;
 };
@@ -129,7 +137,7 @@ export type StorefrontProductDetail = CatalogProduct & {
 // cache() deduplica a busca entre generateMetadata e a página na mesma requisição.
 export const getProductBySlug = cache(async (slug: string): Promise<StorefrontProductDetail | null> => {
   try {
-    const product = await prisma.product.findFirst({
+    const [storeMode, product] = await Promise.all([getStoreMode(), prisma.product.findFirst({
       where: { slug, active: true },
       include: {
         variants: { orderBy: { price: "asc" } },
@@ -137,11 +145,11 @@ export const getProductBySlug = cache(async (slug: string): Promise<StorefrontPr
         specifications: { orderBy: { position: "asc" } },
         filterSelections: { include: { option: { include: { filter: true } } } },
       },
-    });
+    })]);
 
     if (product) {
-      const mapped = mapProduct(product);
-      return { ...mapped, familyVariants: await getFamilyVariantsForProduct(mapped) };
+      const mapped = mapProduct(product, storeMode);
+      return { ...mapped, familyVariants: await getFamilyVariantsForProduct(mapped, storeMode) };
     }
   } catch {
     // The static catalog below keeps the storefront available during database outages.
@@ -154,7 +162,10 @@ export const getProductBySlug = cache(async (slug: string): Promise<StorefrontPr
 
 export { getBaseModelName };
 
-export async function getFamilyVariantsForProduct(targetProduct: CatalogProduct): Promise<ProductVariantOption[]> {
+export async function getFamilyVariantsForProduct(
+  targetProduct: CatalogProduct,
+  requestedStoreMode?: StoreModeValue,
+): Promise<ProductVariantOption[]> {
   const baseModel = getBaseModelName(targetProduct.name).toLowerCase();
   const targetSection = getCatalogSection(targetProduct.condition);
   const familyPrefix = targetProduct.name
@@ -163,6 +174,7 @@ export async function getFamilyVariantsForProduct(targetProduct: CatalogProduct)
     .trim();
   
   try {
+    const storeMode = requestedStoreMode ?? await getStoreMode();
     const familyProducts = await prisma.product.findMany({
       where: {
         active: true,
@@ -195,6 +207,7 @@ export async function getFamilyVariantsForProduct(targetProduct: CatalogProduct)
           condition,
           price: Number(v.price),
           stock: v.stock,
+          available: isVariantAvailable({ storeMode, stock: v.stock, dropshipAvailable: v.dropshipAvailable }),
           imageUrl: p.images[0]?.url ?? p.imageUrl ?? undefined,
         });
       }
@@ -223,9 +236,22 @@ export async function getFamilyVariantsForProduct(targetProduct: CatalogProduct)
     condition: p.condition,
     price: p.price,
     stock: p.stock,
+    available: p.available,
     imageUrl: p.imageUrl,
   }));
 }
+
+export const getStoreMode = cache(async (): Promise<StoreModeValue> => {
+  try {
+    const content = await prisma.siteContent.findUnique({
+      where: { id: "main" },
+      select: { storeMode: true },
+    });
+    return normalizeStoreMode(content?.storeMode);
+  } catch {
+    return DEFAULT_STORE_MODE;
+  }
+});
 
 // Filtros públicos do catálogo (mesma resposta da rota /api/catalog-filters).
 export async function getPublicCatalogFilters() {
@@ -261,9 +287,22 @@ export async function getSiteContent() {
     const { homeFooterBannerAsset: _privateFooterBannerAsset, ...publicCatalogBanner } = rawCatalogBanner;
     const normalizedContent = content
       ? {
-          ...content,
-          catalogBanner: publicCatalogBanner,
+          storeMode: content.storeMode,
           storeName: ["DroidStore", "Brasil Store"].includes(content.storeName) ? "Aura Tech" : content.storeName,
+          heroEyebrow: content.heroEyebrow,
+          heroTitle: content.heroTitle,
+          heroDescription: content.heroDescription,
+          heroImageUrl: content.heroImageUrl,
+          heroSlides: content.heroSlides,
+          catalogBanner: publicCatalogBanner,
+          catalogSlides: content.catalogSlides,
+          contactEmail: content.contactEmail,
+          whatsapp: content.whatsapp,
+          pixDiscount: content.pixDiscount,
+          maxInstallments: content.maxInstallments,
+          customerLoginEnabled: content.customerLoginEnabled,
+          loginTitle: content.loginTitle,
+          loginSubtitle: content.loginSubtitle,
           instagramUrl: readInstagramFromCatalogBanner(content.catalogBanner),
           homeFeaturedTitle: readHomeFeaturedTitle(content.catalogBanner),
           homeFooterBanner: readHomeFooterBanner(content.catalogBanner),

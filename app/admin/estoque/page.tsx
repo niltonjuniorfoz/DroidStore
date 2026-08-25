@@ -61,6 +61,7 @@ function isStale(item: Variant) {
 
 export default function AdminEstoque() {
   const { toast } = useAdminFeedback();
+  const [storeMode, setStoreMode] = useState<"INVENTORY" | "DROPSHIPPING">("INVENTORY");
   const [items, setItems] = useState<Variant[]>([]);
   const [selected, setSelected] = useState<Variant | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -95,6 +96,10 @@ export default function AdminEstoque() {
 
   useEffect(() => {
     void load().catch(() => { setError("Falha de conexão. Recarregue a página."); setLoading(false); });
+    void fetch("/api/admin/settings", { cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((body) => setStoreMode(body?.content?.storeMode ?? "INVENTORY"))
+      .catch(() => undefined);
   }, []);
   useEffect(() => { setPage(1); }, [search, stockStatusFilter, brandFilter, conditionFilter, pageSize, viewMode]);
 
@@ -330,6 +335,11 @@ export default function AdminEstoque() {
       </div>
 
       {error && !selected && <div className="form-error">{error}</div>}
+      {storeMode === "DROPSHIPPING" && (
+        <div className="store-mode-warning inventory-mode-warning">
+          <strong>Modo Dropshipping ativo.</strong> O estoque físico está preservado, mas não está sendo utilizado para determinar a disponibilidade da loja.
+        </div>
+      )}
 
       {/* KPIs ENXUTOS */}
       <section className="metric-grid">

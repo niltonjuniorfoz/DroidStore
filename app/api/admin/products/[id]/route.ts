@@ -58,6 +58,7 @@ const patchSchema = z.object({
   price: z.coerce.number().positive().max(100000).optional(),
   costPrice: z.coerce.number().min(0).max(100000).optional(),
   stock: z.coerce.number().int().min(0).max(100000).optional(),
+  dropshipAvailable: z.boolean().optional(),
   lowStockThreshold: z.coerce.number().int().min(0).max(10000).optional(),
   filterOptionIds: z.array(z.string().min(1).max(100)).max(30).optional(),
 });
@@ -94,7 +95,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
   const { id } = await params;
   const {
-    storage, color, condition, price, costPrice, stock, lowStockThreshold,
+    storage, color, condition, price, costPrice, stock, dropshipAvailable, lowStockThreshold,
     imageUrls, specifications, filterOptionIds, installmentPlan, ...rest
   } = parsed.data;
   // Prisma exige JsonNull explícito para limpar um campo JSON.
@@ -134,6 +135,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     price,
     ...(isOwnerAdmin(session) ? { costPrice } : {}),
     stock,
+    dropshipAvailable,
     lowStockThreshold,
   };
   const hasVariantChange = Object.values(variantData).some((value) => value !== undefined);

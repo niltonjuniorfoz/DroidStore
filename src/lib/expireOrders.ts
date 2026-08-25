@@ -1,4 +1,5 @@
 import prisma from "./prisma";
+import { restoreOrderInventory } from "./orderInventory";
 
 export const DEFAULT_RESERVATION_HOURS = 24;
 
@@ -20,12 +21,12 @@ export async function expireStaleOrders(now = new Date()): Promise<number> {
   const cutoff = pendingCutoff(now, reservationHours());
   const stale = await prisma.order.findMany({
     where: { status: "PENDING", createdAt: { lt: cutoff } },
-    select: { id: true },
+    select: { id: true, inventoryReserved: true },
     take: 50,
   });
 
   let expired = 0;
-  for (const { id } of stale) {
+  for (const { id, inventoryReserved } of stale) {
     try {
       const done = await prisma.$transaction(async (tx) => {
         // Claim atômico: se o webhook pagou/cancelou no meio do caminho, não mexe.
@@ -36,20 +37,11 @@ export async function expireStaleOrders(now = new Date()): Promise<number> {
         if (!claimed.count) return false;
 
         const items = await tx.orderItem.findMany({ where: { orderId: id } });
-        for (const item of items) {
-          await tx.variant.update({
-            where: { id: item.variantId },
-            data: { stock: { increment: item.quantity } },
-          });
-          await tx.stockMovement.create({
-            data: {
-              variantId: item.variantId,
-              type: "RETURN",
-              quantity: item.quantity,
-              note: `Reserva expirada do pedido #${id.slice(0, 8).toUpperCase()}`,
-            },
-          });
-        }
+        await restoreOrderInventory(tx, {
+          inventoryReserved,
+          items,
+          note: `Reserva expirada do pedido #${id.slice(0, 8).toUpperCase()}`,
+        });
         await tx.orderStatusHistory.create({
           data: {
             orderId: id,

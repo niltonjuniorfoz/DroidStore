@@ -40,6 +40,7 @@ test("agrupa variações do mesmo modelo sem misturar novos e seminovos", () => 
     color: "Azul",
     price: 8000,
     stock: 2,
+    available: true,
     accent: "#123456",
     description: "Teste",
   };
@@ -54,4 +55,30 @@ test("agrupa variações do mesmo modelo sem misturar novos e seminovos", () => 
   assert.equal(seminovo?.variantCount, 2);
   assert.deepEqual(seminovo?.availableColors?.sort(), ["Azul", "Preto"]);
   assert.equal(seminovo?.price, 7800);
+});
+
+test("agrupamento prefere variante disponível sem inventar estoque", () => {
+  const unavailable: CatalogProduct = {
+    ...products[0],
+    id: "unavailable",
+    slug: "family-unavailable",
+    name: "Apple - iPhone 15 Pro - 128 GB - Preto",
+    price: 1000,
+    stock: 500,
+    available: false,
+  };
+  const available: CatalogProduct = {
+    ...unavailable,
+    id: "available",
+    slug: "family-available",
+    color: "Branco",
+    price: 1200,
+    stock: 0,
+    available: true,
+  };
+
+  const [family] = groupCatalogProducts([unavailable, available]);
+  assert.equal(family.slug, "family-available");
+  assert.equal(family.available, true);
+  assert.equal(family.stock, 500);
 });

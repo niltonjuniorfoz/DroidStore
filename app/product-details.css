@@ -192,6 +192,11 @@
   letter-spacing: 0;
 }
 
+.color-swatch-btn.out-of-stock {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
 
 /* Capacidade indisponível para a combinação atual de cor e condição. */
 .storage-pill-btn.out-of-stock,

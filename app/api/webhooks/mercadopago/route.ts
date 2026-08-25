@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import prisma from "../../../../src/lib/prisma";
 import { sendPaidOrderEmail } from "../../../../src/lib/orderEmail";
 import { shouldRestock } from "../../../../src/lib/orderStatus";
+import { restoreOrderInventory } from "../../../../src/lib/orderInventory";
 
 function validSignature(req: Request, paymentId: string) {
   const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
@@ -89,20 +90,11 @@ export async function POST(req: Request) {
         ["PAID", "SHIPPED", "DELIVERED"].includes(order.status)
       ) {
         if (shouldRestock(order.status, "REFUNDED")) {
-          for (const item of order.items) {
-            await tx.variant.update({
-              where: { id: item.variantId },
-              data: { stock: { increment: item.quantity } },
-            });
-            await tx.stockMovement.create({
-              data: {
-                variantId: item.variantId,
-                type: "RETURN",
-                quantity: item.quantity,
-                note: `Reembolso do pedido #${orderId.slice(0, 8).toUpperCase()}`,
-              },
-            });
-          }
+          await restoreOrderInventory(tx, {
+            inventoryReserved: order.inventoryReserved,
+            items: order.items,
+            note: `Reembolso do pedido #${orderId.slice(0, 8).toUpperCase()}`,
+          });
         }
         await tx.order.update({
           where: { id: orderId },
@@ -122,20 +114,11 @@ export async function POST(req: Request) {
       }
 
       if (["cancelled", "rejected"].includes(payment.status ?? "") && order.status === "PENDING") {
-        for (const item of order.items) {
-          await tx.variant.update({
-            where: { id: item.variantId },
-            data: { stock: { increment: item.quantity } },
-          });
-          await tx.stockMovement.create({
-            data: {
-              variantId: item.variantId,
-              type: "RETURN",
-              quantity: item.quantity,
-              note: `Pagamento recusado/cancelado no pedido #${orderId.slice(0, 8).toUpperCase()}`,
-            },
-          });
-        }
+        await restoreOrderInventory(tx, {
+          inventoryReserved: order.inventoryReserved,
+          items: order.items,
+          note: `Pagamento recusado/cancelado no pedido #${orderId.slice(0, 8).toUpperCase()}`,
+        });
         await tx.order.update({
           where: { id: orderId },
           data: { status: "CANCELLED", cancelledAt: new Date() },

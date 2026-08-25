@@ -4,7 +4,13 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { HomeFooterBanner, HomeProductSection, HomePromoBanner } from "../lib/homeContent";
 
 export type SiteContentData = {
+  storeMode?: "INVENTORY" | "DROPSHIPPING" | null;
   storeName?: string | null;
+  heroEyebrow?: string | null;
+  heroTitle?: string | null;
+  heroDescription?: string | null;
+  heroImageUrl?: string | null;
+  heroSlides?: unknown;
   contactEmail?: string | null;
   whatsapp?: string | null;
   instagramUrl?: string | null;

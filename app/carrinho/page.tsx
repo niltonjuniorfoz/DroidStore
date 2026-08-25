@@ -12,6 +12,7 @@ export default function CartPage() {
   const { content } = useSiteContent();
   const pixDiscount = content?.pixDiscount ?? 10;
   const pixTotal = subtotal * (1 - pixDiscount / 100);
+  const hasUnavailableItem = items.some((item) => item.available === false);
   if (!items.length) return <main className="empty-state page-empty"><h1>Seu carrinho está vazio</h1><p>Encontre um Android que combina com você.</p><Link className="button primary" href="/celulares">Ver celulares</Link></main>;
   return (
     <main className="cart-page">
@@ -30,7 +31,7 @@ export default function CartPage() {
             </article>
           ))}
         </section>
-        <aside className="cart-summary"><h2>Resumo</h2><p><span>Subtotal</span><b>{money(subtotal)}</b></p><p><span>Frete</span><b>Calculado no checkout</b></p><hr /><small>Total no Pix ({pixDiscount}% de desconto)</small><strong>{money(pixTotal)}</strong><em>Você economiza {money(subtotal - pixTotal)}</em><Link className="button primary" href="/checkout">Ir para o checkout</Link><span className="secure-note"><ShieldCheck /> Compra protegida</span></aside>
+        <aside className="cart-summary"><h2>Resumo</h2><p><span>Subtotal</span><b>{money(subtotal)}</b></p><p><span>Frete</span><b>Calculado no checkout</b></p><hr /><small>Total no Pix ({pixDiscount}% de desconto)</small><strong>{money(pixTotal)}</strong><em>{hasUnavailableItem ? "Remova os itens indisponíveis para continuar." : `Você economiza ${money(subtotal - pixTotal)}`}</em><Link className={`button primary ${hasUnavailableItem ? "is-disabled" : ""}`} href={hasUnavailableItem ? "#" : "/checkout"} aria-disabled={hasUnavailableItem}>Ir para o checkout</Link><span className="secure-note"><ShieldCheck /> Compra protegida</span></aside>
       </div>
     </main>
   );

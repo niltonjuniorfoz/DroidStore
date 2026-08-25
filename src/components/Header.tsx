@@ -36,6 +36,7 @@ type SearchProduct = {
   color: string;
   price: number;
   stock: number;
+  available: boolean;
   imageUrl?: string;
 };
 type QuickBuyState = {
@@ -423,7 +424,7 @@ export default function Header() {
                         </div>
                         <div className="header-search-product-price">
                           <strong>{searchMoney.format(product.price * (1 - (content?.pixDiscount ?? 10) / 100))}</strong>
-                          <span>{product.stock > 0 ? "no PIX" : "Esgotado"}</span>
+                          <span>{product.available ? "no PIX" : "Indisponível"}</span>
                         </div>
                       </Link>
                     ))}

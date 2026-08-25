@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { CatalogProduct } from "../lib/catalog";
 
-export type CartLine = Pick<CatalogProduct, "id" | "slug" | "name" | "brand" | "condition" | "storage" | "color" | "price" | "accent" | "imageUrl"> & { quantity: number };
+export type CartLine = Pick<CatalogProduct, "id" | "slug" | "name" | "brand" | "condition" | "storage" | "color" | "price" | "accent" | "imageUrl" | "available"> & { quantity: number };
 type CartContextValue = {
   items: CartLine[];
   count: number;
@@ -60,6 +60,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               return {
                 ...item,
                 price: fresh.price,
+                available: fresh.available,
                 imageUrl: item.imageUrl ?? fresh.images?.[0] ?? fresh.imageUrl,
               };
             }));
@@ -90,6 +91,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     priceNotice,
     dismissPriceNotice() { setPriceNotice(null); },
     add(product) {
+      if (!product.available) return;
       setItems((current) => {
         const found = current.find((item) => item.id === product.id);
         if (found) return current.map((item) => item.id === product.id ? { ...item, quantity: Math.min(5, item.quantity + 1) } : item);
@@ -104,6 +106,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           price: product.price,
           accent: product.accent,
           imageUrl: product.images?.[0] ?? product.imageUrl,
+          available: product.available,
           quantity: 1,
         }];
       });
