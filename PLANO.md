@@ -4,7 +4,7 @@
 >
 > Base: [AVALIACAO.md](AVALIACAO.md) (commit `429efe2`).
 
-**Última atualização:** 2026-08-03 · **Progresso:** 30/31 · **FASES 0–4 concluídas · FASE 5: tema + informação prontos, aguardando seu feedback (5.4)**
+**Última atualização:** 2026-08-25 · **Progresso:** 31/32 · **FASE 6: importação Aura concluída**
 
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloqueador · 🟠 alto · 🟡 médio · ⚪ baixo
 
@@ -60,6 +60,10 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 - [x] 🟠 **5.3 Informação nível referência em todas as telas** — baseado em pesquisa (padrões Shopify Home/Seller Central, RFM, dashboards operacionais): **Visão geral** ganhou fila de ação (enviar/aguardando/estoque crítico/sem foto, com alerta de envio atrasado +24h), pregão hoje vs ontem e vendas por método de pagamento; **Pedidos** com resumo do recorte + badge de SLA por pedido; **Clientes** com segmentação RFM (Campeão/Recorrente/Novo/Em risco/Inativo), última compra, taxa de recompra e share de receita recorrente; **Produtos** com card de qualidade do catálogo (descobriu 357 ativos sem foto); **Estoque** com capital sem giro; **Compras** com investido por moeda e maior fornecedor; **Relatórios** com comparação vs período anterior e por método. Filtros e Planilha já tinham KPIs próprios — só repaginados pelo tema.
 - [~] ⚪ **5.4 Ajuste fino por feedback** — **Iteração 1 (Visão geral, `0733cc8`):** arquitetura editorial em 2 colunas (conteúdo 2/3 + trilho 1/3), saudação com data, meta do mês com barra de progresso (bater o mês anterior), card Hoje vs ontem, mais vendidos com barra de participação, trilho com métodos de pagamento em share, pedidos recentes e feed de atividade da equipe (auditoria). **Iteração 2 (Estoque, `3814dd0`):** tabela agrupada por produto (linha-mãe com totais + variações expandíveis), coluna Valor em Estoque, ordenação por capital, filtro de condição, aba Sem Giro, modo lista, seleção por grupo. **Iteração 3 (Filtros, `7591aeb`):** master-detail — lista de filtros à esquerda, detalhe em foco à direita, busca global que acha a opção em qualquer filtro, chips com ações no hover, órfãs destacadas, limpeza em um clique. **Iteração 4 (Pedidos, `01cc557`):** fila por urgência (atrasados → embalar → cobranças), tabela do tema, resumo único com lucro, modal em 2 colunas com linha do tempo do pedido, aba Embalar promovida. **Iteração 5 (Editor de produto, `1f11767`):** seção Comercial & Financeiro com simulação viva — lucro/margem/markup, preço e lucro REAL no PIX (desconto + taxa MP), valor e lucro do estoque, alertas de prejuízo e margem <10%. Aguardando próximo feedback.
 
+## FASE 6 — Catálogo Dropshipping por fornecedor
+
+- [x] 🟠 **6.1 Importação Aura e sincronização de fornecedor** — infraestrutura aditiva por SKU, precificação USD/BRL, mapeamentos, ingestão segura de fotos, jobs retomáveis, rollback e atualização operacional XLSX.
+
 ## Concluídos
 
 | Data | Item | Commit |
@@ -88,6 +92,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · 🔴 bloque
 | 2026-08-03 | 3.6 Toast+confirm próprios e tipos extraídos | `68e9788`, `3325787` |
 | 2026-08-03 | 5.1+5.2 Repaginação do admin (design system + 10k-ready) | `c541201` |
 | 2026-08-03 | 5.3 Informação nível referência em todas as telas | `df4abb3` |
+| 2026-08-25 | 6.1 Importação Aura + sincronização operacional XLSX | `987944d` |
 
 ## Descobertos no caminho (triagem pendente)
 
