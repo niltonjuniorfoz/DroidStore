@@ -140,7 +140,7 @@
 .marginEditor input { width: 48px; min-width: 0; height: 24px; padding: 0 3px; border: 0; border-bottom: 1px solid #b8c2bd; border-radius: 0; outline: 0; background: transparent; color: #17201d; font: inherit; font-size: 9px; font-weight: 750; line-height: 1; text-align: right; font-variant-numeric: tabular-nums; appearance: textfield; }
 .marginEditor input::-webkit-inner-spin-button, .marginEditor input::-webkit-outer-spin-button { margin: 0; appearance: none; }
 .marginEditor input:focus { border-bottom-color: #ff7900; box-shadow: 0 1px 0 #ff7900; }
-.marginEditor span { flex: 0 0 auto; color: #69746f; font-size: 9px; font-weight: 800; line-height: 1; }
+.marginEditor span { flex: 0 0 auto; color: #69746f; font-size: 7px; font-weight: 600; line-height: 1; }
 .profit { color: #148345; white-space: nowrap; }
 .action { display: inline-flex; padding: 4px 7px; border-radius: 4px; font-weight: 800; }
 .create { color: #176b3b; background: #e5f7ec; }
