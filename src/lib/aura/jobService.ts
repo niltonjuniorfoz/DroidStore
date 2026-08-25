@@ -20,6 +20,7 @@ import {
 import {
   DEFAULT_EXISTING_POLICIES,
   type AuraBrandSelection,
+  type AuraCategorySelection,
   type AuraComputedItem,
   type AuraJobConfiguration,
   type AuraMessage,
@@ -254,7 +255,8 @@ export async function saveAuraConfiguration(input: {
   if (new Set(sourceGroupKeys).size !== sourceGroupKeys.length) throw new Error("Existem grupos de origem duplicados no mapeamento.");
   for (const mapping of input.configuration.categories) {
     if (!mapping.sourceGroup.trim()) throw new Error("Todo mapeamento precisa informar o grupo de origem.");
-    if (mapping.optionIds.length !== 1 || !categoryOptionIds.has(mapping.optionIds[0])) {
+    if (mapping.optionIds.length > 1 || (mapping.optionIds.length === 1 && !categoryOptionIds.has(mapping.optionIds[0]))
+      || (mapping.optionIds.length === 0 && !mapping.createIfMissing)) {
       throw new Error(`Escolha uma única opção do filtro Categoria para ${mapping.sourceGroup}.`);
     }
   }
@@ -287,6 +289,29 @@ export async function saveAuraConfiguration(input: {
       resolvedBrandMappings.push({ sourceBrand, optionId: option?.id, createIfMissing: mapping.createIfMissing });
     }
 
+    const resolvedCategoryMappings: AuraCategorySelection[] = [];
+    for (const mapping of input.configuration.categories) {
+      let option = mapping.optionIds[0]
+        ? categoryFilter.options.find((candidate) => candidate.id === mapping.optionIds[0])
+        : findCatalogOption(categoryFilter, mapping.sourceGroup);
+      if (!option && mapping.createIfMissing) {
+        const label = mapping.sourceGroup.trim().replace(/\s+/g, " ");
+        option = await tx.catalogFilterOption.upsert({
+          where: { filterId_slug: { filterId: categoryFilter.id, slug: slugify(label) } },
+          update: { label, active: true },
+          create: {
+            filterId: categoryFilter.id,
+            label,
+            slug: slugify(label),
+            active: true,
+            position: categoryFilter.options.length + resolvedCategoryMappings.length,
+          },
+        });
+      }
+      if (!option) throw new Error(`Não foi possível criar ou localizar a categoria ${mapping.sourceGroup}.`);
+      resolvedCategoryMappings.push({ ...mapping, optionIds: [option.id], createIfMissing: false, persist: true });
+    }
+
     for (const rule of input.configuration.markups.filter((entry) => entry.persist !== false)) {
       await tx.supplierPricingRule.upsert({
         where: { supplierId_brand: { supplierId: job.supplierId, brand: rule.brand.trim() } },
@@ -294,7 +319,7 @@ export async function saveAuraConfiguration(input: {
         create: { supplierId: job.supplierId, brand: rule.brand.trim(), markupPercent: rule.markupPercent },
       });
     }
-    for (const mapping of input.configuration.categories.filter((entry) => entry.persist !== false)) {
+    for (const mapping of resolvedCategoryMappings) {
       const saved = savedCategoryMappings.find((candidate) => (
         auraCategoryKey(candidate.sourceGroup) === auraCategoryKey(mapping.sourceGroup)
       ));
@@ -317,6 +342,7 @@ export async function saveAuraConfiguration(input: {
     const configuration: AuraJobConfiguration = {
       ...input.configuration,
       brandMappings: resolvedBrandMappings,
+      categories: resolvedCategoryMappings,
       existing: input.configuration.existing ?? DEFAULT_EXISTING_POLICIES,
       managedFilterIds: [brandFilter.id, categoryFilter.id],
     };
@@ -546,6 +572,64 @@ export async function decideAuraImportItem(input: {
   const counts = await refreshPreparedSummary(input.jobId);
   const currentJob = await prisma.auraImportJob.findUniqueOrThrow({ where: { id: input.jobId }, select: { summary: true } });
   await prisma.auraImportJob.update({ where: { id: input.jobId }, data: { summary: json({ ...jsonObject(currentJob.summary), actions: counts }), reviewItems: counts.REVIEW ?? 0, errorItems: counts.ERROR ?? 0 } });
+  return updated;
+}
+
+export async function updateAuraImportItemMarkup(input: {
+  jobId: string;
+  itemId: string;
+  markupPercent: number;
+}) {
+  if (!Number.isFinite(input.markupPercent) || input.markupPercent < 0 || input.markupPercent > 1000) {
+    throw new Error("Margem individual inválida.");
+  }
+  const item = await prisma.auraImportItem.findFirst({
+    where: { id: input.itemId, jobId: input.jobId },
+    include: { job: { select: { status: true, exchangeRate: true, roundingRule: true } } },
+  });
+  if (!item) throw new Error("Item da importação não encontrado.");
+  if (!['PREVIEW', 'READY'].includes(item.job.status) || item.processedAt) {
+    throw new Error("A margem só pode ser alterada antes do processamento.");
+  }
+  const computed = jsonObject(item.computedData) as AuraComputedItem;
+  const priceBasisUsd = Number(computed.priceBasisUsd);
+  const exchangeRate = Number(item.job.exchangeRate ?? computed.exchangeRate);
+  if (!Number.isFinite(priceBasisUsd) || priceBasisUsd <= 0 || !Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+    throw new Error("Este item não possui uma base de preço editável.");
+  }
+  const price = calculateAuraPrice({
+    supplierPriceUsd: priceBasisUsd,
+    exchangeRate,
+    markupPercent: input.markupPercent,
+    roundingRule: item.job.roundingRule,
+  });
+  const action: AuraImportAction = computed.existingVariantId ? "UPDATE" : "CREATE";
+  const updated = await prisma.auraImportItem.update({
+    where: { id: item.id },
+    data: {
+      action,
+      status: "PENDING",
+      computedData: json({
+        ...computed,
+        exchangeRate,
+        markupPercent: input.markupPercent,
+        convertedCostBrl: price.convertedCostBrl,
+        salePriceBrl: price.salePriceBrl,
+        priceBasisUsd,
+        preserveExistingPrice: false,
+      }),
+    },
+  });
+  const counts = await refreshPreparedSummary(input.jobId);
+  const currentJob = await prisma.auraImportJob.findUniqueOrThrow({ where: { id: input.jobId }, select: { summary: true } });
+  await prisma.auraImportJob.update({
+    where: { id: input.jobId },
+    data: {
+      summary: json({ ...jsonObject(currentJob.summary), actions: counts }),
+      reviewItems: counts.REVIEW ?? 0,
+      errorItems: counts.ERROR ?? 0,
+    },
+  });
   return updated;
 }
 

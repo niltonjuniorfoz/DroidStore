@@ -63,3 +63,18 @@ describe("guardas das rotas administrativas", () => {
     assert.ok(source.includes("CRON_SECRET"), "rota de cron sem verificação de segredo");
   });
 });
+
+describe("seleção em massa de produtos", () => {
+  it("não deixa o clique no ícone do checkbox abrir o editor", () => {
+    const source = readFileSync(join(root, "app", "admin", "produtos", "page.tsx"), "utf8");
+    assert.match(source, /target instanceof Element/);
+    assert.match(source, /event\.stopPropagation\(\); toggleSelectId/);
+  });
+
+  it("permite selecionar a página e uma família agrupada", () => {
+    const source = readFileSync(join(root, "app", "admin", "produtos", "page.tsx"), "utf8");
+    assert.match(source, /Selecionar todos os produtos desta página/);
+    assert.match(source, /toggleSelectGroup\(group\.items\)/);
+    assert.match(source, /index \+= 5/);
+  });
+});

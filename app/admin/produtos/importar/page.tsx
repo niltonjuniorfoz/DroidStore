@@ -16,6 +16,7 @@ import {
   RefreshCcw,
   Search,
   ShieldCheck,
+  Trash2,
   Upload,
   XCircle,
 } from "lucide-react";
@@ -99,7 +100,7 @@ type Supplier = {
   categoryMappings: Array<{ sourceGroup: string; sourceSubgroup: string; optionIds: string[] }>;
   conditionMappings: Array<{ sourceCondition: string; condition: string }>;
 };
-type CategoryMapping = CategoryOrigin & { optionIds: string[]; persist: boolean };
+type CategoryMapping = CategoryOrigin & { optionIds: string[]; createIfMissing: boolean; persist: boolean };
 type BrandMapping = { sourceBrand: string; optionId?: string; createIfMissing: boolean };
 type ConditionMapping = { sourceCondition: string; condition: string; persist: boolean };
 type Markup = { brand: string; markupPercent: number; persist: boolean };
@@ -228,7 +229,9 @@ export default function AuraCatalogImportPage() {
         normalizeCatalogValue(mapping.sourceGroup) === normalizeCatalogValue(origin.sourceGroup)
         && !mapping.sourceSubgroup
       ));
-      return { ...origin, optionIds: saved?.optionIds ?? [], persist: true };
+      const existingOption = findCatalogOption(findCatalogFilter(filters, "Categoria"), origin.sourceGroup);
+      const optionIds = saved?.optionIds?.length ? saved.optionIds : existingOption ? [existingOption.id] : [];
+      return { ...origin, optionIds, createIfMissing: optionIds.length === 0, persist: true };
     }));
     setConditionMappings((nextSummary.conditions ?? []).map((sourceCondition) => ({
       sourceCondition,
@@ -308,7 +311,7 @@ export default function AuraCatalogImportPage() {
     setBusy("configure"); setError("");
     try {
       if (mode === "AURA_JSON") {
-        if (categoryMappings.some((mapping) => !mapping.optionIds.length)) throw new Error("Mapeie todas as categorias de origem antes de continuar.");
+        if (categoryMappings.some((mapping) => !mapping.optionIds.length && !mapping.createIfMissing)) throw new Error("Selecione ou crie todas as categorias de origem antes de continuar.");
         if (conditionMappings.some((mapping) => !mapping.condition)) throw new Error("Mapeie todas as condições Aura antes de continuar.");
         await requestJson(`/api/admin/aura-import/${job.id}/configure`, {
           method: "POST",
@@ -389,6 +392,43 @@ export default function AuraCatalogImportPage() {
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Não foi possível revisar o item."); }
   }
 
+  async function updateItemMarkup(item: AuraItem, markupPercent: number) {
+    if (!job || !Number.isFinite(markupPercent) || markupPercent < 0 || markupPercent > 1000) {
+      setError("Informe uma margem entre 0% e 1000%.");
+      return;
+    }
+    const currentMarkup = Number(asObject(item.computedData).markupPercent);
+    if (currentMarkup === markupPercent) return;
+    setBusy(`markup:${item.id}`); setError("");
+    try {
+      const updated = await requestJson<AuraItem>(`/api/admin/aura-import/${job.id}/items/${item.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ markupPercent }),
+      });
+      setPreview((current) => current ? { ...current, items: current.items.map((row) => row.id === item.id ? updated : row) } : current);
+      const refreshedJob = await requestJson<Job>(`/api/admin/aura-import/${job.id}/status`);
+      setJob(refreshedJob);
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Não foi possível alterar a margem deste produto."); }
+    finally { setBusy(""); }
+  }
+
+  async function deleteHistoryItem(historyJob: Job) {
+    if (!await confirmDialog({
+      title: "Excluir importação",
+      message: `Excluir “${historyJob.fileName}” do histórico? Importações com produtos ainda aplicados precisam ser desfeitas primeiro.`,
+      confirmLabel: "Excluir",
+      danger: true,
+    })) return;
+    setBusy(`delete:${historyJob.id}`); setError("");
+    try {
+      await requestJson(`/api/admin/aura-import/${historyJob.id}`, { method: "DELETE" });
+      if (job?.id === historyJob.id) reset();
+      await loadHistory();
+      setNotice("Importação excluída do histórico.");
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Não foi possível excluir a importação."); }
+    finally { setBusy(""); }
+  }
+
   async function openJob(historyJob: Job) {
     processingRef.current = false; setIsProcessing(false); setMode(historyJob.kind); setJob(historyJob); setSummary(historyJob.summary ?? {}); hydrateConfiguration(historyJob.summary ?? {});
     setStep(historyJob.status === "COMPLETED" || historyJob.status.includes("ROLLBACK") || historyJob.status === "CANCELLED" ? 7 : historyJob.status === "PROCESSING" || historyJob.status === "PAUSED" ? 6 : historyJob.status === "READY" ? 5 : 2);
@@ -467,7 +507,7 @@ export default function AuraCatalogImportPage() {
       <header><div><span className={styles.eyebrow}>{mode === "AURA_JSON" ? "MAPEAMENTO OBRIGATÓRIO" : "PROTEÇÃO DE ESCOPO"}</span><h2>{mode === "AURA_JSON" ? "Categorias e condições" : "Quais marcas esta lista representa?"}</h2></div></header>
       {mode === "AURA_JSON" ? <>
         <div className={styles.brandMappings}><div className={styles.mappingIntro}><strong>Marcas do arquivo</strong><small>Associadas exclusivamente ao filtro Marca.</small></div>{brandMappings.map((mapping, index) => { const option = brandOptions.find((candidate) => candidate.id === mapping.optionId); const missing = !option; return <div className={`${styles.brandMapping} ${missing ? styles.brandMissing : ""}`} key={mapping.sourceBrand}><div><strong>{normalizeCatalogValue(mapping.sourceBrand)}</strong><small>{missing ? `Nova marca encontrada: ${normalizeCatalogValue(mapping.sourceBrand)}` : `Marca DroidStore: ${option.label}`}</small></div>{missing ? <label className={styles.createBrand}><input type="checkbox" checked={mapping.createIfMissing} onChange={(event) => setBrandMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, createIfMissing: event.target.checked } : row))} /><span>Criar opção em Marca</span></label> : <span className={styles.mappedBadge}><Check /> Vinculada</span>}</div>; })}</div>
-        <div className={styles.mappingTable}><div className={styles.mappingIntro}><strong>Grupos de origem</strong><small>Cada grupo recebe uma única opção do filtro Categoria.</small></div>{categoryMappings.map((mapping, index) => <div className={styles.mappingRow} key={mapping.sourceGroup}><div><strong>{mapping.sourceGroup || "Sem grupo"}</strong><small>{mapping.count} produto(s){mapping.sourceSubgroups?.length ? ` · Origem: ${mapping.sourceSubgroups.join(", ")}` : ""}</small></div><select value={mapping.optionIds[0] ?? ""} onChange={(event) => { const optionIds = event.target.value ? [event.target.value] : []; setCategoryMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, optionIds } : row)); }}><option value="">Selecionar categoria</option>{categoryOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><label className={styles.check}><input type="checkbox" checked={mapping.persist} onChange={(event) => setCategoryMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, persist: event.target.checked } : row))} /> Reutilizar</label></div>)}</div>
+        <div className={styles.mappingTable}><div className={styles.mappingIntro}><strong>Grupos de origem</strong><small>Categorias novas são criadas automaticamente; você também pode vinculá-las a uma categoria existente.</small></div>{categoryMappings.map((mapping, index) => { const automatic = mapping.createIfMissing && !mapping.optionIds.length; return <div className={styles.mappingRow} key={mapping.sourceGroup}><div><strong>{mapping.sourceGroup || "Sem grupo"}</strong><small>{mapping.count} produto(s){mapping.sourceSubgroups?.length ? ` · Origem: ${mapping.sourceSubgroups.join(", ")}` : ""}</small></div><select value={automatic ? "__create__" : mapping.optionIds[0] ?? ""} onChange={(event) => { const createIfMissing = event.target.value === "__create__"; const optionIds = !createIfMissing && event.target.value ? [event.target.value] : []; setCategoryMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, optionIds, createIfMissing } : row)); }}><option value="__create__">Criar automaticamente: {mapping.sourceGroup}</option><option value="">Selecionar categoria existente</option>{categoryOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><span className={automatic ? styles.createCategoryBadge : styles.mappedBadge}>{automatic ? <><PackageCheck /> Será criada</> : <><Check /> Vinculada</>}</span></div>; })}</div>
         <div className={styles.conditionGrid}>{conditionMappings.map((mapping, index) => <label key={mapping.sourceCondition}><span>{mapping.sourceCondition}</span><select value={mapping.condition} onChange={(event) => setConditionMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, condition: event.target.value } : row))}><option value="">Selecionar condição</option>{CONDITIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>)}</div>
       </> : <div className={styles.scopeGrid}>{(summary.inferredBrands ?? []).map((brand) => <label key={brand} className={scopeBrands.includes(brand) ? styles.scopeActive : ""}><input type="checkbox" checked={scopeBrands.includes(brand)} onChange={(event) => setScopeBrands((current) => event.target.checked ? [...current, brand] : current.filter((item) => item !== brand))} /><strong>{brand}</strong><small>{scopeBrands.includes(brand) ? "Dentro do escopo" : "Não será alterada"}</small></label>)}</div>}
       <div className={styles.scopeWarning}><AlertTriangle /> Somente SKUs do mesmo fornecedor e das marcas confirmadas podem ser marcados como ausentes.</div>
@@ -485,7 +525,21 @@ export default function AuraCatalogImportPage() {
       <header><div><span className={styles.eyebrow}>PRÉ-VISUALIZAÇÃO</span><h2>Exatamente o que será aplicado</h2><p>Itens em revisão ou erro não entram no processamento automático.</p></div><span className={styles.readyBadge}><Check /> Pronta</span></header>
       <div className={styles.metrics}><div><small>Criar</small><strong>{job.summary.actions?.CREATE ?? 0}</strong></div><div><small>Atualizar</small><strong>{job.summary.actions?.UPDATE ?? 0}</strong></div><div><small>Sem alteração</small><strong>{job.summary.actions?.UNCHANGED ?? 0}</strong></div><div><small>Revisar</small><strong>{job.reviewItems}</strong></div><div><small>Erros</small><strong>{job.errorItems}</strong></div></div>
       <div className={styles.previewTools}><label><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar SKU, produto, modelo ou marca" onKeyDown={(event) => event.key === "Enter" && void loadPreview(1)} /></label><select value={actionFilter} onChange={(event) => setActionFilter(event.target.value as Action | "")}><option value="">Todas as ações</option>{Object.entries(ACTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">Toda qualidade</option><option value="PENDING">Pronto</option><option value="REVIEW">Revisar</option><option value="ERROR">Erro</option><option value="IGNORED">Ignorado</option></select><select value={identityFilter} onChange={(event) => setIdentityFilter(event.target.value)}><option value="">Novo e existente</option><option value="new">Novo SKU</option><option value="existing">SKU existente</option></select><select value={availabilityFilter} onChange={(event) => setAvailabilityFilter(event.target.value)}><option value="">Toda disponibilidade</option><option value="available">Disponível</option><option value="unavailable">Indisponível</option></select><select value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)}><option value="">Todas as marcas</option>{(summary.brands ?? summary.inferredBrands ?? []).map((brand) => <option key={brand}>{brand}</option>)}</select><select value={groupFilter} onChange={(event) => { setGroupFilter(event.target.value); setSubgroupFilter(""); }}><option value="">Todos os grupos</option>{sourceGroups.map((group) => <option key={group}>{group}</option>)}</select><select value={subgroupFilter} onChange={(event) => setSubgroupFilter(event.target.value)}><option value="">Todos os subgrupos</option>{sourceSubgroups.map((subgroup) => <option key={subgroup}>{subgroup}</option>)}</select><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="">Toda categoria DroidStore</option>{categoryOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><select value={conditionFilter} onChange={(event) => setConditionFilter(event.target.value)}><option value="">Todas as condições</option>{CONDITIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button className="button ghost" onClick={() => void loadPreview(1)}>Aplicar filtros</button></div>
-      <div className={styles.previewTable}><table><thead><tr><th>SKU / Produto</th><th>Marca origem</th><th>Grupo origem</th><th>Categoria DroidStore</th><th>Condição</th><th>USD</th><th>Cotação</th><th>Margem</th><th>Preço final</th><th>Disponível</th><th>Ação</th><th>Qualidade</th></tr></thead><tbody>{preview?.items.map((item) => { const source = asObject(item.sourceData); const computed = asObject(item.computedData); const image = asStrings(source.images)[0]; const optionIds = asStrings(computed.optionIds); const mappedBrand = optionIds.map((id) => brandOptions.find((option) => option.id === id)).find(Boolean); const mappedCategory = optionIds.map((id) => categoryOptions.find((option) => option.id === id)).find(Boolean); const supplierPath = asStrings(source.categoryPath).join(" > ") || String(source.sourceCategory || source.sourceSubgroup || ""); const condition = CONDITIONS.find(([value]) => value === computed.condition)?.[1] ?? String(source.sourceCondition ?? "—"); return <tr key={item.id}><td><div className={styles.productCell}>{image ? <img src={image} alt="" /> : <span /> }<div><strong>{item.name}</strong><small>{item.sku} · {String(source.model ?? "")}</small></div></div></td><td><strong>{item.brand || "—"}</strong><small>{mappedBrand ? `Marca: ${mappedBrand.label}` : "Marca não vinculada"}</small></td><td>{item.sourceGroup || "—"}<small>{supplierPath}</small></td><td>{mappedCategory?.label || "—"}</td><td>{condition}</td><td>{usd(source.supplierPriceUsd ?? source.lastKnownPriceUsd)}</td><td>{computed.exchangeRate ? money(computed.exchangeRate) : "—"}</td><td>{computed.markupPercent !== undefined ? `${computed.markupPercent}%` : "—"}</td><td><strong>{money(computed.salePriceBrl)}</strong></td><td>{source.available === true ? "Sim" : "Não"}</td><td><span className={`${styles.action} ${styles[item.action.toLowerCase()]}`}>{ACTION_LABELS[item.action]}</span></td><td>{item.messages?.length ? <div className={styles.quality}><AlertTriangle /><span>{item.messages[0]?.message}</span>{item.action === "REVIEW" && <div><button onClick={() => void decide(item, "approve")}>Aprovar</button><button onClick={() => void decide(item, "ignore")}>Ignorar</button></div>}</div> : <span className={styles.qualityOk}><Check /> OK</span>}</td></tr>; })}</tbody></table></div>
+      <div className={styles.previewTable}><table><thead><tr><th>SKU / Produto</th><th>Marca origem</th><th>Grupo origem</th><th>Categoria DroidStore</th><th>Condição</th><th>USD</th><th>Cotação</th><th>Custo convertido</th><th>Margem individual</th><th>Lucro</th><th>Preço final</th><th>Disponível</th><th>Ação</th><th>Qualidade</th></tr></thead><tbody>{preview?.items.map((item) => {
+        const source = asObject(item.sourceData);
+        const computed = asObject(item.computedData);
+        const image = asStrings(source.images)[0];
+        const optionIds = asStrings(computed.optionIds);
+        const mappedBrand = optionIds.map((id) => brandOptions.find((option) => option.id === id)).find(Boolean);
+        const mappedCategory = optionIds.map((id) => categoryOptions.find((option) => option.id === id)).find(Boolean);
+        const supplierPath = asStrings(source.categoryPath).join(" > ") || String(source.sourceCategory || source.sourceSubgroup || "");
+        const condition = CONDITIONS.find(([value]) => value === computed.condition)?.[1] ?? String(source.sourceCondition ?? "—");
+        const convertedCost = Number(computed.convertedCostBrl);
+        const salePrice = Number(computed.salePriceBrl);
+        const profit = Number.isFinite(convertedCost) && Number.isFinite(salePrice) ? salePrice - convertedCost : Number.NaN;
+        const editableMarkup = Number(computed.priceBasisUsd) > 0;
+        return <tr key={item.id}><td><div className={styles.productCell}>{image ? <img src={image} alt="" /> : <span /> }<div><strong>{item.name}</strong><small>{item.sku} · {String(source.model ?? "")}</small></div></div></td><td><strong>{item.brand || "—"}</strong><small>{mappedBrand ? `Marca: ${mappedBrand.label}` : "Marca não vinculada"}</small></td><td>{item.sourceGroup || "—"}<small>{supplierPath}</small></td><td>{mappedCategory?.label || "—"}</td><td>{condition}</td><td>{usd(source.supplierPriceUsd ?? source.lastKnownPriceUsd)}</td><td>{computed.exchangeRate ? money(computed.exchangeRate) : "—"}</td><td>{money(computed.convertedCostBrl)}</td><td>{editableMarkup ? <label className={styles.marginEditor}><input key={`${item.id}:${computed.markupPercent}`} type="number" min="0" max="1000" step="0.1" defaultValue={Number(computed.markupPercent ?? 0)} disabled={busy === `markup:${item.id}`} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} onBlur={(event) => void updateItemMarkup(item, Number(event.currentTarget.value))} /><span>%</span></label> : "—"}</td><td><strong className={styles.profit}>{Number.isFinite(profit) ? money(profit) : "—"}</strong></td><td><strong>{money(computed.salePriceBrl)}</strong></td><td>{source.available === true ? "Sim" : "Não"}</td><td><span className={`${styles.action} ${styles[item.action.toLowerCase()]}`}>{ACTION_LABELS[item.action]}</span></td><td>{item.messages?.length ? <div className={styles.quality}><AlertTriangle /><span>{item.messages[0]?.message}</span>{item.action === "REVIEW" && <div><button onClick={() => void decide(item, "approve")}>Aprovar</button><button onClick={() => void decide(item, "ignore")}>Ignorar</button></div>}</div> : <span className={styles.qualityOk}><Check /> OK</span>}</td></tr>;
+      })}</tbody></table></div>
       <div className={styles.pagination}><button disabled={(preview?.page ?? 1) <= 1} onClick={() => void loadPreview((preview?.page ?? 1) - 1)}>Anterior</button><span>Página {preview?.page ?? 1} de {preview?.pages ?? 1} · {preview?.total ?? 0} itens</span><button disabled={(preview?.page ?? 1) >= (preview?.pages ?? 1)} onClick={() => void loadPreview((preview?.page ?? 1) + 1)}>Próxima</button></div>
       <footer><a className="button ghost" href={`/api/admin/aura-import/${job.id}/errors`}><Download /> Exportar pendências</a><button className="button primary" disabled={Boolean(busy)} onClick={() => void startImport()}><PackageCheck /> Confirmar e processar</button></footer>
     </section>}
@@ -505,7 +559,7 @@ export default function AuraCatalogImportPage() {
 
     <section className={styles.history}>
       <header><div><History /><div><h2>Histórico de importações</h2><p>Jobs Aura e atualizações operacionais do fornecedor.</p></div></div></header>
-      {history.length === 0 ? <p className={styles.empty}>Nenhuma importação registrada.</p> : <div>{history.map((item) => <button key={item.id} onClick={() => void openJob(item)}><span className={item.kind === "AURA_JSON" ? styles.jsonIcon : styles.sheetIcon}>{item.kind === "AURA_JSON" ? <FileJson /> : <FileSpreadsheet />}</span><div><strong>{item.fileName}</strong><small>{new Date(item.createdAt).toLocaleString("pt-BR")} · {item.supplier?.name ?? "Atacado Connect"} · {item.createdByName ?? "Administrador"}{item.exchangeRate ? ` · USD ${Number(item.exchangeRate).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : ""}{item.startedAt && item.completedAt ? ` · ${Math.max(1, Math.round((new Date(item.completedAt).getTime() - new Date(item.startedAt).getTime()) / 1000))}s` : ""}</small></div><span>{item.totalItems} itens</span><em data-status={item.status}>{item.status.replaceAll("_", " ")}</em><ArrowRight /></button>)}</div>}
+      {history.length === 0 ? <p className={styles.empty}>Nenhuma importação registrada.</p> : <div>{history.map((item) => <div className={styles.historyRow} key={item.id}><button className={styles.historyOpen} onClick={() => void openJob(item)}><span className={item.kind === "AURA_JSON" ? styles.jsonIcon : styles.sheetIcon}>{item.kind === "AURA_JSON" ? <FileJson /> : <FileSpreadsheet />}</span><div><strong>{item.fileName}</strong><small>{new Date(item.createdAt).toLocaleString("pt-BR")} · {item.supplier?.name ?? "Atacado Connect"} · {item.createdByName ?? "Administrador"}{item.exchangeRate ? ` · USD ${Number(item.exchangeRate).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : ""}{item.startedAt && item.completedAt ? ` · ${Math.max(1, Math.round((new Date(item.completedAt).getTime() - new Date(item.startedAt).getTime()) / 1000))}s` : ""}</small></div><span>{item.totalItems} itens</span><em data-status={item.status}>{item.status.replaceAll("_", " ")}</em><ArrowRight /></button><button className={styles.historyDelete} disabled={busy === `delete:${item.id}`} onClick={() => void deleteHistoryItem(item)} aria-label={`Excluir ${item.fileName}`} title="Excluir do histórico"><Trash2 /></button></div>)}</div>}
     </section>
   </div>;
 }

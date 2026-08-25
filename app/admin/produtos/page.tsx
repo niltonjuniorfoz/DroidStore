@@ -323,7 +323,7 @@ export default function AdminProdutos() {
   }
 
   function clickedInteractiveControl(target: EventTarget | null) {
-    return target instanceof HTMLElement
+    return target instanceof Element
       && Boolean(target.closest("button, a, input, select, textarea, label"));
   }
 
@@ -541,6 +541,10 @@ export default function AdminProdutos() {
     });
   }
 
+  function toggleSelectGroup(groupProducts: AdminProduct[]) {
+    toggleSelectAll(groupProducts);
+  }
+
   async function bulkToggleActive(active: boolean) {
     if (selectedIds.size === 0) return;
     setBusy(true);
@@ -583,25 +587,40 @@ export default function AdminProdutos() {
   async function bulkDelete() {
     if (selectedIds.size === 0) return;
     if (!(await confirmDialog({ title: "Excluir em massa", message: `Excluir os ${selectedIds.size} produto(s) selecionados? Eles saem da vitrine.`, confirmLabel: "Excluir todos", danger: true }))) return;
+    const ids = Array.from(selectedIds);
     setBusy(true);
-    const responses = await Promise.all(
-      Array.from(selectedIds).map((id) => fetch(`/api/admin/products/${id}`, { method: "DELETE" }))
-    );
-    const results = await Promise.all(responses.map(async (response) => ({
-      ok: response.ok,
-      body: await response.json().catch(() => ({})),
-    })));
-    const deleted = results.filter((result) => result.ok && result.body.deleted).length;
-    const archived = results.filter((result) => result.ok && result.body.archived).length;
-    const failed = results.length - deleted - archived;
-    setSelectedIds(new Set());
-    setMessage([
-      deleted ? `${deleted} produto(s) excluído(s)` : "",
-      archived ? `${archived} arquivado(s) por possuir vendas` : "",
-      failed ? `${failed} não puderam ser removidos` : "",
-    ].filter(Boolean).join(" · "));
-    await load();
-    setBusy(false);
+    setMessage("");
+    try {
+      const results: Array<{ id: string; ok: boolean; deleted?: boolean; archived?: boolean }> = [];
+      for (let index = 0; index < ids.length; index += 5) {
+        const batch = ids.slice(index, index + 5);
+        const batchResults = await Promise.all(batch.map(async (id) => {
+          try {
+            const response = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+            const body = await response.json().catch(() => ({})) as { deleted?: boolean; archived?: boolean };
+            return { id, ok: response.ok, deleted: body.deleted, archived: body.archived };
+          } catch {
+            return { id, ok: false };
+          }
+        }));
+        results.push(...batchResults);
+      }
+
+      const deleted = results.filter((result) => result.ok && result.deleted).length;
+      const archived = results.filter((result) => result.ok && result.archived).length;
+      const failedIds = results
+        .filter((result) => !result.ok || (!result.deleted && !result.archived))
+        .map((result) => result.id);
+      setSelectedIds(new Set(failedIds));
+      setMessage([
+        deleted ? `${deleted} produto(s) excluído(s)` : "",
+        archived ? `${archived} arquivado(s) por possuir vendas` : "",
+        failedIds.length ? `${failedIds.length} não puderam ser removidos e continuam selecionados` : "",
+      ].filter(Boolean).join(" · "));
+      await load();
+    } finally {
+      setBusy(false);
+    }
   }
 
   function handleSort(field: "name" | "price" | "stock" | "profit" | "brand") {
@@ -852,24 +871,24 @@ export default function AdminProdutos() {
 
       {/* --- BARRA FLUTUANTE DE AÇÕES EM MASSA (BULK ACTIONS) --- */}
       {selectedIds.size > 0 && (
-        <div className="bulk-actions-floating-bar">
+        <div className="bulk-actions-floating-bar" role="status" aria-live="polite">
           <span className="bulk-count">
             <strong>{selectedIds.size}</strong> produto(s) selecionado(s)
           </span>
           <div className="bulk-buttons">
-            <button className="bulk-btn" onClick={() => void bulkToggleActive(true)}>
+            <button className="bulk-btn" disabled={busy} onClick={() => void bulkToggleActive(true)}>
               <Eye size={14} /> Tornar Visíveis
             </button>
-            <button className="bulk-btn" onClick={() => void bulkToggleActive(false)}>
+            <button className="bulk-btn" disabled={busy} onClick={() => void bulkToggleActive(false)}>
               <EyeOff size={14} /> Ocultar
             </button>
-            <button className="bulk-btn" onClick={() => void bulkToggleFeatured(true)}>
+            <button className="bulk-btn" disabled={busy} onClick={() => void bulkToggleFeatured(true)}>
               <Star size={14} /> Adicionar à Capa
             </button>
-            <button className="bulk-btn danger" onClick={() => void bulkDelete()}>
-              <Trash2 size={14} /> Excluir Selecionados
+            <button className="bulk-btn danger" disabled={busy} onClick={() => void bulkDelete()}>
+              {busy ? <LoaderCircle size={14} className="spin" /> : <Trash2 size={14} />} Excluir selecionados
             </button>
-            <button className="bulk-close" onClick={() => setSelectedIds(new Set())}>
+            <button className="bulk-close" disabled={busy} onClick={() => setSelectedIds(new Set())} aria-label="Limpar seleção" title="Limpar seleção">
               <X size={14} />
             </button>
           </div>
@@ -881,7 +900,17 @@ export default function AdminProdutos() {
         <div className="pro-table-container table-mode-compact">
           <div className="pro-table-header">
             <div className="col-chk">
-              <span style={{ fontSize: "0.75rem", fontWeight: "700" }}>EXP</span>
+              <button
+                type="button"
+                onClick={() => toggleSelectAll(paginatedGroups.flatMap((group) => group.items))}
+                className="checkbox-btn"
+                aria-label="Selecionar todos os produtos desta página"
+                title="Selecionar página"
+              >
+                {paginatedGroups.length > 0 && paginatedGroups.flatMap((group) => group.items).every((item) => selectedIds.has(item.id))
+                  ? <CheckSquare size={16} className="checked-icon" />
+                  : <Square size={16} />}
+              </button>
             </div>
             <div className="col-item">Modelo do Aparelho & Cores Disponíveis</div>
             <div className="col-brand">Marca</div>
@@ -895,6 +924,8 @@ export default function AdminProdutos() {
             {paginatedGroups.map((group) => {
               const isExpanded = expandedModels.has(group.modelKey);
               const firstItemImage = group.items.find((i) => i.images?.[0]?.url ?? i.imageUrl)?.imageUrl ?? group.items[0]?.images?.[0]?.url;
+              const groupSelected = group.items.every((item) => selectedIds.has(item.id));
+              const groupPartiallySelected = !groupSelected && group.items.some((item) => selectedIds.has(item.id));
 
               return (
                 <div key={group.modelKey} className="grouped-model-wrapper" style={{ borderBottom: "1px solid #e5e7eb" }}>
@@ -904,13 +935,20 @@ export default function AdminProdutos() {
                     onClick={() => toggleModelExpand(group.modelKey)}
                     style={{ background: isExpanded ? "#f0fdf4" : "#ffffff", cursor: "pointer", fontWeight: "600" }}
                   >
-                    <div className="col-chk">
-                      <button className="checkbox-btn" style={{ color: "#FF7900" }}>
-                        {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                    <div className="col-chk group-selection-cell">
+                      <button
+                        type="button"
+                        className="checkbox-btn group-select-btn"
+                        onClick={(event) => { event.stopPropagation(); toggleSelectGroup(group.items); }}
+                        aria-label={`Selecionar todas as variações de ${group.modelName}`}
+                        title="Selecionar família"
+                      >
+                        {groupSelected ? <CheckSquare size={16} className="checked-icon" /> : <Square size={16} className={groupPartiallySelected ? "partially-selected-icon" : ""} />}
                       </button>
                     </div>
 
                     <div className="col-item">
+                      {isExpanded ? <ChevronDown className="group-expand-icon" size={16} /> : <ChevronRight className="group-expand-icon" size={16} />}
                       <div className="mini-thumb">
                         {firstItemImage ? <img src={firstItemImage} alt={group.modelName} /> : <span>Sem foto</span>}
                       </div>
@@ -992,7 +1030,7 @@ export default function AdminProdutos() {
                         return (
                           <div
                             key={item.id}
-                            className={`pro-table-row sub-row product-open-target ${!item.active ? "inactive-row" : ""}`}
+                            className={`pro-table-row sub-row product-open-target ${!item.active ? "inactive-row" : ""} ${isSelected ? "row-selected" : ""}`}
                             style={{ background: "#ffffff", borderBottom: "1px solid #f3f4f6" }}
                             role="button"
                             tabIndex={0}
@@ -1001,7 +1039,7 @@ export default function AdminProdutos() {
                             onKeyDown={(event) => openProductFromKeyboard(event, item)}
                           >
                             <div className="col-chk">
-                              <button onClick={() => toggleSelectId(item.id)} className="checkbox-btn">
+                              <button type="button" onClick={(event) => { event.stopPropagation(); toggleSelectId(item.id); }} className="checkbox-btn" aria-label={`Selecionar ${item.name}`}>
                                 {isSelected ? <CheckSquare size={16} className="checked-icon" /> : <Square size={16} />}
                               </button>
                             </div>
@@ -1084,7 +1122,7 @@ export default function AdminProdutos() {
         <div className="pro-table-container table-mode-compact">
           <div className="pro-table-header">
             <div className="col-chk">
-              <button onClick={() => toggleSelectAll(paginatedItems)} className="checkbox-btn">
+              <button type="button" onClick={() => toggleSelectAll(paginatedItems)} className="checkbox-btn" aria-label="Selecionar todos os produtos desta página" title="Selecionar página">
                 {paginatedItems.length > 0 && paginatedItems.every((p) => selectedIds.has(p.id)) ? (
                   <CheckSquare size={16} className="checked-icon" />
                 ) : (
@@ -1139,7 +1177,7 @@ export default function AdminProdutos() {
                   onKeyDown={(event) => openProductFromKeyboard(event, item)}
                 >
                   <div className="col-chk">
-                    <button onClick={() => toggleSelectId(item.id)} className="checkbox-btn">
+                    <button type="button" onClick={(event) => { event.stopPropagation(); toggleSelectId(item.id); }} className="checkbox-btn" aria-label={`Selecionar ${item.name}`}>
                       {isSelected ? <CheckSquare size={16} className="checked-icon" /> : <Square size={16} />}
                     </button>
                   </div>
@@ -1253,7 +1291,7 @@ export default function AdminProdutos() {
                 onKeyDown={(event) => openProductFromKeyboard(event, item)}
               >
                 <div className="card-top">
-                  <button onClick={() => toggleSelectId(item.id)} className="checkbox-btn">
+                  <button type="button" onClick={(event) => { event.stopPropagation(); toggleSelectId(item.id); }} className="checkbox-btn" aria-label={`Selecionar ${item.name}`}>
                     {isSelected ? <CheckSquare size={16} className="checked-icon" /> : <Square size={16} />}
                   </button>
 

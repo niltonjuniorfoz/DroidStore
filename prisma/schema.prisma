@@ -143,6 +143,17 @@ model SiteContent {
   updatedAt                 DateTime  @updatedAt
 }
 
+model AdminMediaAsset {
+  id          String   @id @default(uuid())
+  contentType String
+  data        Bytes
+  filename    String
+  size        Int
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model Variant {
   id                String    @id @default(uuid())
   productId         String

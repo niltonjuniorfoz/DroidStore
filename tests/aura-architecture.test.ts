@@ -85,3 +85,38 @@ test("upload Aura pequeno não depende do filesystem temporário da Vercel", asy
   assert.match(page, /file\.size <= 4 \* 1024 \* 1024/);
   assert.match(page, /form\.set\("file", file\)/);
 });
+
+test("mapeamento Aura cria categoria ausente e salva o vínculo resolvido", async () => {
+  const configure = await source("app/api/admin/aura-import/[id]/configure/route.ts");
+  const service = await source("src/lib/aura/jobService.ts");
+  const page = await source("app/admin/produtos/importar/page.tsx");
+  assert.match(configure, /createIfMissing/);
+  assert.match(service, /catalogFilterOption\.upsert/);
+  assert.match(service, /categories: resolvedCategoryMappings/);
+  assert.match(page, /Criar automaticamente:/);
+  assert.doesNotMatch(page, /> Reutilizar</);
+});
+
+test("prévia permite margem individual e exibe lucro calculado", async () => {
+  const itemRoute = await source("app/api/admin/aura-import/[id]/items/[itemId]/route.ts");
+  const service = await source("src/lib/aura/jobService.ts");
+  const page = await source("app/admin/produtos/importar/page.tsx");
+  assert.match(itemRoute, /markupPercent/);
+  assert.match(service, /updateAuraImportItemMarkup/);
+  assert.match(service, /calculateAuraPrice/);
+  assert.match(page, /Margem individual/);
+  assert.match(page, /salePrice - convertedCost/);
+});
+
+test("imagens externas válidas não bloqueiam a importação sem Vercel Blob", async () => {
+  const images = await source("src/lib/aura/images.ts");
+  assert.match(images, /!input\.uploader && !blobConfigured/);
+  assert.match(images, /permanentUrl: sourceUrl, contentType: "external", size: 0/);
+});
+
+test("exclusão do histórico protege importações ainda aplicadas", async () => {
+  const route = await source("app/api/admin/aura-import/[id]/route.ts");
+  assert.match(route, /isOwnerAdmin/);
+  assert.match(route, /Desfaça ou cancele a importação/);
+  assert.match(route, /auraImportJob\.delete/);
+});

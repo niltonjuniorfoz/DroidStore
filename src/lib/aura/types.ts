@@ -41,6 +41,7 @@ export type NormalizedAuraProduct = {
 export type AuraCategorySelection = {
   sourceGroup: string;
   optionIds: string[];
+  createIfMissing?: boolean;
   persist?: boolean;
 };
 

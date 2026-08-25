@@ -503,7 +503,12 @@
 }
 .admin-shell .bulk-btn:hover { background: #ffffff22; }
 .admin-shell .bulk-btn.danger { background: #c2342c; border-color: #c2342c; }
-.admin-shell .bulk-close { border: 0; background: transparent; color: #ffffff9a; cursor: pointer; }
+.admin-shell .bulk-btn:disabled, .admin-shell .bulk-close:disabled { opacity: 0.55; cursor: wait; }
+.admin-shell .bulk-close { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; background: transparent; color: #ffffff9a; cursor: pointer; }
+.admin-shell .group-selection-cell { display: flex; align-items: center; justify-content: center; }
+.admin-shell .group-selection-cell .checkbox-btn { width: 25px; padding: 2px; }
+.admin-shell .group-expand-icon { flex: 0 0 auto; color: var(--a-accent); }
+.admin-shell .partially-selected-icon { color: var(--a-accent); fill: var(--a-accent-soft); }
 
 /* ---------- PAGINAÇÃO ---------- */
 .admin-shell .page-buttons { display: flex; align-items: center; gap: 0.5rem; }

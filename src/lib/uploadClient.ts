@@ -17,6 +17,7 @@ const mimeExtensions = new Map([
 ]);
 
 let blobEnabled: boolean | null = null;
+const SERVER_IMAGE_LIMIT = 4 * 1024 * 1024;
 
 async function isBlobEnabled(): Promise<boolean> {
   if (blobEnabled !== null) return blobEnabled;
@@ -43,23 +44,35 @@ function fileExtension(file: File): string | null {
  * multipart tradicional (dev local grava em public/uploads).
  */
 export async function uploadAdminFile(file: File): Promise<{ url?: string; error?: string }> {
+  async function uploadThroughServer() {
+    if (file.type.startsWith("image/") && file.size > SERVER_IMAGE_LIMIT) {
+      return { error: "Sem o Vercel Blob, use uma imagem de até 4 MB." };
+    }
+    const form = new FormData();
+    form.set("file", file);
+    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { error: data.error ?? "Não foi possível enviar o arquivo." };
+    return { url: data.url as string };
+  }
+
   try {
     if (await isBlobEnabled()) {
       const extension = fileExtension(file);
       if (!extension) return { error: "Arquivo sem extensão reconhecida." };
-      const result = await upload(`uploads/${crypto.randomUUID()}.${extension}`, file, {
-        access: "public",
-        handleUploadUrl: "/api/admin/upload",
-      });
-      return { url: result.url };
+      try {
+        const result = await upload(`uploads/${crypto.randomUUID()}.${extension}`, file, {
+          access: "public",
+          handleUploadUrl: "/api/admin/upload",
+        });
+        return { url: result.url };
+      } catch (error) {
+        console.error("Blob upload error", error);
+        if (!file.type.startsWith("image/")) throw error;
+        return uploadThroughServer();
+      }
     }
-
-    const form = new FormData();
-    form.set("file", file);
-    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
-    const data = await response.json();
-    if (!response.ok) return { error: data.error ?? "Não foi possível enviar o arquivo." };
-    return { url: data.url };
+    return uploadThroughServer();
   } catch (error) {
     console.error("Upload error", error);
     return { error: "Não foi possível enviar o arquivo. Tente novamente." };

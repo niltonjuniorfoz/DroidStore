@@ -182,8 +182,13 @@ export async function ingestSupplierImages(input: {
   uploader?: (pathname: string, bytes: Uint8Array, contentType: string) => Promise<string>;
 }) {
   const uniqueUrls = [...new Set(input.sourceUrls)];
+  const blobConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN)
+    || Boolean(process.env.VERCEL_OIDC_TOKEN && process.env.BLOB_STORE_ID);
   return mapLimit(uniqueUrls, 4, async (sourceUrl, position): Promise<IngestedSupplierImage> => {
     validateSupplierImageUrl(sourceUrl, input.allowedDomains);
+    if (!input.uploader && !blobConfigured) {
+      return { sourceUrl, permanentUrl: sourceUrl, contentType: "external", size: 0 };
+    }
     const cached = await prisma.supplierImageAsset.findUnique({
       where: { supplierId_sourceUrl: { supplierId: input.supplierId, sourceUrl } },
     });

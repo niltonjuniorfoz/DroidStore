@@ -11,6 +11,7 @@ import { readHomeFooterBanner } from "../../../../src/lib/homeContent";
 import prisma from "../../../../src/lib/prisma";
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+const DATABASE_IMAGE_MAX_BYTES = 4 * 1024 * 1024;
 
 const allowed = new Map([
   ["image/jpeg", "jpg"],
@@ -178,6 +179,33 @@ export async function POST(req: Request) {
     const bytes = Buffer.from(await file.arrayBuffer());
     if (!matchesSignature(extension, bytes)) {
       return NextResponse.json({ error: "O conteúdo do arquivo não corresponde ao formato informado." }, { status: 400 });
+    }
+
+    if (file.type.startsWith("image/")) {
+      if (file.size > DATABASE_IMAGE_MAX_BYTES) {
+        return NextResponse.json({ error: "Sem o Vercel Blob, use uma imagem de até 4 MB." }, { status: 400 });
+      }
+      const asset = await prisma.adminMediaAsset.create({
+        data: {
+          contentType: file.type,
+          data: bytes,
+          filename: file.name.slice(0, 255),
+          size: file.size,
+        },
+      });
+      const url = `/api/media/admin-upload/${asset.id}`;
+      await audit(session, {
+        action: "upload.database-image",
+        entity: "AdminMediaAsset",
+        entityId: asset.id,
+        summary: `Imagem enviada: ${file.name} (${Math.round(file.size / 1024)} KB)`,
+        after: { url, type: file.type, size: file.size },
+      });
+      return NextResponse.json({ url }, { status: 201 });
+    }
+
+    if (process.env.VERCEL) {
+      return NextResponse.json({ error: "Configure o Vercel Blob para enviar vídeos e arquivos maiores." }, { status: 503 });
     }
 
     const directory = path.join(process.cwd(), "public", "uploads");
