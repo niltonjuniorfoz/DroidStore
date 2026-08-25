@@ -137,6 +137,7 @@ export async function rollbackAuraImport(jobId: string, actorId?: string): Promi
               sourceUrl: previousSupplier.sourceUrl ? String(previousSupplier.sourceUrl) : null,
               sourceGroup: previousSupplier.sourceGroup ? String(previousSupplier.sourceGroup) : null,
               sourceSubgroup: previousSupplier.sourceSubgroup ? String(previousSupplier.sourceSubgroup) : null,
+              sourceCategory: previousSupplier.sourceCategory ? String(previousSupplier.sourceCategory) : null,
               categoryPath: previousSupplier.categoryPath ? previousSupplier.categoryPath as Prisma.InputJsonValue : [],
               sourceName: previousSupplier.sourceName ? String(previousSupplier.sourceName) : null,
               sourceBrand: previousSupplier.sourceBrand ? String(previousSupplier.sourceBrand) : null,

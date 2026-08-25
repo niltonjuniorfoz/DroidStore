@@ -915,12 +915,12 @@ export default function AdminProdutos() {
                         {firstItemImage ? <img src={firstItemImage} alt={group.modelName} /> : <span>Sem foto</span>}
                       </div>
                       <div className="item-title-block">
-                        <strong className="item-name" style={{ fontSize: "0.92rem", color: "#111827" }}>
+                        <strong className="item-name grouped-model-name">
                           {group.modelName}
                         </strong>
                         {/* CÍRCULOS E SELETORES DE COR (EXATAMENTE COMO O CLIENTE PEDIU NA SEGUNDA IMAGEM!) */}
-                        <div className="color-swatches-inline" style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "4px" }}>
-                          <span style={{ fontSize: "0.72rem", color: "#6b7280", marginRight: "4px" }}>Cores:</span>
+                        <div className="color-swatches-inline">
+                          <span className="color-swatches-label">Cores:</span>
                           {group.colors.map((colorName) => (
                             <span
                               key={colorName}
@@ -936,7 +936,7 @@ export default function AdminProdutos() {
                               }}
                             />
                           ))}
-                          <span style={{ fontSize: "0.72rem", color: "#374151", fontWeight: "700", marginLeft: "4px" }}>
+                          <span className="color-swatches-count">
                             ({group.colors.length} cores • {group.items.length} variações)
                           </span>
                         </div>
@@ -958,7 +958,7 @@ export default function AdminProdutos() {
 
                     {ownerView && (
                       <div className="col-profit">
-                        <span style={{ fontSize: "0.78rem", color: "#4b5563" }}>
+                        <span className="grouped-storage-list">
                           {group.storages.join(", ")}
                         </span>
                       </div>
@@ -971,7 +971,7 @@ export default function AdminProdutos() {
                     </div>
 
                     <div className="col-status">
-                      <button className="button secondary" style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem", gap: "4px" }}>
+                      <button className="button secondary grouped-toggle-button">
                         <span>{isExpanded ? "Ocultar Cores" : `Ver Cores (${group.items.length})`}</span>
                       </button>
                     </div>

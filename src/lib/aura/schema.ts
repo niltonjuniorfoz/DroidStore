@@ -184,6 +184,7 @@ export function parseAuraExport(input: string | Buffer | unknown): ParsedAuraExp
       sourceUrl: source.sourceUrl,
       sourceGroup: source.sourceGroup || source.categoryPath[0] || "",
       sourceSubgroup: source.sourceSubgroup || source.categoryPath[1] || "",
+      sourceCategory: source.category,
       categoryPath: source.categoryPath,
       supplierPriceUsd: source.price ?? null,
       lastKnownPriceUsd: source.lastKnownPriceUsd ?? source.price ?? null,

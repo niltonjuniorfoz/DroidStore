@@ -59,11 +59,23 @@
 .metrics small { color: #77817c; font-size: 10px; }
 .metrics strong { font-size: 19px; font-variant-numeric: tabular-nums; }
 
-.mappingTable { display: grid; padding: 4px 18px 14px; }
+.mappingTable, .brandMappings { display: grid; padding: 4px 18px 14px; }
+.brandMappings { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; padding-top: 14px; background: #fbfcfb; border-bottom: 1px solid #e6ebe8; }
+.mappingIntro { grid-column: 1 / -1; display: grid; gap: 2px; padding: 5px 0 8px; }
+.mappingIntro strong { font-size: 12px; }
+.mappingIntro small { color: #7b8580; font-size: 10px; }
+.brandMapping { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 54px; padding: 9px 10px; border: 1px solid #dce4df; border-radius: 6px; background: #fff; }
+.brandMapping > div { display: grid; gap: 3px; }
+.brandMapping strong { font-size: 11px; }
+.brandMapping small { color: #6f7a75; font-size: 9px; }
+.brandMissing { border-color: #f2b574; background: #fff8ef; }
+.createBrand { display: flex; align-items: center; gap: 6px; color: #8b4a0f; font-size: 9px; font-weight: 700; white-space: nowrap; }
+.mappedBadge { display: inline-flex; align-items: center; gap: 4px; color: #12813f; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.mappedBadge svg { width: 12px; height: 12px; }
 .mappingRow { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.5fr) auto; align-items: center; gap: 14px; min-height: 70px; border-bottom: 1px solid #e6ebe8; }
 .mappingRow > div { display: grid; gap: 3px; }
 .mappingRow small { color: #7b8580; font-size: 10px; }
-.mappingRow select { height: 50px; padding: 4px; }
+.mappingRow select { height: 36px; padding: 4px 8px; }
 .check { display: flex; align-items: center; gap: 6px; color: #606b66; font-size: 10px; white-space: nowrap; }
 .conditionGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; padding: 14px 18px; background: #f7f9f8; }
 .scopeGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; padding: 18px; }

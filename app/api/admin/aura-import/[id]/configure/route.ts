@@ -9,7 +9,8 @@ const roundingRules = ["CEIL_10", "NEAREST_10", "CEIL_50", "CEIL_100"] as const;
 const schema = z.object({
   exchangeRate: z.coerce.number().positive().max(100),
   roundingRule: z.enum(roundingRules),
-  categories: z.array(z.object({ sourceGroup: z.string().max(160), sourceSubgroup: z.string().max(160), optionIds: z.array(z.string()).max(30), persist: z.boolean().optional() })).max(500),
+  brandMappings: z.array(z.object({ sourceBrand: z.string().trim().min(1).max(120), optionId: z.string().uuid().optional(), createIfMissing: z.boolean().optional() })).max(500),
+  categories: z.array(z.object({ sourceGroup: z.string().trim().min(1).max(160), optionIds: z.array(z.string().uuid()).length(1), persist: z.boolean().optional() })).max(500),
   conditions: z.array(z.object({ sourceCondition: z.string().max(100), condition: z.enum(conditions), persist: z.boolean().optional() })).max(100),
   markups: z.array(z.object({ brand: z.string().min(1).max(120), markupPercent: z.coerce.number().min(0).max(1000), persist: z.boolean().optional() })).max(500),
   existing: z.object({

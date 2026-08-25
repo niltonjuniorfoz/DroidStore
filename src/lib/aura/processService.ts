@@ -56,6 +56,7 @@ function supplierCatalogData(input: {
     sourceUrl: input.source.sourceUrl || null,
     sourceGroup: input.source.sourceGroup || null,
     sourceSubgroup: input.source.sourceSubgroup || null,
+    sourceCategory: input.source.sourceCategory || null,
     categoryPath: json(input.source.categoryPath),
     sourceName: input.source.sourceName || null,
     sourceBrand: input.source.brand || null,
@@ -186,7 +187,15 @@ async function applyExisting(input: {
       }
     }
     if (policies.updateCategories) {
-      await tx.productFilterSelection.deleteMany({ where: { productId: variant.product.id } });
+      if (!input.computed.managedFilterIds?.length) {
+        throw new Error("Os filtros Marca e Categoria não foram identificados para esta importação.");
+      }
+      await tx.productFilterSelection.deleteMany({
+        where: {
+          productId: variant.product.id,
+          option: { filterId: { in: input.computed.managedFilterIds } },
+        },
+      });
       if (input.computed.optionIds.length) {
         await tx.productFilterSelection.createMany({
           data: input.computed.optionIds.map((optionId) => ({ productId: variant.product.id, optionId })),

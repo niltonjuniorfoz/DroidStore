@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import ExcelJS from "exceljs";
+import {
+  auraCategoryKey,
+  findCatalogFilter,
+  findCatalogOption,
+  resolveAuraFilterOptionIds,
+} from "../src/lib/aura/catalogMapping";
 import { validateSupplierImageUrl, isPrivateIp } from "../src/lib/aura/images";
 import { calculateAuraPrice, chooseAuraPriceBasis, roundAuraPrice } from "../src/lib/aura/pricing";
 import { findDuplicateAuraSkus, parseAuraExport } from "../src/lib/aura/schema";
@@ -18,6 +24,7 @@ function sourceProduct(overrides: Record<string, unknown> = {}) {
     sourceUrl: "https://atacadoconnect.com/produto/1231069",
     sourceGroup: "Smartwatch",
     sourceSubgroup: "Garmin",
+    category: "Smartwatch > Garmin",
     categoryPath: ["Smartwatch", "Garmin"],
     model: "Fenix 8",
     storage: "32 GB",
@@ -46,6 +53,19 @@ test("aceita JSON Aura v4 com um SKU novo e ignora campos futuros", () => {
   assert.equal(parsed.products.length, 1);
   assert.equal(parsed.products[0].sku, "1231069");
   assert.equal(parsed.products[0].brand, "Garmin");
+});
+
+test("prioriza normalized.brand, depois brand e por último sourceBrand", () => {
+  const normalized = parseAuraExport(auraExport([sourceProduct({
+    brand: "Motorola",
+    sourceBrand: "Samsung",
+    normalized: { brand: "Apple" },
+  })])).products[0];
+  const direct = parseAuraExport(auraExport([sourceProduct({ brand: "Motorola", sourceBrand: "Samsung", normalized: {} })])).products[0];
+  const fallback = parseAuraExport(auraExport([sourceProduct({ brand: "", sourceBrand: "Samsung", normalized: {} })])).products[0];
+  assert.equal(normalized.brand, "Apple");
+  assert.equal(direct.brand, "Motorola");
+  assert.equal(fallback.brand, "Samsung");
 });
 
 test("rejeita exportações e produtos anteriores ao schema v4", () => {
@@ -85,6 +105,72 @@ test("preserva disponibilidade, descrição, especificações e ordem das imagen
     "https://cdn.atacadoconnect.com/produtos/1231069-1.webp",
     "https://cdn.atacadoconnect.com/produtos/1231069-2.webp",
   ]);
+});
+
+test("preserva categoria, subgrupo e caminho completos somente como origem", () => {
+  const product = parseAuraExport(auraExport([sourceProduct()])).products[0];
+  assert.equal(product.sourceCategory, "Smartwatch > Garmin");
+  assert.equal(product.sourceSubgroup, "Garmin");
+  assert.deepEqual(product.categoryPath, ["Smartwatch", "Garmin"]);
+});
+
+test("localiza Marca e Categoria por nome ou slug sem depender de IDs fixos", () => {
+  const filters = [
+    { id: "brand-filter", name: "MARCA", slug: "marcas-antigas", options: [] },
+    { id: "category-filter", name: "Categorias da loja", slug: "categoria", options: [] },
+  ];
+  assert.equal(findCatalogFilter(filters, "Marca")?.id, "brand-filter");
+  assert.equal(findCatalogFilter(filters, "Categoria")?.id, "category-filter");
+});
+
+test("Apple e Smartwatch geram uma seleção de Marca e outra de Categoria", () => {
+  const result = resolveAuraFilterOptionIds({
+    sourceBrand: "Apple",
+    sourceGroup: "Smartwatch",
+    brandMappings: [{ sourceBrand: "APPLE", optionId: "brand-apple" }],
+    categoryMappings: [{ sourceGroup: "SMARTWATCH", optionIds: ["category-smartwatch"] }],
+  });
+  assert.deepEqual(result.optionIds, ["brand-apple", "category-smartwatch"]);
+});
+
+test("sourceSubgroup de marca não participa da categoria e não cria caminho composto", () => {
+  const source = parseAuraExport(auraExport([sourceProduct({
+    brand: "Apple",
+    sourceGroup: "Smartwatch",
+    sourceSubgroup: "Apple",
+    category: "Smartwatch > Apple",
+    categoryPath: ["Smartwatch", "Apple"],
+    normalized: { brand: "Apple" },
+  })])).products[0];
+  const result = resolveAuraFilterOptionIds({
+    sourceBrand: source.brand,
+    sourceGroup: source.sourceGroup,
+    brandMappings: [{ sourceBrand: "Apple", optionId: "brand-apple" }],
+    categoryMappings: [{ sourceGroup: "Smartwatch", optionIds: ["category-smartwatch"] }],
+  });
+  assert.equal(auraCategoryKey(source.sourceGroup), auraCategoryKey("Smartwatch"));
+  assert.deepEqual(result.optionIds, ["brand-apple", "category-smartwatch"]);
+  assert.ok(!result.optionIds.includes("Smartwatch > Apple"));
+});
+
+test("grupo Tablets E Readers pode ser mapeado para a opção Tablet", () => {
+  const result = resolveAuraFilterOptionIds({
+    sourceBrand: "Xiaomi",
+    sourceGroup: "Tablets E Readers",
+    brandMappings: [{ sourceBrand: "Xiaomi", optionId: "brand-xiaomi" }],
+    categoryMappings: [{ sourceGroup: "Tablets E Readers", optionIds: ["category-tablet"] }],
+  });
+  assert.equal(result.categoryOptionId, "category-tablet");
+});
+
+test("marca Garmin ausente é detectada antes da confirmação", () => {
+  const brandFilter = {
+    id: "brand-filter",
+    name: "Marca",
+    slug: "marca",
+    options: [{ id: "brand-apple", label: "APPLE", slug: "apple", active: true }],
+  };
+  assert.equal(findCatalogOption(brandFilter, "Garmin"), undefined);
 });
 
 test("preserva CPO e Swap como condição de origem sem mapear silenciosamente", () => {

@@ -22,6 +22,7 @@ export type NormalizedAuraProduct = {
   sourceUrl: string;
   sourceGroup: string;
   sourceSubgroup: string;
+  sourceCategory: string;
   categoryPath: string[];
   supplierPriceUsd: number | null;
   lastKnownPriceUsd: number | null;
@@ -39,9 +40,14 @@ export type NormalizedAuraProduct = {
 
 export type AuraCategorySelection = {
   sourceGroup: string;
-  sourceSubgroup: string;
   optionIds: string[];
   persist?: boolean;
+};
+
+export type AuraBrandSelection = {
+  sourceBrand: string;
+  optionId?: string;
+  createIfMissing?: boolean;
 };
 
 export type AuraConditionSelection = {
@@ -65,10 +71,12 @@ export type AuraExistingPolicies = {
 };
 
 export type AuraJobConfiguration = {
+  brandMappings: AuraBrandSelection[];
   categories: AuraCategorySelection[];
   conditions: AuraConditionSelection[];
   markups: AuraMarkupSelection[];
   existing: AuraExistingPolicies;
+  managedFilterIds?: string[];
   scopeBrands?: string[];
   columnMapping?: Record<string, string>;
 };
@@ -77,6 +85,7 @@ export type AuraComputedItem = {
   action: AuraImportAction;
   condition?: Condition;
   optionIds: string[];
+  managedFilterIds?: string[];
   exchangeRate?: number;
   markupPercent?: number;
   roundingRule?: AuraRoundingRule;

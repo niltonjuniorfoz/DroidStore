@@ -23,6 +23,11 @@ test("serviço Aura cria stock zero e nunca cria StockMovement", async () => {
   assert.match(process, /take:\s*Math\.max\(1, Math\.min\(batchSize, 20\)\)/);
   assert.match(process, /status !== "PROCESSING"/);
   assert.match(process, /status: "CANCELLED"/);
+  assert.match(process, /if \(policies\.updateCategories\)/);
+  assert.match(process, /option: \{ filterId: \{ in: input\.computed\.managedFilterIds \} \}/);
+  assert.match(process, /sourceCategory: input\.source\.sourceCategory/);
+  assert.match(process, /sourceSubgroup: input\.source\.sourceSubgroup/);
+  assert.match(process, /categoryPath: json\(input\.source\.categoryPath\)/);
 });
 
 test("rollback protege produtos que já receberam pedidos", async () => {

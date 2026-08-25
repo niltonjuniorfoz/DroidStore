@@ -440,6 +440,7 @@ model SupplierCatalogItem {
   sourceUrl         String?
   sourceGroup       String?
   sourceSubgroup    String?
+  sourceCategory    String?
   categoryPath      Json     @default("[]")
   sourceName        String?
   sourceBrand       String?

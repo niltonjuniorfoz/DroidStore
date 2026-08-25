@@ -9,8 +9,17 @@ import type {
 import prisma from "../prisma";
 import type { ParsedAuraExport } from "./schema";
 import { calculateAuraPrice, chooseAuraPriceBasis } from "./pricing";
+import { slugify } from "../slug";
+import {
+  auraCategoryKey,
+  findCatalogFilter,
+  findCatalogOption,
+  normalizeCatalogValue,
+  resolveAuraFilterOptionIds,
+} from "./catalogMapping";
 import {
   DEFAULT_EXISTING_POLICIES,
+  type AuraBrandSelection,
   type AuraComputedItem,
   type AuraJobConfiguration,
   type AuraMessage,
@@ -32,14 +41,6 @@ function jsonObject(value: Prisma.JsonValue | null | undefined) {
 
 function readMessages(value: Prisma.JsonValue): AuraMessage[] {
   return Array.isArray(value) ? value.filter((item): item is AuraMessage => Boolean(item && typeof item === "object" && "code" in item)) : [];
-}
-
-function normalize(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase();
-}
-
-function categoryKey(group: string, subgroup: string) {
-  return `${normalize(group)}::${normalize(subgroup)}`;
 }
 
 function decimal(value: unknown) {
@@ -91,7 +92,7 @@ export async function createAuraImportJob(input: {
   let unavailable = 0;
   let photoCount = 0;
   const brands = new Set<string>();
-  const categories = new Map<string, { sourceGroup: string; sourceSubgroup: string; count: number }>();
+  const categories = new Map<string, { sourceGroup: string; sourceSubgroups: Set<string>; count: number }>();
   const conditions = new Set<string>();
 
   input.parsed.products.forEach((product, index) => {
@@ -129,11 +130,11 @@ export async function createAuraImportJob(input: {
     if (product.available) available++; else unavailable++;
     photoCount += product.images.length;
     if (product.brand) brands.add(product.brand);
-    const originKey = categoryKey(product.sourceGroup, product.sourceSubgroup);
+    const originKey = auraCategoryKey(product.sourceGroup);
     const origin = categories.get(originKey);
     categories.set(originKey, {
       sourceGroup: product.sourceGroup,
-      sourceSubgroup: product.sourceSubgroup,
+      sourceSubgroups: new Set([...(origin?.sourceSubgroups ?? []), product.sourceSubgroup].filter(Boolean)),
       count: (origin?.count ?? 0) + 1,
     });
     conditions.add(product.sourceCondition);
@@ -176,6 +177,12 @@ export async function createAuraImportJob(input: {
     });
   });
 
+  const catalogFilters = await prisma.catalogFilter.findMany({
+    where: { active: true },
+    include: { options: { where: { active: true }, orderBy: { position: "asc" } } },
+  });
+  const brandFilter = findCatalogFilter(catalogFilters, "Marca");
+  const newBrands = [...brands].filter((brand) => !findCatalogOption(brandFilter, brand));
   const summary = {
     totalJson: records.length,
     ready,
@@ -189,7 +196,10 @@ export async function createAuraImportJob(input: {
     categoryCount: categories.size,
     brandCount: brands.size,
     brands: [...brands].sort((a, b) => a.localeCompare(b, "pt-BR")),
-    categories: [...categories.values()].sort((a, b) => `${a.sourceGroup} ${a.sourceSubgroup}`.localeCompare(`${b.sourceGroup} ${b.sourceSubgroup}`, "pt-BR")),
+    newBrands: newBrands.sort((a, b) => a.localeCompare(b, "pt-BR")),
+    categories: [...categories.values()]
+      .map((origin) => ({ ...origin, sourceSubgroups: [...origin.sourceSubgroups].sort((a, b) => a.localeCompare(b, "pt-BR")) }))
+      .sort((a, b) => a.sourceGroup.localeCompare(b.sourceGroup, "pt-BR")),
     conditions: [...conditions].sort((a, b) => a.localeCompare(b, "pt-BR")),
   };
   const job = await prisma.auraImportJob.create({
@@ -230,67 +240,107 @@ export async function saveAuraConfiguration(input: {
   }
   if (!Number.isFinite(input.exchangeRate) || input.exchangeRate <= 0 || input.exchangeRate > 100) throw new Error("Cotação USD inválida.");
 
-  const allOptionIds = [...new Set(input.configuration.categories.flatMap((mapping) => mapping.optionIds))];
-  const options = await prisma.catalogFilterOption.findMany({
-    where: { id: { in: allOptionIds }, active: true },
-    select: { id: true, filterId: true },
+  const catalogFilters = await prisma.catalogFilter.findMany({
+    where: { active: true },
+    include: { options: { where: { active: true }, orderBy: { position: "asc" } } },
   });
-  if (options.length !== allOptionIds.length) throw new Error("Uma das categorias selecionadas não existe mais.");
-  const optionById = new Map(options.map((option) => [option.id, option]));
+  const brandFilter = findCatalogFilter(catalogFilters, "Marca");
+  const categoryFilter = findCatalogFilter(catalogFilters, "Categoria");
+  if (!brandFilter) throw new Error("Crie ou ative o filtro Marca antes de configurar a importação.");
+  if (!categoryFilter) throw new Error("Crie ou ative o filtro Categoria antes de configurar a importação.");
+
+  const categoryOptionIds = new Set(categoryFilter.options.map((option) => option.id));
+  const sourceGroupKeys = input.configuration.categories.map((mapping) => auraCategoryKey(mapping.sourceGroup));
+  if (new Set(sourceGroupKeys).size !== sourceGroupKeys.length) throw new Error("Existem grupos de origem duplicados no mapeamento.");
   for (const mapping of input.configuration.categories) {
-    const filterIds = mapping.optionIds.map((id) => optionById.get(id)?.filterId);
-    if (new Set(filterIds).size !== filterIds.length) throw new Error("Escolha somente uma opção por filtro em cada mapeamento.");
+    if (!mapping.sourceGroup.trim()) throw new Error("Todo mapeamento precisa informar o grupo de origem.");
+    if (mapping.optionIds.length !== 1 || !categoryOptionIds.has(mapping.optionIds[0])) {
+      throw new Error(`Escolha uma única opção do filtro Categoria para ${mapping.sourceGroup}.`);
+    }
   }
   for (const markup of input.configuration.markups) {
     if (!markup.brand.trim() || !Number.isFinite(markup.markupPercent) || markup.markupPercent < 0 || markup.markupPercent > 1000) {
       throw new Error(`Margem inválida para ${markup.brand || "marca"}.`);
     }
   }
+  const savedCategoryMappings = await prisma.supplierCategoryMapping.findMany({
+    where: { supplierId: job.supplierId, sourceSubgroup: "" },
+    select: { id: true, sourceGroup: true },
+  });
 
-  const operations: Prisma.PrismaPromise<unknown>[] = [];
-  input.configuration.markups.filter((rule) => rule.persist !== false).forEach((rule) => {
-    operations.push(prisma.supplierPricingRule.upsert({
-      where: { supplierId_brand: { supplierId: job.supplierId, brand: rule.brand.trim() } },
-      update: { markupPercent: rule.markupPercent, active: true },
-      create: { supplierId: job.supplierId, brand: rule.brand.trim(), markupPercent: rule.markupPercent },
-    }));
-  });
-  input.configuration.categories.filter((mapping) => mapping.persist !== false).forEach((mapping) => {
-    operations.push(prisma.supplierCategoryMapping.upsert({
-      where: { supplierId_sourceGroup_sourceSubgroup: { supplierId: job.supplierId, sourceGroup: mapping.sourceGroup, sourceSubgroup: mapping.sourceSubgroup || "" } },
-      update: { optionIds: json(mapping.optionIds) },
-      create: { supplierId: job.supplierId, sourceGroup: mapping.sourceGroup, sourceSubgroup: mapping.sourceSubgroup || "", optionIds: json(mapping.optionIds) },
-    }));
-  });
-  input.configuration.conditions.filter((mapping) => mapping.persist !== false).forEach((mapping) => {
-    operations.push(prisma.supplierConditionMapping.upsert({
-      where: { supplierId_sourceCondition: { supplierId: job.supplierId, sourceCondition: mapping.sourceCondition } },
-      update: { condition: mapping.condition },
-      create: { supplierId: job.supplierId, sourceCondition: mapping.sourceCondition, condition: mapping.condition },
-    }));
-  });
-  if (operations.length) await prisma.$transaction(operations);
+  return prisma.$transaction(async (tx) => {
+    const resolvedBrandMappings: AuraBrandSelection[] = [];
+    for (const mapping of input.configuration.brandMappings) {
+      const sourceBrand = mapping.sourceBrand.trim();
+      let option = mapping.optionId
+        ? brandFilter.options.find((candidate) => candidate.id === mapping.optionId)
+        : findCatalogOption(brandFilter, sourceBrand);
+      if (mapping.optionId && !option) throw new Error(`A opção de marca selecionada para ${sourceBrand} não existe mais.`);
+      if (!option && mapping.createIfMissing) {
+        const label = normalizeCatalogValue(sourceBrand);
+        option = await tx.catalogFilterOption.upsert({
+          where: { filterId_slug: { filterId: brandFilter.id, slug: slugify(label) } },
+          update: { label, active: true },
+          create: { filterId: brandFilter.id, label, slug: slugify(label), active: true, position: brandFilter.options.length + resolvedBrandMappings.length },
+        });
+      }
+      resolvedBrandMappings.push({ sourceBrand, optionId: option?.id, createIfMissing: mapping.createIfMissing });
+    }
 
-  await prisma.auraImportItem.updateMany({
-    where: { jobId: job.id, processedAt: null },
-    data: { computedData: json({}) },
-  });
-  return prisma.auraImportJob.update({
-    where: { id: job.id },
-    data: {
-      exchangeRate: input.exchangeRate,
-      roundingRule: input.roundingRule,
-      configuration: json({ ...input.configuration, existing: input.configuration.existing ?? DEFAULT_EXISTING_POLICIES }),
-      preparedItems: 0,
-      processedItems: 0,
-      createdItems: 0,
-      updatedItems: 0,
-      unchangedItems: 0,
-      reviewItems: 0,
-      errorItems: 0,
-      status: "PREVIEW",
-      errorMessage: null,
-    },
+    for (const rule of input.configuration.markups.filter((entry) => entry.persist !== false)) {
+      await tx.supplierPricingRule.upsert({
+        where: { supplierId_brand: { supplierId: job.supplierId, brand: rule.brand.trim() } },
+        update: { markupPercent: rule.markupPercent, active: true },
+        create: { supplierId: job.supplierId, brand: rule.brand.trim(), markupPercent: rule.markupPercent },
+      });
+    }
+    for (const mapping of input.configuration.categories.filter((entry) => entry.persist !== false)) {
+      const saved = savedCategoryMappings.find((candidate) => (
+        auraCategoryKey(candidate.sourceGroup) === auraCategoryKey(mapping.sourceGroup)
+      ));
+      if (saved) {
+        await tx.supplierCategoryMapping.update({ where: { id: saved.id }, data: { optionIds: json(mapping.optionIds) } });
+      } else {
+        await tx.supplierCategoryMapping.create({
+          data: { supplierId: job.supplierId, sourceGroup: mapping.sourceGroup.trim(), sourceSubgroup: "", optionIds: json(mapping.optionIds) },
+        });
+      }
+    }
+    for (const mapping of input.configuration.conditions.filter((entry) => entry.persist !== false)) {
+      await tx.supplierConditionMapping.upsert({
+        where: { supplierId_sourceCondition: { supplierId: job.supplierId, sourceCondition: mapping.sourceCondition } },
+        update: { condition: mapping.condition },
+        create: { supplierId: job.supplierId, sourceCondition: mapping.sourceCondition, condition: mapping.condition },
+      });
+    }
+
+    const configuration: AuraJobConfiguration = {
+      ...input.configuration,
+      brandMappings: resolvedBrandMappings,
+      existing: input.configuration.existing ?? DEFAULT_EXISTING_POLICIES,
+      managedFilterIds: [brandFilter.id, categoryFilter.id],
+    };
+    await tx.auraImportItem.updateMany({
+      where: { jobId: job.id, processedAt: null },
+      data: { computedData: json({}) },
+    });
+    return tx.auraImportJob.update({
+      where: { id: job.id },
+      data: {
+        exchangeRate: input.exchangeRate,
+        roundingRule: input.roundingRule,
+        configuration: json(configuration),
+        preparedItems: 0,
+        processedItems: 0,
+        createdItems: 0,
+        updatedItems: 0,
+        unchangedItems: 0,
+        reviewItems: 0,
+        errorItems: 0,
+        status: "PREVIEW",
+        errorMessage: null,
+      },
+    });
   });
 }
 
@@ -317,14 +367,20 @@ function computeItem(input: {
 }) {
   const messages = readMessages(input.item.messages).filter((message) => ![
     "MISSING_CATEGORY_MAPPING",
+    "MISSING_BRAND_MAPPING",
     "MISSING_CONDITION_MAPPING",
     "MISSING_MARKUP",
     "MISSING_PRICE",
   ].includes(message.code));
   const approved = Boolean(input.item.reviewedById);
-  const category = input.configuration.categories.find((mapping) => categoryKey(mapping.sourceGroup, mapping.sourceSubgroup) === categoryKey(input.source.sourceGroup, input.source.sourceSubgroup));
-  const condition = input.configuration.conditions.find((mapping) => normalize(mapping.sourceCondition) === normalize(input.source.sourceCondition));
-  const markup = input.configuration.markups.find((rule) => normalize(rule.brand) === normalize(input.source.brand));
+  const resolvedFilters = resolveAuraFilterOptionIds({
+    sourceBrand: input.source.brand,
+    sourceGroup: input.source.sourceGroup,
+    brandMappings: input.configuration.brandMappings ?? [],
+    categoryMappings: input.configuration.categories,
+  });
+  const condition = input.configuration.conditions.find((mapping) => normalizeCatalogValue(mapping.sourceCondition) === normalizeCatalogValue(input.source.sourceCondition));
+  const markup = input.configuration.markups.find((rule) => normalizeCatalogValue(rule.brand) === normalizeCatalogValue(input.source.brand));
   const sameSupplierItem = input.existing?.supplierItems.find((supplierItem) => supplierItem.supplierId === input.supplierId);
   const supplierConflict = Boolean(input.existing && !sameSupplierItem);
   const basis = chooseAuraPriceBasis({
@@ -342,14 +398,15 @@ function computeItem(input: {
       roundingRule: input.roundingRule,
     });
   }
-  if (!category?.optionIds.length) messages.push({ code: "MISSING_CATEGORY_MAPPING", message: "Categoria de origem ainda não foi mapeada.", severity: "warning" });
+  if (!resolvedFilters.categoryOptionId) messages.push({ code: "MISSING_CATEGORY_MAPPING", message: "Categoria de origem ainda não foi mapeada.", severity: "warning" });
+  if (!resolvedFilters.brandOptionId) messages.push({ code: "MISSING_BRAND_MAPPING", message: `Nova marca encontrada: ${normalizeCatalogValue(input.source.brand)}`, severity: "warning" });
   if (!condition) messages.push({ code: "MISSING_CONDITION_MAPPING", message: `Condição “${input.source.sourceCondition}” ainda não foi mapeada.`, severity: "warning" });
   if (!markup) messages.push({ code: "MISSING_MARKUP", message: `Margem da marca ${input.source.brand} não foi definida.`, severity: "warning" });
   if (!basis.basisUsd && !basis.preserveExistingPrice) messages.push({ code: "MISSING_PRICE", message: "Não existe preço atual ou histórico utilizável.", severity: "warning" });
 
   const hardError = input.source.validationStatus === "error" || messages.some((message) => message.severity === "error");
   const auraReview = input.source.validationStatus === "warning" || !input.source.importReady;
-  const missingConfiguration = messages.some((message) => ["MISSING_CATEGORY_MAPPING", "MISSING_CONDITION_MAPPING", "MISSING_MARKUP", "MISSING_PRICE"].includes(message.code));
+  const missingConfiguration = messages.some((message) => ["MISSING_CATEGORY_MAPPING", "MISSING_BRAND_MAPPING", "MISSING_CONDITION_MAPPING", "MISSING_MARKUP", "MISSING_PRICE"].includes(message.code));
   let action: AuraImportAction = hardError
     ? "ERROR"
     : missingConfiguration || ((auraReview || supplierConflict) && !approved)
@@ -368,7 +425,8 @@ function computeItem(input: {
   const computed: AuraComputedItem = {
     action,
     condition: condition?.condition,
-    optionIds: category?.optionIds ?? [],
+    optionIds: resolvedFilters.optionIds,
+    managedFilterIds: input.configuration.managedFilterIds,
     exchangeRate: input.exchangeRate,
     markupPercent: markup?.markupPercent,
     roundingRule: input.roundingRule,
@@ -473,7 +531,7 @@ export async function decideAuraImportItem(input: {
     throw new Error("Itens com erro estrutural não podem ser aprovados; corrija o arquivo de origem.");
   }
   const computed = jsonObject(item.computedData) as AuraComputedItem;
-  if (!computed.salePriceBrl || !computed.condition || !computed.optionIds?.length) {
+  if (!computed.salePriceBrl || !computed.condition || (computed.optionIds?.length ?? 0) < 2) {
     throw new Error("Conclua os mapeamentos e a precificação antes de aprovar este item.");
   }
   const updated = await prisma.auraImportItem.update({

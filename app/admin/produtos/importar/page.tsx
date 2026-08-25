@@ -20,12 +20,13 @@ import {
   XCircle,
 } from "lucide-react";
 import { useAdminFeedback } from "../../../../src/components/admin/AdminFeedback";
+import { findCatalogFilter, findCatalogOption, normalizeCatalogValue } from "../../../../src/lib/aura/catalogMapping";
 import { uploadAdminFile } from "../../../../src/lib/uploadClient";
 import styles from "./page.module.css";
 
 type Mode = "AURA_JSON" | "SUPPLIER_XLSX";
 type Action = "CREATE" | "UPDATE" | "UNCHANGED" | "REVIEW" | "ERROR";
-type CategoryOrigin = { sourceGroup: string; sourceSubgroup: string; count: number };
+type CategoryOrigin = { sourceGroup: string; sourceSubgroups?: string[]; count: number };
 type Summary = {
   totalJson?: number;
   ready?: number;
@@ -39,6 +40,7 @@ type Summary = {
   categoryCount?: number;
   brandCount?: number;
   brands?: string[];
+  newBrands?: string[];
   categories?: CategoryOrigin[];
   conditions?: string[];
   originalRows?: number;
@@ -98,6 +100,7 @@ type Supplier = {
   conditionMappings: Array<{ sourceCondition: string; condition: string }>;
 };
 type CategoryMapping = CategoryOrigin & { optionIds: string[]; persist: boolean };
+type BrandMapping = { sourceBrand: string; optionId?: string; createIfMissing: boolean };
 type ConditionMapping = { sourceCondition: string; condition: string; persist: boolean };
 type Markup = { brand: string; markupPercent: number; persist: boolean };
 type Preview = { job: Job; items: AuraItem[]; total: number; page: number; pages: number };
@@ -168,6 +171,7 @@ export default function AuraCatalogImportPage() {
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [history, setHistory] = useState<Job[]>([]);
   const [categoryMappings, setCategoryMappings] = useState<CategoryMapping[]>([]);
+  const [brandMappings, setBrandMappings] = useState<BrandMapping[]>([]);
   const [conditionMappings, setConditionMappings] = useState<ConditionMapping[]>([]);
   const [markups, setMarkups] = useState<Markup[]>([]);
   const [scopeBrands, setScopeBrands] = useState<string[]>([]);
@@ -211,8 +215,16 @@ export default function AuraCatalogImportPage() {
     const brands = nextSummary.brands ?? nextSummary.inferredBrands ?? [];
     setMarkups(brands.map((brand) => ({ brand, markupPercent: savedMarkup.get(brand.toUpperCase()) ?? 25, persist: true })));
     setScopeBrands([...(nextSummary.inferredBrands ?? brands)]);
+    const brandFilter = findCatalogFilter(filters, "Marca");
+    setBrandMappings(brands.map((sourceBrand) => {
+      const option = findCatalogOption(brandFilter, sourceBrand);
+      return { sourceBrand, optionId: option?.id, createIfMissing: !option };
+    }));
     setCategoryMappings((nextSummary.categories ?? []).map((origin) => {
-      const saved = currentSupplier?.categoryMappings.find((mapping) => mapping.sourceGroup === origin.sourceGroup && (mapping.sourceSubgroup || "") === (origin.sourceSubgroup || ""));
+      const saved = currentSupplier?.categoryMappings.find((mapping) => (
+        normalizeCatalogValue(mapping.sourceGroup) === normalizeCatalogValue(origin.sourceGroup)
+        && !mapping.sourceSubgroup
+      ));
       return { ...origin, optionIds: saved?.optionIds ?? [], persist: true };
     }));
     setConditionMappings((nextSummary.conditions ?? []).map((sourceCondition) => ({
@@ -283,8 +295,10 @@ export default function AuraCatalogImportPage() {
         if (conditionMappings.some((mapping) => !mapping.condition)) throw new Error("Mapeie todas as condições Aura antes de continuar.");
         await requestJson(`/api/admin/aura-import/${job.id}/configure`, {
           method: "POST",
-          body: JSON.stringify({ exchangeRate, roundingRule, categories: categoryMappings, conditions: conditionMappings, markups, existing }),
+          body: JSON.stringify({ exchangeRate, roundingRule, brandMappings, categories: categoryMappings, conditions: conditionMappings, markups, existing }),
         });
+        const refreshedFilters = await requestJson<Filter[]>("/api/admin/filters");
+        setFilters(refreshedFilters.filter((filter) => filter.active));
         let complete = false;
         while (!complete) {
           const prepared = await requestJson<{ job: Job; complete: boolean }>(`/api/admin/aura-import/${job.id}/prepare-next`, { method: "POST", body: JSON.stringify({ batchSize: 200 }) });
@@ -384,7 +398,7 @@ export default function AuraCatalogImportPage() {
   }
 
   function reset() {
-    processingRef.current = false; setIsProcessing(false); setStep(1); setFile(null); setTemporaryUrl(""); setJob(null); setSummary({}); setPreview(null); setError(""); setNotice(""); setXlsxHeaders([]);
+    processingRef.current = false; setIsProcessing(false); setStep(1); setFile(null); setTemporaryUrl(""); setJob(null); setSummary({}); setPreview(null); setError(""); setNotice(""); setXlsxHeaders([]); setBrandMappings([]); setCategoryMappings([]);
     setPreviewPage(1); setActionFilter(""); setStatusFilter(""); setBrandFilter(""); setGroupFilter(""); setSubgroupFilter(""); setCategoryFilter(""); setConditionFilter(""); setAvailabilityFilter(""); setIdentityFilter(""); setQuery("");
   }
 
@@ -394,9 +408,12 @@ export default function AuraCatalogImportPage() {
   const sampleUsd = 1010;
   const converted = sampleUsd * exchangeRate;
   const sampleFinal = previewRoundedPrice(converted * (1 + sampleMarkup / 100), roundingRule);
-  const allOptions = useMemo(() => filters.flatMap((filter) => filter.options.filter((option) => option.active).map((option) => ({ ...option, filter: filter.name }))), [filters]);
+  const brandCatalogFilter = useMemo(() => findCatalogFilter(filters, "Marca"), [filters]);
+  const categoryCatalogFilter = useMemo(() => findCatalogFilter(filters, "Categoria"), [filters]);
+  const brandOptions = useMemo(() => (brandCatalogFilter?.options ?? []).filter((option) => option.active), [brandCatalogFilter]);
+  const categoryOptions = useMemo(() => (categoryCatalogFilter?.options ?? []).filter((option) => option.active), [categoryCatalogFilter]);
   const sourceGroups = useMemo(() => [...new Set((summary.categories ?? []).map((item) => item.sourceGroup).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")), [summary.categories]);
-  const sourceSubgroups = useMemo(() => [...new Set((summary.categories ?? []).filter((item) => !groupFilter || item.sourceGroup === groupFilter).map((item) => item.sourceSubgroup).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")), [groupFilter, summary.categories]);
+  const sourceSubgroups = useMemo(() => [...new Set((summary.categories ?? []).filter((item) => !groupFilter || item.sourceGroup === groupFilter).flatMap((item) => item.sourceSubgroups ?? []).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")), [groupFilter, summary.categories]);
 
   return <div className={styles.page}>
     <header className={styles.titlebar}>
@@ -432,7 +449,8 @@ export default function AuraCatalogImportPage() {
     {step === 3 && <section className={styles.section}>
       <header><div><span className={styles.eyebrow}>{mode === "AURA_JSON" ? "MAPEAMENTO OBRIGATÓRIO" : "PROTEÇÃO DE ESCOPO"}</span><h2>{mode === "AURA_JSON" ? "Categorias e condições" : "Quais marcas esta lista representa?"}</h2></div></header>
       {mode === "AURA_JSON" ? <>
-        <div className={styles.mappingTable}>{categoryMappings.map((mapping, index) => <div className={styles.mappingRow} key={`${mapping.sourceGroup}-${mapping.sourceSubgroup}`}><div><strong>{mapping.sourceGroup || "Sem grupo"}{mapping.sourceSubgroup ? ` › ${mapping.sourceSubgroup}` : ""}</strong><small>{mapping.count} produto(s)</small></div><select multiple value={mapping.optionIds} onChange={(event) => { const optionIds = Array.from(event.target.selectedOptions, (option) => option.value); setCategoryMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, optionIds } : row)); }}>{allOptions.map((option) => <option key={option.id} value={option.id}>{option.filter} › {option.label}</option>)}</select><label className={styles.check}><input type="checkbox" checked={mapping.persist} onChange={(event) => setCategoryMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, persist: event.target.checked } : row))} /> Reutilizar</label></div>)}</div>
+        <div className={styles.brandMappings}><div className={styles.mappingIntro}><strong>Marcas do arquivo</strong><small>Associadas exclusivamente ao filtro Marca.</small></div>{brandMappings.map((mapping, index) => { const option = brandOptions.find((candidate) => candidate.id === mapping.optionId); const missing = !option; return <div className={`${styles.brandMapping} ${missing ? styles.brandMissing : ""}`} key={mapping.sourceBrand}><div><strong>{normalizeCatalogValue(mapping.sourceBrand)}</strong><small>{missing ? `Nova marca encontrada: ${normalizeCatalogValue(mapping.sourceBrand)}` : `Marca DroidStore: ${option.label}`}</small></div>{missing ? <label className={styles.createBrand}><input type="checkbox" checked={mapping.createIfMissing} onChange={(event) => setBrandMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, createIfMissing: event.target.checked } : row))} /><span>Criar opção em Marca</span></label> : <span className={styles.mappedBadge}><Check /> Vinculada</span>}</div>; })}</div>
+        <div className={styles.mappingTable}><div className={styles.mappingIntro}><strong>Grupos de origem</strong><small>Cada grupo recebe uma única opção do filtro Categoria.</small></div>{categoryMappings.map((mapping, index) => <div className={styles.mappingRow} key={mapping.sourceGroup}><div><strong>{mapping.sourceGroup || "Sem grupo"}</strong><small>{mapping.count} produto(s){mapping.sourceSubgroups?.length ? ` · Origem: ${mapping.sourceSubgroups.join(", ")}` : ""}</small></div><select value={mapping.optionIds[0] ?? ""} onChange={(event) => { const optionIds = event.target.value ? [event.target.value] : []; setCategoryMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, optionIds } : row)); }}><option value="">Selecionar categoria</option>{categoryOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><label className={styles.check}><input type="checkbox" checked={mapping.persist} onChange={(event) => setCategoryMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, persist: event.target.checked } : row))} /> Reutilizar</label></div>)}</div>
         <div className={styles.conditionGrid}>{conditionMappings.map((mapping, index) => <label key={mapping.sourceCondition}><span>{mapping.sourceCondition}</span><select value={mapping.condition} onChange={(event) => setConditionMappings((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, condition: event.target.value } : row))}><option value="">Selecionar condição</option>{CONDITIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>)}</div>
       </> : <div className={styles.scopeGrid}>{(summary.inferredBrands ?? []).map((brand) => <label key={brand} className={scopeBrands.includes(brand) ? styles.scopeActive : ""}><input type="checkbox" checked={scopeBrands.includes(brand)} onChange={(event) => setScopeBrands((current) => event.target.checked ? [...current, brand] : current.filter((item) => item !== brand))} /><strong>{brand}</strong><small>{scopeBrands.includes(brand) ? "Dentro do escopo" : "Não será alterada"}</small></label>)}</div>}
       <div className={styles.scopeWarning}><AlertTriangle /> Somente SKUs do mesmo fornecedor e das marcas confirmadas podem ser marcados como ausentes.</div>
@@ -449,8 +467,8 @@ export default function AuraCatalogImportPage() {
     {step === 5 && job && <section className={styles.section}>
       <header><div><span className={styles.eyebrow}>PRÉ-VISUALIZAÇÃO</span><h2>Exatamente o que será aplicado</h2><p>Itens em revisão ou erro não entram no processamento automático.</p></div><span className={styles.readyBadge}><Check /> Pronta</span></header>
       <div className={styles.metrics}><div><small>Criar</small><strong>{job.summary.actions?.CREATE ?? 0}</strong></div><div><small>Atualizar</small><strong>{job.summary.actions?.UPDATE ?? 0}</strong></div><div><small>Sem alteração</small><strong>{job.summary.actions?.UNCHANGED ?? 0}</strong></div><div><small>Revisar</small><strong>{job.reviewItems}</strong></div><div><small>Erros</small><strong>{job.errorItems}</strong></div></div>
-      <div className={styles.previewTools}><label><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar SKU, produto, modelo ou marca" onKeyDown={(event) => event.key === "Enter" && void loadPreview(1)} /></label><select value={actionFilter} onChange={(event) => setActionFilter(event.target.value as Action | "")}><option value="">Todas as ações</option>{Object.entries(ACTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">Toda qualidade</option><option value="PENDING">Pronto</option><option value="REVIEW">Revisar</option><option value="ERROR">Erro</option><option value="IGNORED">Ignorado</option></select><select value={identityFilter} onChange={(event) => setIdentityFilter(event.target.value)}><option value="">Novo e existente</option><option value="new">Novo SKU</option><option value="existing">SKU existente</option></select><select value={availabilityFilter} onChange={(event) => setAvailabilityFilter(event.target.value)}><option value="">Toda disponibilidade</option><option value="available">Disponível</option><option value="unavailable">Indisponível</option></select><select value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)}><option value="">Todas as marcas</option>{(summary.brands ?? summary.inferredBrands ?? []).map((brand) => <option key={brand}>{brand}</option>)}</select><select value={groupFilter} onChange={(event) => { setGroupFilter(event.target.value); setSubgroupFilter(""); }}><option value="">Todos os grupos</option>{sourceGroups.map((group) => <option key={group}>{group}</option>)}</select><select value={subgroupFilter} onChange={(event) => setSubgroupFilter(event.target.value)}><option value="">Todos os subgrupos</option>{sourceSubgroups.map((subgroup) => <option key={subgroup}>{subgroup}</option>)}</select><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="">Toda categoria DroidStore</option>{allOptions.map((option) => <option key={option.id} value={option.id}>{option.filter} › {option.label}</option>)}</select><select value={conditionFilter} onChange={(event) => setConditionFilter(event.target.value)}><option value="">Todas as condições</option>{CONDITIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button className="button ghost" onClick={() => void loadPreview(1)}>Aplicar filtros</button></div>
-      <div className={styles.previewTable}><table><thead><tr><th>SKU / Produto</th><th>Marca</th><th>Grupo / Subgrupo</th><th>Categoria DroidStore</th><th>Condição</th><th>USD</th><th>Cotação</th><th>Margem</th><th>Preço final</th><th>Disponível</th><th>Ação</th><th>Qualidade</th></tr></thead><tbody>{preview?.items.map((item) => { const source = asObject(item.sourceData); const computed = asObject(item.computedData); const image = asStrings(source.images)[0]; const optionIds = asStrings(computed.optionIds); const mappedCategory = optionIds.map((id) => allOptions.find((option) => option.id === id)).filter(Boolean).map((option) => `${option!.filter} › ${option!.label}`).join(", "); const condition = CONDITIONS.find(([value]) => value === computed.condition)?.[1] ?? String(source.sourceCondition ?? "—"); return <tr key={item.id}><td><div className={styles.productCell}>{image ? <img src={image} alt="" /> : <span /> }<div><strong>{item.name}</strong><small>{item.sku} · {String(source.model ?? "")}</small></div></div></td><td>{item.brand || "—"}</td><td>{item.sourceGroup || "—"}<small>{item.sourceSubgroup}</small></td><td>{mappedCategory || "—"}</td><td>{condition}</td><td>{usd(source.supplierPriceUsd ?? source.lastKnownPriceUsd)}</td><td>{computed.exchangeRate ? money(computed.exchangeRate) : "—"}</td><td>{computed.markupPercent !== undefined ? `${computed.markupPercent}%` : "—"}</td><td><strong>{money(computed.salePriceBrl)}</strong></td><td>{source.available === true ? "Sim" : "Não"}</td><td><span className={`${styles.action} ${styles[item.action.toLowerCase()]}`}>{ACTION_LABELS[item.action]}</span></td><td>{item.messages?.length ? <div className={styles.quality}><AlertTriangle /><span>{item.messages[0]?.message}</span>{item.action === "REVIEW" && <div><button onClick={() => void decide(item, "approve")}>Aprovar</button><button onClick={() => void decide(item, "ignore")}>Ignorar</button></div>}</div> : <span className={styles.qualityOk}><Check /> OK</span>}</td></tr>; })}</tbody></table></div>
+      <div className={styles.previewTools}><label><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar SKU, produto, modelo ou marca" onKeyDown={(event) => event.key === "Enter" && void loadPreview(1)} /></label><select value={actionFilter} onChange={(event) => setActionFilter(event.target.value as Action | "")}><option value="">Todas as ações</option>{Object.entries(ACTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">Toda qualidade</option><option value="PENDING">Pronto</option><option value="REVIEW">Revisar</option><option value="ERROR">Erro</option><option value="IGNORED">Ignorado</option></select><select value={identityFilter} onChange={(event) => setIdentityFilter(event.target.value)}><option value="">Novo e existente</option><option value="new">Novo SKU</option><option value="existing">SKU existente</option></select><select value={availabilityFilter} onChange={(event) => setAvailabilityFilter(event.target.value)}><option value="">Toda disponibilidade</option><option value="available">Disponível</option><option value="unavailable">Indisponível</option></select><select value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)}><option value="">Todas as marcas</option>{(summary.brands ?? summary.inferredBrands ?? []).map((brand) => <option key={brand}>{brand}</option>)}</select><select value={groupFilter} onChange={(event) => { setGroupFilter(event.target.value); setSubgroupFilter(""); }}><option value="">Todos os grupos</option>{sourceGroups.map((group) => <option key={group}>{group}</option>)}</select><select value={subgroupFilter} onChange={(event) => setSubgroupFilter(event.target.value)}><option value="">Todos os subgrupos</option>{sourceSubgroups.map((subgroup) => <option key={subgroup}>{subgroup}</option>)}</select><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="">Toda categoria DroidStore</option>{categoryOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><select value={conditionFilter} onChange={(event) => setConditionFilter(event.target.value)}><option value="">Todas as condições</option>{CONDITIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button className="button ghost" onClick={() => void loadPreview(1)}>Aplicar filtros</button></div>
+      <div className={styles.previewTable}><table><thead><tr><th>SKU / Produto</th><th>Marca origem</th><th>Grupo origem</th><th>Categoria DroidStore</th><th>Condição</th><th>USD</th><th>Cotação</th><th>Margem</th><th>Preço final</th><th>Disponível</th><th>Ação</th><th>Qualidade</th></tr></thead><tbody>{preview?.items.map((item) => { const source = asObject(item.sourceData); const computed = asObject(item.computedData); const image = asStrings(source.images)[0]; const optionIds = asStrings(computed.optionIds); const mappedBrand = optionIds.map((id) => brandOptions.find((option) => option.id === id)).find(Boolean); const mappedCategory = optionIds.map((id) => categoryOptions.find((option) => option.id === id)).find(Boolean); const supplierPath = asStrings(source.categoryPath).join(" > ") || String(source.sourceCategory || source.sourceSubgroup || ""); const condition = CONDITIONS.find(([value]) => value === computed.condition)?.[1] ?? String(source.sourceCondition ?? "—"); return <tr key={item.id}><td><div className={styles.productCell}>{image ? <img src={image} alt="" /> : <span /> }<div><strong>{item.name}</strong><small>{item.sku} · {String(source.model ?? "")}</small></div></div></td><td><strong>{item.brand || "—"}</strong><small>{mappedBrand ? `Marca: ${mappedBrand.label}` : "Marca não vinculada"}</small></td><td>{item.sourceGroup || "—"}<small>{supplierPath}</small></td><td>{mappedCategory?.label || "—"}</td><td>{condition}</td><td>{usd(source.supplierPriceUsd ?? source.lastKnownPriceUsd)}</td><td>{computed.exchangeRate ? money(computed.exchangeRate) : "—"}</td><td>{computed.markupPercent !== undefined ? `${computed.markupPercent}%` : "—"}</td><td><strong>{money(computed.salePriceBrl)}</strong></td><td>{source.available === true ? "Sim" : "Não"}</td><td><span className={`${styles.action} ${styles[item.action.toLowerCase()]}`}>{ACTION_LABELS[item.action]}</span></td><td>{item.messages?.length ? <div className={styles.quality}><AlertTriangle /><span>{item.messages[0]?.message}</span>{item.action === "REVIEW" && <div><button onClick={() => void decide(item, "approve")}>Aprovar</button><button onClick={() => void decide(item, "ignore")}>Ignorar</button></div>}</div> : <span className={styles.qualityOk}><Check /> OK</span>}</td></tr>; })}</tbody></table></div>
       <div className={styles.pagination}><button disabled={(preview?.page ?? 1) <= 1} onClick={() => void loadPreview((preview?.page ?? 1) - 1)}>Anterior</button><span>Página {preview?.page ?? 1} de {preview?.pages ?? 1} · {preview?.total ?? 0} itens</span><button disabled={(preview?.page ?? 1) >= (preview?.pages ?? 1)} onClick={() => void loadPreview((preview?.page ?? 1) + 1)}>Próxima</button></div>
       <footer><a className="button ghost" href={`/api/admin/aura-import/${job.id}/errors`}><Download /> Exportar pendências</a><button className="button primary" disabled={Boolean(busy)} onClick={() => void startImport()}><PackageCheck /> Confirmar e processar</button></footer>
     </section>}

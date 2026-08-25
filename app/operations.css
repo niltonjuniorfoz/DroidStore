@@ -1768,6 +1768,40 @@
   font-size: .72rem;
 }
 
+.group-header-row .grouped-model-name,
+.group-header-row .col-price strong,
+.group-header-row .grouped-storage-list,
+.group-header-row .pill-stock,
+.group-header-row .grouped-toggle-button {
+  font-size: .68rem !important;
+  line-height: 1.25;
+}
+
+.group-header-row .grouped-model-name {
+  color: #111827;
+  font-weight: 800;
+}
+
+.group-header-row .color-swatches-inline {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  min-width: 0;
+}
+
+.group-header-row .color-swatches-label,
+.group-header-row .color-swatches-count {
+  color: #6b7280;
+  font-size: .6rem;
+  line-height: 1.2;
+}
+
+.group-header-row .color-swatches-label { margin-right: 2px; }
+.group-header-row .color-swatches-count { color: #374151; font-weight: 700; margin-left: 2px; }
+.group-header-row .grouped-storage-list { color: #4b5563; font-weight: 650; }
+.group-header-row .grouped-toggle-button { min-height: 28px; padding: .28rem .5rem; gap: 4px; }
+
 .pro-product-grid {
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   gap: .6rem;
