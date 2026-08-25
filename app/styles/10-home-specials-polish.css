@@ -1,0 +1,553 @@
+/* ==========================================================================
+   Aura Tech - polimento visual das novas secoes
+   Outlet + Garmin seguem os mesmos efeitos e animacoes das prateleiras atuais.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Comportamento geral das secoes: neutro em repouso, laranja no hover.
+   -------------------------------------------------------------------------- */
+.storefront-theme .home-outlet-section,
+.storefront-theme .home-brand-showcase {
+  border-color: #dbe4de;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .04);
+  transition:
+    border-color .78s ease,
+    box-shadow .78s ease,
+    transform .78s cubic-bezier(.22, 1, .36, 1);
+}
+
+.storefront-theme .home-outlet-section:hover,
+.storefront-theme .home-brand-showcase:hover,
+.storefront-theme .home-brand-showcase:has(.mobile-auto-track.is-interacting) {
+  border-color: var(--store-orange);
+  box-shadow: 0 17px 42px rgba(255, 121, 0, .11);
+}
+
+.storefront-theme .home-outlet-section .special-home-heading,
+.storefront-theme .home-brand-showcase .special-home-heading {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: #202722;
+  border-bottom: 1px solid #e4eae6;
+  background: #f8faf9;
+  transition:
+    border-color .92s ease,
+    color .92s ease;
+}
+
+.storefront-theme .home-outlet-section .special-home-heading::before,
+.storefront-theme .home-brand-showcase .special-home-heading::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(100deg, var(--store-orange), #ff922f);
+  opacity: 0;
+  transition: opacity 1.05s cubic-bezier(.22, 1, .36, 1);
+}
+
+.storefront-theme .home-outlet-section .special-home-heading h2,
+.storefront-theme .home-outlet-section .special-home-heading a,
+.storefront-theme .home-brand-showcase .special-home-heading h2,
+.storefront-theme .home-brand-showcase .special-home-heading a {
+  color: #202722;
+  transition: color .92s ease;
+}
+
+.storefront-theme .home-outlet-section:hover .special-home-heading,
+.storefront-theme .home-brand-showcase:hover .special-home-heading,
+.storefront-theme .home-brand-showcase:has(.mobile-auto-track.is-interacting) .special-home-heading {
+  border-bottom-color: var(--store-orange);
+}
+
+.storefront-theme .home-outlet-section:hover .special-home-heading::before,
+.storefront-theme .home-brand-showcase:hover .special-home-heading::before,
+.storefront-theme .home-brand-showcase:has(.mobile-auto-track.is-interacting) .special-home-heading::before {
+  opacity: 1;
+}
+
+.storefront-theme .home-outlet-section:hover .special-home-heading h2,
+.storefront-theme .home-outlet-section:hover .special-home-heading a,
+.storefront-theme .home-brand-showcase:hover .special-home-heading h2,
+.storefront-theme .home-brand-showcase:hover .special-home-heading a,
+.storefront-theme .home-brand-showcase:has(.mobile-auto-track.is-interacting) .special-home-heading h2,
+.storefront-theme .home-brand-showcase:has(.mobile-auto-track.is-interacting) .special-home-heading a {
+  color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   OUTLET
+   O mosaico passa a ter espacamento/raio como a referencia e imagens inteiras.
+   -------------------------------------------------------------------------- */
+.storefront-theme .outlet-mosaic-grid {
+  grid-template-rows: repeat(2, 282px);
+  gap: .78rem;
+  padding: .9rem;
+  background: #fff;
+}
+
+.storefront-theme .outlet-mosaic-card {
+  overflow: hidden;
+  border: 1px solid #dfe5e1;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(25, 35, 30, .025);
+  transition:
+    border-color .32s ease,
+    box-shadow .32s ease,
+    transform .32s cubic-bezier(.22, 1, .36, 1);
+}
+
+.storefront-theme .outlet-mosaic-card:hover {
+  border-color: var(--store-orange);
+  box-shadow: 0 10px 25px rgba(255, 121, 0, .11);
+  transform: translateY(-1px);
+}
+
+.storefront-theme .outlet-card-media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #fff;
+}
+
+.storefront-theme .outlet-card-media img,
+.storefront-theme .outlet-card-media .product-image-empty {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 1rem !important;
+  box-sizing: border-box;
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+}
+
+.storefront-theme .outlet-mosaic-card.is-featured .outlet-card-media img {
+  padding: 1.2rem !important;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-media img {
+  padding: .72rem !important;
+}
+
+.storefront-theme .outlet-mosaic-card:hover .outlet-card-media img {
+  transform: scale(1.045);
+}
+
+/* Cards grandes: imagem e informacao exatamente alinhadas verticalmente. */
+.storefront-theme .outlet-mosaic-card.is-featured {
+  grid-template-columns: minmax(0, 48%) minmax(0, 52%);
+}
+
+.storefront-theme .outlet-mosaic-card.is-featured .outlet-card-copy {
+  height: 100%;
+  box-sizing: border-box;
+  justify-content: center;
+  padding: 1.15rem 1.25rem 1rem;
+  background: #fff;
+  transition:
+    background .46s cubic-bezier(.22, 1, .36, 1),
+    color .46s ease;
+}
+
+.storefront-theme .outlet-mosaic-card.is-featured:hover .outlet-card-copy {
+  background: linear-gradient(135deg, var(--store-orange), #ff922f);
+}
+
+.storefront-theme .outlet-mosaic-card.is-featured:hover .outlet-card-brand,
+.storefront-theme .outlet-mosaic-card.is-featured:hover .outlet-card-copy h3,
+.storefront-theme .outlet-mosaic-card.is-featured:hover .outlet-card-meta,
+.storefront-theme .outlet-mosaic-card.is-featured:hover .outlet-card-price small,
+.storefront-theme .outlet-mosaic-card.is-featured:hover .outlet-card-price span,
+.storefront-theme .outlet-mosaic-card.is-featured:hover .outlet-card-price strong {
+  color: #fff;
+}
+
+.storefront-theme .outlet-mosaic-card.is-featured:hover .outlet-card-price {
+  border-top-color: rgba(255, 255, 255, .3);
+}
+
+.storefront-theme .outlet-mosaic-card.is-featured:hover .outlet-card-action {
+  border-color: #fff;
+  color: var(--store-orange);
+  background: #fff;
+}
+
+.storefront-theme .outlet-card-copy {
+  box-sizing: border-box;
+}
+
+.storefront-theme .outlet-card-copy a {
+  text-decoration: none;
+}
+
+.storefront-theme .outlet-card-copy h3 {
+  min-height: 2.75em;
+  margin: .3rem 0 .28rem;
+}
+
+.storefront-theme .outlet-mosaic-card.is-featured .outlet-card-copy h3 {
+  min-height: auto;
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact {
+  grid-template-rows: 57% 43%;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-copy {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: .58rem .7rem .65rem;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-brand {
+  line-height: 1;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-copy h3 {
+  min-height: 3.55em;
+  margin: .24rem 0 .18rem;
+  font-size: .66rem;
+  line-height: 1.18;
+  -webkit-line-clamp: 3;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-meta {
+  min-height: 0;
+  margin-top: auto;
+  font-size: .52rem;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-price {
+  margin-top: .38rem;
+  padding-top: .35rem;
+  padding-right: 2.25rem;
+}
+
+.storefront-theme .outlet-mosaic-card.is-compact .outlet-card-price strong {
+  font-size: .92rem;
+}
+
+.storefront-theme .outlet-card-action {
+  z-index: 3;
+}
+
+/* --------------------------------------------------------------------------
+   GARMIN
+   Banner e cards compartilham a mesma altura visual.
+   -------------------------------------------------------------------------- */
+.storefront-theme .garmin-showcase {
+  --garmin-row-height: 355px;
+}
+
+.storefront-theme .garmin-showcase .home-brand-showcase-body {
+  min-height: 0;
+  padding: .9rem;
+  grid-template-columns: var(--garmin-row-height) minmax(0, 1fr);
+  gap: .85rem;
+  align-items: stretch;
+  background: #fff;
+}
+
+.storefront-theme .garmin-showcase .home-brand-banner {
+  width: var(--garmin-row-height);
+  height: var(--garmin-row-height);
+  align-self: stretch;
+  overflow: hidden;
+  border: 1px solid #dfe5e1;
+  border-radius: 14px;
+  background: #070707;
+  box-sizing: border-box;
+  transition:
+    border-color .32s ease,
+    box-shadow .32s ease,
+    transform .32s ease;
+}
+
+.storefront-theme .garmin-showcase .home-brand-banner:hover {
+  border-color: var(--store-orange);
+  box-shadow: 0 10px 25px rgba(255, 121, 0, .12);
+}
+
+.storefront-theme .garmin-showcase .home-brand-banner img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  object-fit: cover !important;
+  object-position: 50% 50% !important;
+}
+
+.storefront-theme .garmin-showcase .home-brand-banner:hover img {
+  transform: scale(1.025);
+}
+
+.storefront-theme .garmin-showcase .home-brand-products {
+  min-width: 0;
+  height: var(--garmin-row-height);
+  padding: 0;
+  align-items: stretch;
+}
+
+.storefront-theme .garmin-showcase .home-brand-products .product-carousel-shell,
+.storefront-theme .garmin-showcase .brand-showcase-track {
+  height: 100%;
+}
+
+.storefront-theme .garmin-showcase .brand-showcase-track {
+  gap: .72rem;
+  overflow-y: hidden;
+}
+
+.storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide {
+  height: 100%;
+  flex-basis: calc((100% - 2.16rem) / 4);
+  align-items: stretch;
+}
+
+.storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide > .product-card,
+.storefront-theme .garmin-showcase .product-card {
+  width: 100%;
+  height: 100% !important;
+  min-height: 0 !important;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  border-color: #dfe5e1;
+  transition:
+    border-color .3s ease,
+    box-shadow .3s ease,
+    transform .3s cubic-bezier(.22, 1, .36, 1);
+}
+
+.storefront-theme .garmin-showcase .product-card:hover {
+  border-color: var(--store-orange);
+  box-shadow: 0 10px 24px rgba(255, 121, 0, .11);
+}
+
+.storefront-theme .garmin-showcase .product-visual {
+  flex: 0 0 154px;
+  width: 100%;
+  height: 154px !important;
+  min-height: 154px;
+  overflow: hidden;
+}
+
+.storefront-theme .garmin-showcase .product-image-link {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.storefront-theme .garmin-showcase .catalog-photo,
+.storefront-theme .garmin-showcase .product-photo-primary,
+.storefront-theme .garmin-showcase .product-photo-secondary {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: .72rem !important;
+  box-sizing: border-box;
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+}
+
+.storefront-theme .garmin-showcase .product-card:hover .product-photo-primary,
+.storefront-theme .garmin-showcase .product-card:hover .product-photo-secondary {
+  transform: scale(1.045) !important;
+}
+
+.storefront-theme .garmin-showcase .product-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: .58rem .65rem .65rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.storefront-theme .garmin-showcase .product-info-top {
+  flex: 0 0 auto;
+}
+
+.storefront-theme .garmin-showcase .product-card-clean-title {
+  min-height: 3.55em;
+  max-height: 3.55em;
+  margin: 0;
+  overflow: hidden;
+  font-size: .65rem;
+  line-height: 1.18;
+  -webkit-line-clamp: 3;
+}
+
+.storefront-theme .garmin-showcase .product-variant-summary {
+  min-height: .8rem;
+  margin-top: .18rem;
+  font-size: .5rem;
+}
+
+.storefront-theme .garmin-showcase .product-price {
+  margin-top: auto;
+}
+
+.storefront-theme .garmin-showcase .pix-amount-wrapper {
+  min-height: 48px;
+}
+
+.storefront-theme .garmin-showcase .pix-amount-val {
+  font-size: 1rem;
+}
+
+.storefront-theme .garmin-showcase .card-installments-block {
+  min-height: 35px;
+}
+
+.storefront-theme .garmin-showcase .installment-line-item {
+  font-size: .49rem;
+  line-height: 1.25;
+}
+
+.storefront-theme .garmin-showcase .card-buy-button {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 38px;
+  margin-top: .45rem;
+  box-sizing: border-box;
+  font-size: .68rem;
+}
+
+/* Mantem os controles no mesmo padrao das outras prateleiras. */
+.storefront-theme .garmin-showcase .product-carousel-controls {
+  top: 9px;
+  right: .9rem;
+}
+
+.storefront-theme .garmin-showcase .special-home-heading a {
+  margin-right: 70px;
+}
+
+/* --------------------------------------------------------------------------
+   Tablet
+   -------------------------------------------------------------------------- */
+@media (max-width: 1120px) and (min-width: 651px) {
+  .storefront-theme .garmin-showcase {
+    --garmin-row-height: 330px;
+  }
+
+  .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide {
+    flex-basis: calc((100% - 1.44rem) / 3);
+  }
+
+  .storefront-theme .garmin-showcase .product-visual {
+    flex-basis: 142px;
+    height: 142px !important;
+    min-height: 142px;
+  }
+
+  .storefront-theme .outlet-mosaic-grid {
+    grid-template-rows: repeat(2, 260px);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Celular
+   -------------------------------------------------------------------------- */
+@media (max-width: 650px) {
+  .storefront-theme .home-outlet-section .special-home-heading,
+  .storefront-theme .home-brand-showcase .special-home-heading {
+    color: #fff;
+    background: linear-gradient(100deg, var(--store-orange), #ff922f);
+  }
+
+  .storefront-theme .home-outlet-section .special-home-heading::before,
+  .storefront-theme .home-brand-showcase .special-home-heading::before {
+    display: none;
+  }
+
+  .storefront-theme .home-outlet-section .special-home-heading h2,
+  .storefront-theme .home-outlet-section .special-home-heading a,
+  .storefront-theme .home-brand-showcase .special-home-heading h2,
+  .storefront-theme .home-brand-showcase .special-home-heading a {
+    color: #fff;
+  }
+
+  .storefront-theme .outlet-mosaic-grid {
+    gap: .58rem;
+    padding: .65rem;
+    grid-auto-rows: 230px;
+  }
+
+  .storefront-theme .outlet-mosaic-card.is-featured {
+    min-height: 230px;
+  }
+
+  .storefront-theme .outlet-mosaic-card.is-featured .outlet-card-media img {
+    padding: .72rem !important;
+  }
+
+  .storefront-theme .outlet-mosaic-card.is-featured .outlet-card-copy {
+    padding: .72rem;
+  }
+
+  .storefront-theme .outlet-mosaic-card.is-compact .outlet-card-copy {
+    padding: .48rem .55rem .55rem;
+  }
+
+  .storefront-theme .garmin-showcase {
+    --garmin-row-height: auto;
+  }
+
+  .storefront-theme .garmin-showcase .home-brand-showcase-body {
+    padding: .65rem;
+    display: block;
+  }
+
+  .storefront-theme .garmin-showcase .home-brand-banner {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    margin-bottom: .65rem;
+  }
+
+  .storefront-theme .garmin-showcase .home-brand-products {
+    height: auto;
+  }
+
+  .storefront-theme .garmin-showcase .brand-showcase-track {
+    height: auto;
+  }
+
+  .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide {
+    height: auto;
+    flex: 0 0 min(72vw, 235px);
+  }
+
+  .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide > .product-card {
+    height: 330px !important;
+  }
+
+  .storefront-theme .garmin-showcase .product-visual {
+    flex: 0 0 145px;
+    height: 145px !important;
+    min-height: 145px;
+  }
+
+  .storefront-theme .garmin-showcase .special-home-heading a {
+    margin-right: 0;
+  }
+}
