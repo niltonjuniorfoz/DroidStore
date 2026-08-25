@@ -55,6 +55,9 @@ model Product {
   favorites        Favorite[]
   filterSelections ProductFilterSelection[]
   views            ProductView[]
+
+  @@index([active, updatedAt])
+  @@index([brand, active])
 }
 
 // Visualização da página do produto — mede procura real (cliques) para
@@ -174,6 +177,9 @@ model Variant {
   stockMovements StockMovement[]
   purchaseLots   PurchaseLot[]
   supplierItems  SupplierCatalogItem[]
+
+  @@index([productId, condition, price])
+  @@index([storage])
 }
 
 // Entrada de mercadoria com custo na moeda original da compra.

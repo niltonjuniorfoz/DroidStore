@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { getProducts, getPublicCatalogFilters } from "../../src/lib/storefront";
+import type { CatalogSection } from "../../src/lib/catalog";
+import { getCatalogPage, type CatalogSort } from "../../src/lib/catalogPagination";
 import CatalogPageClient from "./CatalogPageClient";
 
-// ISR: catálogo renderizado no servidor (Google enxerga os produtos reais)
-// e atualizado no máximo a cada 60 segundos. O client continua revalidando
-// preço/estoque ao vivo via /api/products depois da primeira pintura.
 export const revalidate = 60;
 
 export const metadata: Metadata = {
@@ -19,17 +17,52 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function numberParam(value: string | undefined) {
+  if (!value) return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+}
+
+function sectionFromCondition(value: string | undefined): CatalogSection {
+  return value === "Seminovos"
+    || value === "Excelente"
+    || value === "Muito Bom"
+    || value === "Bom"
+    || value === "Outlet"
+      ? "Seminovos"
+      : "Novos";
+}
+
+function exactCondition(value: string | undefined) {
+  return value === "Novo"
+    || value === "Novo Reembalado"
+    || value === "Excelente"
+    || value === "Muito Bom"
+    || value === "Bom"
+    || value === "Outlet"
+      ? value
+      : undefined;
+}
+
 export default async function CatalogPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const [initialCatalog, initialFilters] = await Promise.all([
-    getProducts(false, {
-      query: first(params.q),
-      brand: first(params.brand),
-      category: first(params.categoria) ?? first(params.category) ?? first(params.cat),
-      condition: first(params.condition),
-    }),
-    getPublicCatalogFilters(),
-  ]);
+  const condition = first(params.condition);
+  const sortValue = first(params.sort);
+  const sort: CatalogSort = sortValue === "low" || sortValue === "high" ? sortValue : "relevance";
 
-  return <CatalogPageClient initialCatalog={initialCatalog} initialFilters={initialFilters} />;
+  const initialPage = await getCatalogPage({
+    page: numberParam(first(params.page)),
+    pageSize: 30,
+    query: first(params.q),
+    brand: first(params.brand),
+    category: first(params.categoria) ?? first(params.category) ?? first(params.cat),
+    storage: first(params.storage),
+    section: sectionFromCondition(condition),
+    condition: exactCondition(condition),
+    minPrice: numberParam(first(params.minPrice)),
+    maxPrice: numberParam(first(params.maxPrice)),
+    sort,
+  });
+
+  return <CatalogPageClient initialPage={initialPage} />;
 }

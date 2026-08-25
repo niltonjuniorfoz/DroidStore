@@ -1,0 +1,143 @@
+/* ==========================================================================
+   Aura Tech V7 — catálogo paginado no servidor
+   ========================================================================== */
+
+.storefront-theme .catalog-results {
+  position: relative;
+}
+
+.storefront-theme .catalog-results.is-loading .product-grid {
+  opacity: .55;
+  pointer-events: none;
+  transition: opacity .18s ease;
+}
+
+.storefront-theme .catalog-updating {
+  display: inline-block;
+  margin-left: .55rem;
+  color: var(--store-orange);
+  font-size: .68rem;
+  font-weight: 600 !important;
+}
+
+.storefront-theme .catalog-request-error {
+  margin: 0 0 .9rem;
+  padding: .75rem .9rem;
+  border: 1px solid #ffd6b3;
+  border-radius: 10px;
+  background: #fff8f2;
+  color: #9d4b08;
+  font-size: .78rem;
+  font-weight: 500;
+}
+
+.storefront-theme .catalog-pagination {
+  width: 100%;
+  margin: 1.35rem 0 .35rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9eeeb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .65rem;
+}
+
+.storefront-theme .catalog-pagination > button,
+.storefront-theme .catalog-page-numbers button {
+  height: 38px;
+  border: 1px solid #dce3df;
+  border-radius: 9px;
+  background: #fff;
+  color: #28332d;
+  font: 600 .72rem "Inter", Arial, sans-serif;
+  cursor: pointer;
+  transition: border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.storefront-theme .catalog-pagination > button {
+  min-width: 96px;
+  padding: 0 .8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .28rem;
+}
+
+.storefront-theme .catalog-pagination > button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.storefront-theme .catalog-page-numbers {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.storefront-theme .catalog-page-numbers button {
+  width: 38px;
+  padding: 0;
+}
+
+.storefront-theme .catalog-pagination button:hover:not(:disabled),
+.storefront-theme .catalog-page-numbers button.is-active {
+  border-color: var(--store-orange);
+  color: var(--store-orange);
+  box-shadow: 0 5px 16px rgba(255, 121, 0, .10);
+  transform: translateY(-1px);
+}
+
+.storefront-theme .catalog-page-numbers button.is-active {
+  background: var(--store-orange);
+  color: #fff;
+}
+
+.storefront-theme .catalog-pagination button:disabled {
+  opacity: .42;
+  cursor: default;
+  transform: none;
+}
+
+.storefront-theme .catalog-page-ellipsis {
+  min-width: 18px;
+  text-align: center;
+  color: #8b958f;
+}
+
+.storefront-theme .catalog-page-summary {
+  padding: .55rem 0 1rem;
+  color: #7a857f;
+  text-align: center;
+  font-size: .68rem;
+  font-weight: 400;
+}
+
+@media (max-width: 650px) {
+  .storefront-theme .catalog-pagination {
+    gap: .35rem;
+    margin-top: 1rem;
+  }
+
+  .storefront-theme .catalog-pagination > button {
+    min-width: 42px;
+    width: 42px;
+    padding: 0;
+  }
+
+  .storefront-theme .catalog-pagination > button span {
+    display: none;
+  }
+
+  .storefront-theme .catalog-page-numbers {
+    gap: .25rem;
+  }
+
+  .storefront-theme .catalog-page-numbers button {
+    width: 34px;
+    height: 36px;
+  }
+
+  .storefront-theme .catalog-page-summary {
+    padding-bottom: 5.5rem;
+  }
+}

@@ -17,7 +17,7 @@ const CATEGORY_FAMILIES: Record<string, string[]> = {
     "caixas-de-som", "microfone", "fone-de-ouvido-headset",
   ],
   informatica: [
-    "notebook", "macbook", "computador-desktop", "imac", "mac-mini", "impressoras-3d",
+    "notebook", "notebooks", "macbook", "computador-desktop", "imac", "mac-mini", "impressoras-3d",
     "mouses", "pendrives", "rede-e-internet", "processadores", "teclado",
   ],
   drones: ["drone", "drones", "quadricoptero", "quadricopteros"],
