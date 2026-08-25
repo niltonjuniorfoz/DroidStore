@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   BadgeCheck, Box, CreditCard, Heart, PackageCheck, ShieldCheck, ShoppingBag, Truck,
 } from "lucide-react";
-import ModelViewer3D from "../../../src/components/ModelViewer3D";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "../../../src/components/CartProvider";
 import { useAuthGate } from "../../../src/components/AuthGateProvider";
@@ -18,20 +18,13 @@ import {
   type CatalogProduct,
 } from "../../../src/lib/catalog";
 import { getProductColorHex } from "../../../src/lib/productStandards";
+import {
+  applyProductVariant,
+  findMatchingProductVariant,
+  type ProductVariantOption,
+} from "../../../src/lib/productVariantSelection";
 
-type ProductVariantOption = {
-  id: string;
-  productId: string;
-  slug: string;
-  color: string;
-  storage: string;
-  condition: CatalogProduct["condition"];
-  price: number;
-  stock: number;
-  available: boolean;
-  imageUrl?: string;
-  model3dUrl?: string | null;
-};
+const ModelViewer3D = dynamic(() => import("../../../src/components/ModelViewer3D"), { ssr: false });
 
 
 function parseStorageInMb(storageStr: string): number {
@@ -129,9 +122,12 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
         setFavorite(favorites.some((item) => item.product.slug === slug));
       }
     });
-    void fetch(`/api/products?limit=12&exclude=${encodeURIComponent(slug)}`).then((response) => response.json()).then((items: CatalogProduct[]) => {
-      setRecommendations(items);
-    }).catch(() => undefined);
+    const recommendationTimer = window.setTimeout(() => {
+      void fetch(`/api/products?limit=8&exclude=${encodeURIComponent(slug)}`).then((response) => response.json()).then((items: CatalogProduct[]) => {
+        setRecommendations(items);
+      }).catch(() => undefined);
+    }, 600);
+    return () => window.clearTimeout(recommendationTimer);
   }, [slug]);
 
   async function toggleFavorite() {
@@ -195,71 +191,30 @@ export default function ProductPageClient({ slug, initialProduct }: ProductPageC
     setSelectedStorage(storage);
     setSelectedCondition(condition);
 
-    const exactMatch = familyVariants.find(
-      (v) => (v.color?.toLowerCase() === color.toLowerCase() || !v.color) &&
-             (v.storage === storage || !v.storage) &&
-             v.condition === condition
-    );
-
-    const colorStorageMatch = familyVariants.find(
-      (v) => (v.color?.toLowerCase() === color.toLowerCase() || !v.color) &&
-             (v.storage === storage || !v.storage)
-    );
-
-    const colorMatch = familyVariants.find(
-      (v) => v.color?.toLowerCase() === color.toLowerCase()
-    );
-
-    const match = exactMatch || colorStorageMatch || colorMatch;
-
-    if (match) {
-      try {
-        const res = await fetch(`/api/products/${encodeURIComponent(match.slug)}`);
-        if (res.ok) {
-          const fullItem: CatalogProduct & { familyVariants?: ProductVariantOption[] } = await res.json();
-          setProduct(fullItem);
-          setSelectedImage(0);
-          setViewing3D(false);
-          setSelectedColor(fullItem.color);
-          setSelectedStorage(fullItem.storage);
-          setSelectedCondition(fullItem.condition);
-          if (fullItem.familyVariants?.length) setFamilyVariants(fullItem.familyVariants);
-          window.history.replaceState(null, "", `/produto/${fullItem.slug}`);
-          return;
-        }
-      } catch {
-        // Fallback para estado local se a API falhar
-      }
-    }
-
+    const match = findMatchingProductVariant(familyVariants, color, storage, condition);
     if (!match) return;
 
-    setProduct((prev) => {
-      if (!prev) return prev;
-      const baseModel = getBaseModelName(prev.name);
-
-      const newTitle = `${baseModel} - ${match.storage} - ${match.color} - ${match.condition}`;
-      const basePrice = prev.price > 0 ? prev.price : 3499;
-
-      return {
-        ...prev,
-        name: newTitle,
-        color: match.color,
-        storage: match.storage,
-        condition: match.condition,
-        price: match?.price ?? basePrice,
-        stock: match.stock,
-        available: match.available,
-        imageUrl: match?.imageUrl ?? prev.imageUrl,
-        model3dUrl: match?.model3dUrl ?? prev.model3dUrl,
-        images: match?.imageUrl ? [match.imageUrl] : prev.images,
-        slug: match?.slug ?? prev.slug,
-      };
-    });
+    setProduct((current) => current ? applyProductVariant(current, match) : current);
     setSelectedColor(match.color);
     setSelectedStorage(match.storage);
     setSelectedCondition(match.condition);
     setSelectedImage(0);
+    setViewing3D(false);
+    window.history.replaceState(null, "", `/produto/${match.slug}`);
+
+    const currentProductId = product?.productId ?? product?.id;
+    if (match.productId !== currentProductId || match.slug !== product?.slug) {
+      try {
+        const res = await fetch(`/api/products/${encodeURIComponent(match.slug)}`);
+        if (res.ok) {
+          const fullItem: CatalogProduct & { familyVariants?: ProductVariantOption[] } = await res.json();
+          setProduct(applyProductVariant(fullItem, match));
+          if (fullItem.familyVariants?.length) setFamilyVariants(fullItem.familyVariants);
+        }
+      } catch {
+        // A seleção local já mantém a variação funcional se a API falhar.
+      }
+    }
   }
 
 

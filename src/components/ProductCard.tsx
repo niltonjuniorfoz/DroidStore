@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Box, CreditCard, Flame, ShoppingBag } from "lucide-react";
 import { useCart } from "./CartProvider";
 import { useAuthGate } from "./AuthGateProvider";
@@ -9,6 +11,7 @@ import { useSiteContent } from "./SiteContentProvider";
 import { isCatalogProductAvailable } from "../lib/storeMode";
 
 export default function ProductCard({ product }: { product: CatalogProduct }) {
+  const router = useRouter();
   const { add } = useCart();
   const { requireAuth } = useAuthGate();
   const { content } = useSiteContent();
@@ -31,14 +34,15 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
   return (
     <article
       className={`product-card ${!isAvailable ? "is-out-of-stock" : ""}`}
+      onPointerDown={() => router.prefetch(productHref)}
       onClick={(event) => {
         const target = event.target as HTMLElement;
         if (target.closest("a, button")) return;
-        window.location.assign(productHref);
+        router.push(productHref);
       }}
     >
       <div className="product-visual" style={{ "--phone": product.accent } as React.CSSProperties}>
-        <a href={productHref} className="product-image-link" aria-label={`Ver ${product.name}`}>
+        <Link href={productHref} prefetch={false} className="product-image-link" aria-label={`Ver ${product.name}`}>
           <span className={`condition ${isOutlet ? "is-outlet" : ""}`}>{isOutlet && <Flame aria-hidden="true" />}{product.condition}</span>
           <span className="discount-badge-top-right">{pixDiscountPercent}% OFF NO PIX</span>
           {product.model3dUrl && (
@@ -73,14 +77,14 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
           ) : (
             <ProductImage alt="" />
           )}
-        </a>
+        </Link>
       </div>
 
       <div className="product-body">
         <div className="product-info-top">
-          <a href={productHref} className="product-title-link">
+          <Link href={productHref} prefetch={false} className="product-title-link">
             <h3 className="product-card-clean-title">{product.name}</h3>
-          </a>
+          </Link>
           {variantSummary && <span className="product-variant-summary">{variantSummary}</span>}
         </div>
 
@@ -107,9 +111,9 @@ export default function ProductCard({ product }: { product: CatalogProduct }) {
         </div>
 
         {hasGroupedVariants && isAvailable ? (
-          <a className="card-buy-button" href={productHref} aria-label={`Ver opções de ${product.name}`}>
+          <Link className="card-buy-button" href={productHref} prefetch={false} aria-label={`Ver opções de ${product.name}`}>
             <span>Ver opções</span>
-          </a>
+          </Link>
         ) : (
           <button
             className={`card-buy-button ${!isAvailable ? "disabled-btn" : ""}`}

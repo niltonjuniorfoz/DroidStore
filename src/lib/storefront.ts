@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import prisma from "./prisma";
 import {
@@ -17,6 +18,7 @@ import {
 import { DEFAULT_STORE_MODE, isVariantAvailable, normalizeStoreMode, type StoreModeValue } from "./storeMode";
 import { resolveStorefrontNavigation } from "./storefrontNavigation";
 import { categoryFamilyTokens, matchesCategory } from "./catalogRouting";
+import type { ProductVariantOption } from "./productVariantSelection";
 
 const conditionLabels: Record<string, CatalogProduct["condition"]> = {
   NOVO: "Novo", NOVO_REEMBALADO: "Novo", EXCELENTE: "Excelente",
@@ -138,26 +140,11 @@ export async function getProducts(
   }
 }
 
-export type ProductVariantOption = {
-  id: string;
-  productId: string;
-  slug: string;
-  color: string;
-  storage: string;
-  condition: CatalogProduct["condition"];
-  price: number;
-  stock: number;
-  available: boolean;
-  imageUrl?: string;
-  model3dUrl?: string | null;
-};
-
 export type StorefrontProductDetail = CatalogProduct & {
   familyVariants: ProductVariantOption[];
 };
 
-// cache() deduplica a busca entre generateMetadata e a página na mesma requisição.
-export const getProductBySlug = cache(async (slug: string): Promise<StorefrontProductDetail | null> => {
+const getProductBySlugCached = unstable_cache(async (slug: string): Promise<StorefrontProductDetail | null> => {
   try {
     const [storeMode, product] = await Promise.all([getStoreMode(), prisma.product.findFirst({
       where: { slug, active: true },
@@ -180,7 +167,7 @@ export const getProductBySlug = cache(async (slug: string): Promise<StorefrontPr
   const fallback = products.find((item) => item.slug === slug);
   if (!fallback) return null;
   return { ...fallback, familyVariants: await getFamilyVariantsForProduct(fallback) };
-});
+}, ["storefront-product-detail-v2"], { revalidate: 45 });
 
 export { getBaseModelName };
 
@@ -331,6 +318,10 @@ export const getStoreMode = cache(async (): Promise<StoreModeValue> => {
     return DEFAULT_STORE_MODE;
   }
 });
+
+// React cache deduplica metadata/página; o cache do Next evita repetir as duas
+// consultas pesadas a cada abertura do mesmo produto.
+export const getProductBySlug = cache(getProductBySlugCached);
 
 // Filtros públicos do catálogo (mesma resposta da rota /api/catalog-filters).
 export async function getPublicCatalogFilters() {
