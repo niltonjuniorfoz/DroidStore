@@ -180,8 +180,6 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
             startScrollLeft: track.scrollLeft,
             moved: false,
           };
-          track.setPointerCapture(event.pointerId);
-          setIsDragging(true);
           markInteracting();
         }}
         onPointerMove={(event) => {
@@ -190,7 +188,11 @@ export default function MobileAutoCarousel({ children, className = "", label }: 
           if (!track || !drag || drag.pointerId !== event.pointerId) return;
 
           const deltaX = event.clientX - drag.startX;
-          if (Math.abs(deltaX) > 5) drag.moved = true;
+          if (Math.abs(deltaX) > 5 && !drag.moved) {
+            drag.moved = true;
+            track.setPointerCapture(event.pointerId);
+            setIsDragging(true);
+          }
           if (!drag.moved) return;
 
           event.preventDefault();
