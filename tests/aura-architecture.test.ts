@@ -111,10 +111,14 @@ test("prévia permite margem individual e exibe lucro calculado", async () => {
   const itemRoute = await source("app/api/admin/aura-import/[id]/items/[itemId]/route.ts");
   const service = await source("src/lib/aura/jobService.ts");
   const page = await source("app/admin/produtos/importar/page.tsx");
+  const styles = await source("app/admin/produtos/importar/page.module.css");
   assert.match(itemRoute, /markupPercent/);
   assert.match(service, /updateAuraImportItemMarkup/);
   assert.match(service, /calculateAuraPrice/);
   assert.match(page, /Margem individual/);
+  assert.match(page, /<span>%<\/span>/);
+  assert.match(styles, /\.marginEditor input[^}]+appearance: textfield/);
+  assert.match(styles, /\.marginEditor span[^}]+flex: 0 0 auto/);
   assert.match(page, /salePrice - convertedCost/);
 });
 

@@ -126,7 +126,7 @@
 .previewTable th:nth-child(5) { width: 72px; }
 .previewTable th:nth-child(6), .previewTable th:nth-child(7) { width: 74px; }
 .previewTable th:nth-child(8), .previewTable th:nth-child(10), .previewTable th:nth-child(11) { width: 90px; }
-.previewTable th:nth-child(9) { width: 68px; }
+.previewTable th:nth-child(9) { width: 76px; }
 .previewTable th:nth-child(12) { width: 58px; }
 .previewTable th:nth-child(13) { width: 66px; }
 .previewTable th:nth-child(14) { width: 112px; }
@@ -136,10 +136,11 @@
 .productCell div { display: grid; gap: 2px; }
 .productCell strong { display: block; max-width: 205px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .productCell small { color: #7a847f; }
-.marginEditor { display: grid; grid-template-columns: minmax(0, 1fr) 16px; align-items: center; width: 58px; overflow: hidden; border: 1px solid #d6dfda; border-radius: 4px; background: #fff; }
-.marginEditor:focus-within { border-color: #ff8a24; box-shadow: 0 0 0 2px #ff79001a; }
-.marginEditor input { min-width: 0; width: 100%; min-height: 26px; padding: 0 2px 0 6px; border: 0; outline: 0; background: transparent; font: inherit; font-size: 9px; font-variant-numeric: tabular-nums; }
-.marginEditor span { color: #69746f; font-size: 8px; font-weight: 800; }
+.marginEditor { display: inline-flex; align-items: center; gap: 3px; width: max-content; max-width: 100%; color: #4f5a55; }
+.marginEditor input { width: 48px; min-width: 0; height: 24px; padding: 0 3px; border: 0; border-bottom: 1px solid #b8c2bd; border-radius: 0; outline: 0; background: transparent; color: #17201d; font: inherit; font-size: 9px; font-weight: 750; line-height: 1; text-align: right; font-variant-numeric: tabular-nums; appearance: textfield; }
+.marginEditor input::-webkit-inner-spin-button, .marginEditor input::-webkit-outer-spin-button { margin: 0; appearance: none; }
+.marginEditor input:focus { border-bottom-color: #ff7900; box-shadow: 0 1px 0 #ff7900; }
+.marginEditor span { flex: 0 0 auto; color: #69746f; font-size: 9px; font-weight: 800; line-height: 1; }
 .profit { color: #148345; white-space: nowrap; }
 .action { display: inline-flex; padding: 4px 7px; border-radius: 4px; font-weight: 800; }
 .create { color: #176b3b; background: #e5f7ec; }
