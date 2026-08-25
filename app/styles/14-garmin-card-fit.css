@@ -1,115 +1,201 @@
 /* ==========================================================================
-   Aura Tech - Garmin V5
-   Cards Garmin usam a mesma proporcao e altura natural dos demais ProductCard.
+   Aura Tech - Garmin V5.2
+   Banner inteiro + bordas corretas + cards sem corte.
    ========================================================================== */
 
 .storefront-theme .garmin-showcase {
-  --garmin-card-min-height: 480px;
+  --garmin-row-size: 470px;
+  position: relative;
+  overflow: hidden !important;
+  border: 1px solid #dbe4de;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .04);
 }
 
-/* Remove a corrente de alturas fixas que estava cortando preco/parcelas/botao. */
+.storefront-theme .garmin-showcase:hover,
+.storefront-theme .garmin-showcase:has(.mobile-auto-track.is-interacting) {
+  border-color: var(--store-orange);
+}
+
+/* Corpo da seção */
 .storefront-theme .garmin-showcase .home-brand-showcase-body {
-  min-height: var(--garmin-card-min-height);
-  grid-template-columns: minmax(300px, 27%) minmax(0, 1fr);
+  width: 100%;
+  min-height: 0 !important;
+  padding: .9rem;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: var(--garmin-row-size) minmax(0, 1fr);
+  gap: .85rem;
   align-items: stretch;
+  overflow: hidden;
+  background: #fff;
 }
 
+/* --------------------------------------------------------------------------
+   Banner: quadrado e SEM CORTAR a imagem.
+   -------------------------------------------------------------------------- */
 .storefront-theme .garmin-showcase .home-brand-banner {
-  width: 100%;
-  height: auto;
-  min-height: var(--garmin-card-min-height);
-  align-self: stretch;
+  width: var(--garmin-row-size) !important;
+  height: var(--garmin-row-size) !important;
+  min-width: var(--garmin-row-size);
+  min-height: var(--garmin-row-size) !important;
+  align-self: start;
+  display: block;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid #dfe5e1;
+  border-radius: 14px;
+  background: #050505;
+  transition:
+    border-color .3s ease,
+    box-shadow .3s ease,
+    transform .3s cubic-bezier(.22, 1, .36, 1);
+}
+
+.storefront-theme .garmin-showcase .home-brand-banner:hover {
+  border-color: var(--store-orange);
+  box-shadow: 0 10px 24px rgba(255, 121, 0, .11);
+  transform: translateY(-2px);
 }
 
 .storefront-theme .garmin-showcase .home-brand-banner img {
+  display: block;
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover !important;
-  object-position: center !important;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 0 !important;
+  box-sizing: border-box;
+  object-fit: contain !important;
+  object-position: center center !important;
+  background: #050505;
+  transition: transform .38s cubic-bezier(.22, 1, .36, 1);
 }
 
+.storefront-theme .garmin-showcase .home-brand-banner:hover img {
+  transform: scale(1.018);
+}
+
+/* --------------------------------------------------------------------------
+   Carrossel: exatamente a mesma altura do banner.
+   -------------------------------------------------------------------------- */
 .storefront-theme .garmin-showcase .home-brand-products {
-  height: auto !important;
-  min-height: var(--garmin-card-min-height);
-  overflow: visible;
+  min-width: 0;
+  width: 100%;
+  height: var(--garmin-row-size) !important;
+  min-height: var(--garmin-row-size) !important;
+  padding: 0;
+  display: flex;
   align-items: stretch;
+  overflow: hidden !important;
+  background: #fff;
 }
 
 .storefront-theme .garmin-showcase .home-brand-products .product-carousel-shell {
-  height: auto !important;
-  min-height: var(--garmin-card-min-height);
+  width: 100%;
+  min-width: 0;
+  height: var(--garmin-row-size) !important;
+  min-height: var(--garmin-row-size) !important;
 }
 
 .storefront-theme .garmin-showcase .brand-showcase-track {
-  height: auto !important;
-  min-height: var(--garmin-card-min-height);
-  overflow-y: visible !important;
+  width: 100%;
+  height: var(--garmin-row-size) !important;
+  min-height: var(--garmin-row-size) !important;
+  padding: 0;
+  gap: .72rem;
   align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden !important;
 }
 
 .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide {
-  height: auto !important;
-  min-height: var(--garmin-card-min-height);
+  height: var(--garmin-row-size) !important;
+  min-height: var(--garmin-row-size) !important;
+  flex-basis: calc((100% - 2.16rem) / 4);
   display: flex;
   align-items: stretch;
 }
 
 .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide > .product-card,
 .storefront-theme .garmin-showcase .product-card {
-  height: auto !important;
-  min-height: var(--garmin-card-min-height) !important;
+  width: 100%;
+  height: var(--garmin-row-size) !important;
+  min-height: var(--garmin-row-size) !important;
   align-self: stretch;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-color: #dfe5e1;
+  border-radius: 14px;
 }
 
-/* Mesma imagem dos cards comuns. */
+.storefront-theme .garmin-showcase .product-card:hover {
+  border-color: var(--store-orange);
+  box-shadow: 0 10px 24px rgba(255, 121, 0, .11);
+}
+
+/* --------------------------------------------------------------------------
+   Foto e conteúdo dos cards.
+   -------------------------------------------------------------------------- */
 .storefront-theme .garmin-showcase .product-visual {
-  flex: 0 0 205px !important;
+  flex: 0 0 188px !important;
   width: 100%;
-  height: 205px !important;
-  min-height: 205px !important;
+  height: 188px !important;
+  min-height: 188px !important;
+  overflow: hidden;
+}
+
+.storefront-theme .garmin-showcase .product-image-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 .storefront-theme .garmin-showcase .catalog-photo,
 .storefront-theme .garmin-showcase .product-photo-primary,
 .storefront-theme .garmin-showcase .product-photo-secondary {
+  display: block;
   width: 100% !important;
   height: 100% !important;
-  padding: .85rem 1rem !important;
+  margin: 0;
+  padding: .75rem .9rem !important;
   box-sizing: border-box;
   object-fit: contain !important;
-  object-position: center !important;
+  object-position: center center !important;
 }
 
-/* Mesma hierarquia vertical dos demais cards. */
 .storefront-theme .garmin-showcase .product-body {
   min-height: 0;
   flex: 1 1 auto;
-  padding: .8rem .85rem .9rem;
+  padding: .7rem .75rem .75rem;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .storefront-theme .garmin-showcase .product-info-top {
   flex: 0 0 auto;
-  min-height: 58px;
+  min-height: 56px;
 }
 
 .storefront-theme .garmin-showcase .product-card-clean-title {
   min-height: 3.15em;
   max-height: 3.15em;
-  margin: .08rem 0 .22rem;
+  margin: .08rem 0 .2rem;
   overflow: hidden;
-  font-size: .75rem;
-  line-height: 1.32;
+  font-size: .72rem;
+  line-height: 1.3;
   -webkit-line-clamp: 3;
 }
 
 .storefront-theme .garmin-showcase .product-variant-summary {
-  min-height: 1.05rem;
-  max-height: 1.05rem;
-  margin-top: .08rem;
+  min-height: .95rem;
+  max-height: .95rem;
+  margin-top: .06rem;
   overflow: hidden;
-  line-height: 1.25;
 }
 
 .storefront-theme .garmin-showcase .product-price {
@@ -120,79 +206,135 @@
 }
 
 .storefront-theme .garmin-showcase .pix-amount-wrapper {
-  min-height: 54px;
+  min-height: 50px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
 }
 
 .storefront-theme .garmin-showcase .pix-amount-val {
-  font-size: 1.45rem;
+  font-size: 1.25rem;
 }
 
 .storefront-theme .garmin-showcase .card-installments-block {
-  min-height: 43px;
+  min-height: 40px;
   box-sizing: border-box;
 }
 
 .storefront-theme .garmin-showcase .installment-line-item {
-  font-size: .61rem;
-  line-height: 1.3;
+  font-size: .56rem;
+  line-height: 1.28;
 }
 
 .storefront-theme .garmin-showcase .card-buy-button {
   flex: 0 0 40px;
   width: 100%;
   min-height: 40px;
-  margin-top: .65rem;
-  font-size: .68rem;
+  margin-top: .5rem;
   box-sizing: border-box;
+  font-size: .7rem;
 }
 
-/* A secao cresce caso algum card precise de alguns pixels extras. */
-.storefront-theme .garmin-showcase,
-.storefront-theme .garmin-showcase .home-brand-showcase-body {
-  overflow: visible;
+/* Controles permanecem no cabeçalho, como nas outras prateleiras. */
+.storefront-theme .garmin-showcase .product-carousel-controls {
+  top: 9px;
+  right: .9rem;
 }
 
-/* Mantem apenas o recorte horizontal do carrossel. */
-.storefront-theme .garmin-showcase .home-brand-products,
-.storefront-theme .garmin-showcase .product-carousel-shell {
-  min-width: 0;
+.storefront-theme .garmin-showcase .special-home-heading a {
+  margin-right: 70px;
 }
 
-@media (max-width: 1120px) and (min-width: 651px) {
+/* --------------------------------------------------------------------------
+   Desktop intermediário.
+   -------------------------------------------------------------------------- */
+@media (max-width: 1320px) and (min-width: 1001px) {
   .storefront-theme .garmin-showcase {
-    --garmin-card-min-height: 455px;
+    --garmin-row-size: 420px;
   }
 
-  .storefront-theme .garmin-showcase .home-brand-showcase-body {
-    grid-template-columns: minmax(260px, 29%) minmax(0, 1fr);
+  .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide {
+    flex-basis: calc((100% - 1.44rem) / 3);
   }
 
   .storefront-theme .garmin-showcase .product-visual {
-    flex-basis: 185px !important;
-    height: 185px !important;
-    min-height: 185px !important;
+    flex-basis: 170px !important;
+    height: 170px !important;
+    min-height: 170px !important;
   }
 
   .storefront-theme .garmin-showcase .product-card-clean-title {
-    font-size: .7rem;
+    font-size: .68rem;
+  }
+
+  .storefront-theme .garmin-showcase .pix-amount-val {
+    font-size: 1.12rem;
   }
 }
 
+/* --------------------------------------------------------------------------
+   Tablet.
+   -------------------------------------------------------------------------- */
+@media (max-width: 1000px) and (min-width: 651px) {
+  .storefront-theme .garmin-showcase {
+    --garmin-row-size: 360px;
+  }
+
+  .storefront-theme .garmin-showcase .home-brand-showcase-body {
+    grid-template-columns: var(--garmin-row-size) minmax(0, 1fr);
+  }
+
+  .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide {
+    flex-basis: calc((100% - .72rem) / 2);
+  }
+
+  .storefront-theme .garmin-showcase .product-visual {
+    flex-basis: 145px !important;
+    height: 145px !important;
+    min-height: 145px !important;
+  }
+
+  .storefront-theme .garmin-showcase .product-info-top {
+    min-height: 48px;
+  }
+
+  .storefront-theme .garmin-showcase .product-card-clean-title {
+    min-height: 2.65em;
+    max-height: 2.65em;
+    font-size: .62rem;
+    -webkit-line-clamp: 2;
+  }
+
+  .storefront-theme .garmin-showcase .pix-amount-wrapper {
+    min-height: 45px;
+  }
+
+  .storefront-theme .garmin-showcase .card-installments-block {
+    min-height: 34px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Celular.
+   -------------------------------------------------------------------------- */
 @media (max-width: 650px) {
   .storefront-theme .garmin-showcase {
-    --garmin-card-min-height: 355px;
+    --garmin-row-size: auto;
+    overflow: hidden !important;
+    border-radius: 15px;
   }
 
   .storefront-theme .garmin-showcase .home-brand-showcase-body {
     display: block;
-    min-height: 0;
+    padding: .65rem;
+    overflow: hidden;
   }
 
   .storefront-theme .garmin-showcase .home-brand-banner {
-    min-height: 0;
+    width: 100% !important;
+    height: auto !important;
+    min-width: 0;
+    min-height: 0 !important;
     aspect-ratio: 1 / 1;
     margin-bottom: .65rem;
   }
@@ -200,23 +342,26 @@
   .storefront-theme .garmin-showcase .home-brand-products,
   .storefront-theme .garmin-showcase .home-brand-products .product-carousel-shell,
   .storefront-theme .garmin-showcase .brand-showcase-track {
-    min-height: 0;
+    height: auto !important;
+    min-height: 0 !important;
   }
 
-  .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide,
+  .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide {
+    height: 355px !important;
+    min-height: 355px !important;
+    flex: 0 0 min(72vw, 235px);
+  }
+
   .storefront-theme .garmin-showcase .brand-showcase-track > .carousel-slide > .product-card,
   .storefront-theme .garmin-showcase .product-card {
-    min-height: var(--garmin-card-min-height) !important;
+    height: 355px !important;
+    min-height: 355px !important;
   }
 
   .storefront-theme .garmin-showcase .product-visual {
-    flex-basis: 155px !important;
-    height: 155px !important;
-    min-height: 155px !important;
-  }
-
-  .storefront-theme .garmin-showcase .product-info-top {
-    min-height: 52px;
+    flex-basis: 145px !important;
+    height: 145px !important;
+    min-height: 145px !important;
   }
 
   .storefront-theme .garmin-showcase .product-card-clean-title {
@@ -227,15 +372,19 @@
   }
 
   .storefront-theme .garmin-showcase .pix-amount-wrapper {
-    min-height: 48px;
+    min-height: 44px;
   }
 
   .storefront-theme .garmin-showcase .card-installments-block {
-    min-height: 38px;
+    min-height: 34px;
   }
 
   .storefront-theme .garmin-showcase .card-buy-button {
-    flex-basis: 34px;
     min-height: 34px;
+    flex-basis: 34px;
+  }
+
+  .storefront-theme .garmin-showcase .special-home-heading a {
+    margin-right: 0;
   }
 }
