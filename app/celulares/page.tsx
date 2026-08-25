@@ -52,7 +52,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
 
   const initialPage = await getCatalogPage({
     page: numberParam(first(params.page)),
-    pageSize: 30,
+    pageSize: numberParam(first(params.pageSize)) ?? 30,
     query: first(params.q),
     brand: first(params.brand),
     category: first(params.categoria) ?? first(params.category) ?? first(params.cat),

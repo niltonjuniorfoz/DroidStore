@@ -1,5 +1,5 @@
 import type { Condition, Prisma } from "@prisma/client";
-import type { CatalogProduct, CatalogSection } from "./catalog";
+import { getBaseModelName, type CatalogProduct, type CatalogSection } from "./catalog";
 import { categoryFamilyTokens } from "./catalogRouting";
 import prisma from "./prisma";
 import { getStoreMode, mapProduct } from "./storefront";
@@ -71,6 +71,14 @@ type OmitFilters = {
   price?: boolean;
 };
 
+type FamilyCandidate = {
+  key: string;
+  ids: string[];
+  featured: boolean;
+  updatedAt: number;
+  minPrice: number;
+};
+
 function clean(value: string | undefined) {
   const result = value?.trim();
   return result || undefined;
@@ -82,6 +90,18 @@ function numberOrUndefined(value: number | undefined) {
 
 function exactCondition(value: string | undefined): Condition | undefined {
   return value ? CONDITION_CODES[value] : undefined;
+}
+
+function normalizeToken(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+}
+
+function familyKey(name: string, brand: string, section: CatalogSection) {
+  return `${section}:${normalizeToken(brand)}:${normalizeToken(getBaseModelName(name))}`;
 }
 
 function variantWhere(input: CatalogPageInput, omit: OmitFilters = {}): Prisma.VariantWhereInput {
@@ -179,57 +199,95 @@ function storageSortValue(value: string) {
   return amount;
 }
 
-async function fetchPageRows(input: CatalogPageInput, page: number, pageSize: number) {
-  const where = productWhere(input);
-  const include = productInclude(input);
-  const sort = input.sort ?? "relevance";
+function groupCandidates(
+  candidates: Array<{
+    id: string;
+    name: string;
+    brand: string;
+    featured: boolean;
+    updatedAt: Date;
+    variants: Array<{ price: unknown }>;
+  }>,
+  section: CatalogSection,
+  sort: CatalogSort,
+) {
+  const families = new Map<string, FamilyCandidate>();
 
-  if (sort === "relevance") {
-    return prisma.product.findMany({
-      where,
-      include,
-      orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    });
+  for (const candidate of candidates) {
+    const key = familyKey(candidate.name, candidate.brand, section);
+    const price = Number(candidate.variants[0]?.price ?? 0);
+    const timestamp = candidate.updatedAt.getTime();
+    const current = families.get(key);
+
+    if (!current) {
+      families.set(key, {
+        key,
+        ids: [candidate.id],
+        featured: candidate.featured,
+        updatedAt: timestamp,
+        minPrice: price,
+      });
+      continue;
+    }
+
+    current.ids.push(candidate.id);
+    current.featured = current.featured || candidate.featured;
+    current.updatedAt = Math.max(current.updatedAt, timestamp);
+    current.minPrice = current.minPrice > 0 && price > 0
+      ? Math.min(current.minPrice, price)
+      : Math.max(current.minPrice, price);
   }
 
-  // Ordenação por preço precisa considerar o menor preço da variante que
-  // realmente atende aos filtros. Carregamos apenas id + 1 Decimal por produto,
-  // nunca imagens/descritivos do catálogo inteiro.
-  const candidates = await prisma.product.findMany({
-    where,
-    select: {
-      id: true,
-      variants: {
-        where: variantWhere(input),
-        orderBy: { price: "asc" },
-        take: 1,
-        select: { price: true },
-      },
-    },
+  const list = [...families.values()];
+  list.sort((left, right) => {
+    if (sort === "low") return left.minPrice - right.minPrice || left.key.localeCompare(right.key);
+    if (sort === "high") return right.minPrice - left.minPrice || left.key.localeCompare(right.key);
+    if (left.featured !== right.featured) return left.featured ? -1 : 1;
+    return right.updatedAt - left.updatedAt || left.key.localeCompare(right.key);
   });
+  return list;
+}
 
-  candidates.sort((left, right) => {
-    const a = Number(left.variants[0]?.price ?? 0);
-    const b = Number(right.variants[0]?.price ?? 0);
-    return sort === "low" ? a - b : b - a;
-  });
+function groupMappedProducts(
+  mapped: CatalogProduct[],
+  selectedFamilies: FamilyCandidate[],
+  section: CatalogSection,
+) {
+  const byFamily = new Map<string, CatalogProduct[]>();
+  for (const product of mapped) {
+    const key = familyKey(product.name, product.brand, section);
+    const list = byFamily.get(key) ?? [];
+    list.push(product);
+    byFamily.set(key, list);
+  }
 
-  const pageIds = candidates
-    .slice((page - 1) * pageSize, page * pageSize)
-    .map((item) => item.id);
+  return selectedFamilies.flatMap((family) => {
+    const items = byFamily.get(family.key) ?? [];
+    if (!items.length) return [];
 
-  if (!pageIds.length) return [];
+    const sorted = [...items].sort((left, right) => {
+      if (left.available !== right.available) return left.available ? -1 : 1;
+      return left.price - right.price;
+    });
+    const representative = sorted[0];
+    const colors = Array.from(new Set(items.flatMap((item) =>
+      item.availableColors?.length ? item.availableColors : [item.color],
+    ).filter(Boolean)));
+    const storages = Array.from(new Set(items.flatMap((item) =>
+      item.availableStorages?.length ? item.availableStorages : [item.storage],
+    ).filter(Boolean))).sort((a, b) => storageSortValue(a) - storageSortValue(b) || a.localeCompare(b, "pt-BR"));
 
-  const rows = await prisma.product.findMany({
-    where: { id: { in: pageIds } },
-    include,
-  });
-  const byId = new Map(rows.map((row) => [row.id, row]));
-  return pageIds.flatMap((id) => {
-    const row = byId.get(id);
-    return row ? [row] : [];
+    return [{
+      ...representative,
+      name: getBaseModelName(representative.name),
+      price: Math.min(...items.map((item) => item.price)),
+      stock: items.reduce((total, item) => total + Math.max(0, item.stock), 0),
+      available: items.some((item) => item.available),
+      variantCount: items.reduce((total, item) => total + Math.max(1, item.variantCount ?? 1), 0),
+      availableColors: colors,
+      availableStorages: storages,
+      catalogSection: section,
+    } satisfies CatalogProduct];
   });
 }
 
@@ -244,18 +302,34 @@ export async function getCatalogPage(rawInput: CatalogPageInput = {}): Promise<C
     sort: rawInput.sort === "low" || rawInput.sort === "high" ? rawInput.sort : "relevance",
   };
 
-  const pageSize = Math.min(Math.max(Math.trunc(rawInput.pageSize ?? 30), 12), 60);
+  const pageSize = Math.min(Math.max(Math.trunc(rawInput.pageSize ?? 30), 12), 90);
   const requestedPage = Math.max(1, Math.trunc(rawInput.page ?? 1));
+  const section = input.section ?? "Novos";
+  const sort = input.sort ?? "relevance";
 
   const brandWhere = productWhere(input, { brand: true });
   const categoryWhere = productWhere(input, { category: true });
   const storageProductWhere = productWhere(input, { storage: true });
   const priceProductWhere = productWhere(input, { price: true });
 
-  const [storeMode, total, rows, brandGroups, categoryOptions, storageRows, priceAggregate] = await Promise.all([
+  const [storeMode, candidates, brandGroups, categoryOptions, storageRows, priceAggregate] = await Promise.all([
     getStoreMode(),
-    prisma.product.count({ where: productWhere(input) }),
-    fetchPageRows(input, requestedPage, pageSize),
+    prisma.product.findMany({
+      where: productWhere(input),
+      select: {
+        id: true,
+        name: true,
+        brand: true,
+        featured: true,
+        updatedAt: true,
+        variants: {
+          where: variantWhere(input),
+          orderBy: { price: "asc" },
+          take: 1,
+          select: { price: true },
+        },
+      },
+    }),
     prisma.product.groupBy({
       by: ["brand"],
       where: brandWhere,
@@ -294,15 +368,23 @@ export async function getCatalogPage(rawInput: CatalogPageInput = {}): Promise<C
     }),
   ]);
 
-  const mapped = rows.map((row) => mapProduct(row, storeMode));
-  if ((input.sort ?? "relevance") === "relevance") {
-    mapped.sort((left, right) => {
-      if (left.available !== right.available) return left.available ? -1 : 1;
-      return 0;
-    });
-  }
-
+  const families = groupCandidates(candidates, section, sort);
+  const total = families.length;
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(requestedPage, pages);
+  const selectedFamilies = families.slice((page - 1) * pageSize, page * pageSize);
+  const selectedIds = selectedFamilies.flatMap((family) => family.ids);
+
+  const rows = selectedIds.length
+    ? await prisma.product.findMany({
+        where: { id: { in: selectedIds } },
+        include: productInclude(input),
+      })
+    : [];
+
+  const mapped = rows.map((row) => mapProduct(row, storeMode));
+  const products = groupMappedProducts(mapped, selectedFamilies, section);
+
   const brands = brandGroups
     .map((item) => item.brand.trim())
     .filter(Boolean)
@@ -314,9 +396,9 @@ export async function getCatalogPage(rawInput: CatalogPageInput = {}): Promise<C
     .sort((a, b) => storageSortValue(a) - storageSortValue(b) || a.localeCompare(b, "pt-BR"));
 
   return {
-    products: mapped,
+    products,
     total,
-    page: Math.min(requestedPage, pages),
+    page,
     pageSize,
     pages,
     facets: {

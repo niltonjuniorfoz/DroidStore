@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import ProductCard from "../../src/components/ProductCard";
 import CatalogCarousel, { type CatalogSlide } from "../../src/components/CatalogCarousel";
 import { useSiteContent } from "../../src/components/SiteContentProvider";
-import { groupCatalogProducts, type CatalogSection } from "../../src/lib/catalog";
+import type { CatalogSection } from "../../src/lib/catalog";
 import type { CatalogPageResult, CatalogSort } from "../../src/lib/catalogPagination";
 
 type CatalogBanner = {
@@ -82,6 +82,9 @@ function CatalogContent({ initialPage }: CatalogPageProps) {
     initialSort === "low" || initialSort === "high" ? initialSort : "relevance",
   );
   const [page, setPage] = useState(Math.max(1, Number(searchParams.get("page") ?? initialPage.page) || 1));
+  const [pageSize, setPageSize] = useState([30, 60, 90].includes(Number(searchParams.get("pageSize")))
+    ? Number(searchParams.get("pageSize"))
+    : initialPage.pageSize);
   const [minPrice, setMinPrice] = useState(initialMin ?? initialPage.facets.price.min);
   const [maxPrice, setMaxPrice] = useState(initialMax ?? initialPage.facets.price.max);
   const [priceTouched, setPriceTouched] = useState(initialMin !== undefined || initialMax !== undefined);
@@ -115,6 +118,8 @@ function CatalogContent({ initialPage }: CatalogPageProps) {
     const nextSort = searchParams.get("sort");
     setSort(nextSort === "low" || nextSort === "high" ? nextSort : "relevance");
     setPage(Math.max(1, Number(searchParams.get("page") ?? 1) || 1));
+    const nextPageSize = Number(searchParams.get("pageSize"));
+    setPageSize([30, 60, 90].includes(nextPageSize) ? nextPageSize : initialPage.pageSize);
 
     const nextMin = validNumber(searchParams.get("minPrice"));
     const nextMax = validNumber(searchParams.get("maxPrice"));
@@ -158,7 +163,7 @@ function CatalogContent({ initialPage }: CatalogPageProps) {
   const requestKey = useMemo(() => {
     const params = new URLSearchParams();
     params.set("page", String(page));
-    params.set("pageSize", "30");
+    params.set("pageSize", String(pageSize));
     params.set("section", section);
     params.set("sort", sort);
     if (query.trim()) params.set("q", query.trim());
@@ -177,6 +182,7 @@ function CatalogContent({ initialPage }: CatalogPageProps) {
     maxPrice,
     minPrice,
     page,
+    pageSize,
     priceTouched,
     query,
     section,
@@ -218,10 +224,7 @@ function CatalogContent({ initialPage }: CatalogPageProps) {
     };
   }, [priceTouched, requestKey]);
 
-  const products = useMemo(
-    () => groupCatalogProducts(data.products),
-    [data.products],
-  );
+  const products = data.products;
 
   const priceLimits = data.facets.price;
   const effectiveMaxPrice = maxPrice || priceLimits.max;
@@ -443,23 +446,39 @@ function CatalogContent({ initialPage }: CatalogPageProps) {
       <section className={`catalog-results ${loading ? "is-loading" : ""}`}>
         <div className="results-bar">
           <span>
-            {data.total} {data.total === 1 ? "produto encontrado" : "produtos encontrados"}
+            {data.total} {data.total === 1 ? "modelo encontrado" : "modelos encontrados"}
             {loading && <small className="catalog-updating">Atualizando...</small>}
           </span>
-          <label>
-            Ordenar
-            <select
-              value={sort}
-              onChange={(event) => {
-                setSort(event.target.value as CatalogSort);
-                setPage(1);
-              }}
-            >
-              <option value="relevance">Relevância</option>
-              <option value="low">Menor preço</option>
-              <option value="high">Maior preço</option>
-            </select>
-          </label>
+          <div className="catalog-results-controls">
+            <label className="catalog-page-size-control">
+              Exibir
+              <select
+                value={pageSize}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+              >
+                <option value={30}>30 por página</option>
+                <option value={60}>60 por página</option>
+                <option value={90}>90 por página</option>
+              </select>
+            </label>
+            <label>
+              Ordenar
+              <select
+                value={sort}
+                onChange={(event) => {
+                  setSort(event.target.value as CatalogSort);
+                  setPage(1);
+                }}
+              >
+                <option value="relevance">Relevância</option>
+                <option value="low">Menor preço</option>
+                <option value="high">Maior preço</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         {loadError && <div className="catalog-request-error">{loadError}</div>}
@@ -512,7 +531,7 @@ function CatalogContent({ initialPage }: CatalogPageProps) {
             )}
 
             <div className="catalog-page-summary">
-              Página {data.page} de {data.pages} · até {data.pageSize} produtos por página
+              Página {data.page} de {data.pages} · até {data.pageSize} modelos por página
             </div>
           </>
         ) : (
@@ -534,7 +553,7 @@ function CatalogContent({ initialPage }: CatalogPageProps) {
         <span>Filtros</span>
         {activeFilterCount > 0 && <b>{activeFilterCount}</b>}
       </button>
-      <span className="mobile-filter-result-count">{data.total} produtos</span>
+      <span className="mobile-filter-result-count">{data.total} modelos</span>
       <button
         type="button"
         className="mobile-filter-clear"
@@ -587,7 +606,7 @@ function CatalogContent({ initialPage }: CatalogPageProps) {
             className="mobile-sheet-apply"
             onClick={() => setMobileFiltersOpen(false)}
           >
-            Ver {data.total} produtos
+            Ver {data.total} modelos
           </button>
         </footer>
       </section>

@@ -141,3 +141,45 @@
     padding-bottom: 5.5rem;
   }
 }
+
+
+/* V7.1: seletor de quantidade por página */
+.storefront-theme .results-bar {
+  gap: .8rem;
+  flex-wrap: wrap;
+}
+
+.storefront-theme .catalog-results-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+.storefront-theme .catalog-results-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  white-space: nowrap;
+}
+
+.storefront-theme .catalog-page-size-control select {
+  min-width: 118px;
+}
+
+@media (max-width: 650px) {
+  .storefront-theme .catalog-results-controls {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .storefront-theme .catalog-results-controls label {
+    flex: 1 1 0;
+  }
+
+  .storefront-theme .catalog-results-controls select {
+    min-width: 0;
+    width: 100%;
+  }
+}
