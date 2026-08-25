@@ -2121,7 +2121,7 @@
 .stock-status-dot.ok { background: #43c98b; }
 
 .settings-wide-panel { grid-column: 1 / -1; }
-.settings-grid > .integration-panel { grid-column: 2; grid-row: 1; }
+.settings-grid > .integration-panel { grid-column: 2; grid-row: 2; }
 .settings-switch-row { display: flex !important; flex-direction: row !important; align-items: center; justify-content: space-between; gap: 1rem; margin: 0 0 1rem; padding: .9rem 1rem; border: 1px solid #dfe7e2; border-radius: 8px; background: #f8faf9; }
 .settings-switch-row > span { display: flex; flex-direction: column; gap: .2rem; }
 .settings-switch-row small { color: var(--muted); font-size: .64rem; font-weight: 600; }
