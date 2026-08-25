@@ -12,19 +12,17 @@ type Props = {
 };
 
 export default function HomeProductSection({ title, buttonLabel, buttonHref, products }: Props) {
+  if (!products.length) return null;
+
   return (
     <section className="home-section home-product-shelf">
       <header className="home-shelf-heading">
         <h2><Tags className="mobile-shelf-icon" aria-hidden="true" />{title}</h2>
         <Link href={buttonHref}>{buttonLabel} <ArrowRight size={14} /></Link>
       </header>
-      {products.length ? (
-        <MobileAutoCarousel label={`Produtos de ${title}`}>
-          {products.slice(0, 5).map((product) => <ProductCard key={product.id} product={product} />)}
-        </MobileAutoCarousel>
-      ) : (
-        <div className="home-shelf-empty"><strong>Novidades em breve</strong><span>Estamos preparando novos produtos para esta seleção.</span></div>
-      )}
+      <MobileAutoCarousel label={`Produtos de ${title}`}>
+        {products.slice(0, 5).map((product) => <ProductCard key={product.id} product={product} />)}
+      </MobileAutoCarousel>
     </section>
   );
 }

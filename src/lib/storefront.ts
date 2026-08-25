@@ -317,9 +317,10 @@ export async function getProductsForSection(query: string, requestedTake = 5) {
       orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
       take,
     })]);
-    return rows.length ? rows.map((row) => mapProduct(row, storeMode)) : fallbackProducts;
+    return rows.map((row) => mapProduct(row, storeMode));
   } catch {
-    return fallbackProducts;
+    // Em producao e mais seguro esconder a prateleira do que vender produto de demonstracao.
+    return [];
   }
 }
 
